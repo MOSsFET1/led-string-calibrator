@@ -79,14 +79,11 @@ Serial directives: `PING`, `STAT`, `SCAN`, `ABRT`, `CFG=<json>`, `EV`, `NPX=`.
 
 ## Known issues
 
-- **Anchor bookkeeping (fixed in S13L, needs bench re-verify):** the K-chain
-  `seen` set mapped chain indices through the wrong division, so anchors 50/100
-  were re-checked at their chain's end position and their good verdicts were
-  overwritten with misses — the "50,100 in every miss list" signature.
+- Anchor bookkeeping (fixed in S13L, bench-verified Sep 24: anchors 50/100
+  found in all 3 EV-verified runs; miss list is now only the 94/95 diffuser
+  pair).
 - px94/95 (hidden die behind a diffuser) flaps between found/missed run-to-run;
   accepted as geometry, not detection.
-- `mergeR=6` compiled default is validated in the bright room and pending
-  operator go-ahead (page restores standing values via CFG each run anyway).
 
 ## Hardware (proven on the bench, carried from the design docs)
 
