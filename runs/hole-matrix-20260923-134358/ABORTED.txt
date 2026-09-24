@@ -1,0 +1,1 @@
+[STAT] polls in 2s: 1, page build 'S13A-1900', evid 596 B -> ALIVE

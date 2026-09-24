@@ -1,0 +1,14 @@
+# build artifacts
+firmware/poc_survey/build*/
+build*/
+
+# python
+__pycache__/
+*.pyc
+
+# local TLS material (the box's own self-signed identity; regenerate per deployment)
+*.pem
+
+# scratch
+*.log
+.DS_Store
