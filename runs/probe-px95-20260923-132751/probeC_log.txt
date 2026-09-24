@@ -1,0 +1,402 @@
+[PHONE-LOG] begin
+[PHONE] t  93.6 h116 FOUND pk185 n143 @(218,334) d104.8
+t  94.2 h117 FOUND pk202 n92 @(218,311) d105.6
+t  94.7 h118 FOUND pk196 n48 @(226,288) d105.5
+t  95.1 h119 FOUND pk199 n48 @(236,265) d105.9
+t  95.6 hole master regrabbed at pair 120
+t  96.1 h120 FOUND pk173 n40 @(244,241) d106.8
+[PHONE] t  96.5 h121 FOUND pk167 n37 @(250,214) d106.7
+t  97.1 h122 FOUND pk158 n41 @(252,186) d106.5
+t  97.6 h123 FOUND pk174 n258 @(268,148) d107.4
+t  98.2 h124 FOUND pk214 n75 @(273,131) d105.7
+t  98.3 hole progress 125/150 (73s)
+t  98.7 h125 FOUND pk206 n56 @(294,108) d107.9
+[PHONE] t  99.3 h126 FOUND pk212 n72 @(319,93) d106.7
+t  99.8 h127 FOUND pk211 n112 @(328,99) d106.9
+t 100.4 h128 FOUND pk212 n60 @(309,123) d105.4
+t 100.9 h129 FOUND pk207 n339 @(313,137) d105.6
+t 101.5 hole master regrabbed at pair 130
+t 101.9 h130 FOUND pk203 n55 @(303,181) d104.5
+[PHONE] t 102.4 h131 FOUND pk206 n46 @(299,213) d104.4
+t 102.9 h132 FOUND pk206 n65 @(297,244) d104.5
+t 103.5 h133 FOUND pk178 n77 @(297,275) d105.1
+t 104.0 h134 FOUND pk204 n70 @(297,303) d107.4
+t 104.5 h135 FOUND pk232 n228 @(301,334) d107.3
+t 105.0 h136 FOUND pk233 n264 @(304,364) d105.7
+[PHONE] t 105.5 h137 FOUND pk196 n607 @(313,384) d106
+t 106.0 h138 FOUND pk194 n52 @(299,419) d105
+t 106.5 h139 FOUND pk188 n45 @(295,446) d104.7
+t 107.0 hole master regrabbed at pair 140
+t 107.5 h140 FOUND pk195 n50 @(295,473) d104.7
+t 108.0 h141 FOUND pk196 n41 @(298,502) d105.2
+[PHONE] t 108.6 h142 FOUND pk208 n70 @(301,529) d106.1
+t 109.1 h143 FOUND pk222 n68 @(303,559) d105.8
+t 109.6 h144 FOUND pk193 n56 @(312,588) d107.1
+t 110.1 h145 FOUND pk169 n66 @(335,601) d106.3
+t 110.5 h146 FOUND pk202 n56 @(358,602) d106.2
+t 111.0 h147 FOUND pk195 n58 @(366,631) d108.6
+[PHONE] t 111.5 h148 FOUND pk223 n124 @(391,663) d106.5
+t 112.1 h149 FOUND pk224 n56 @(371,627) d104.9
+t 112.1 hole progress 150/150 (87s)
+t 112.2 hole survey done: 150 found, 0 missed in 87s
+t 112.2 evid 596B
+t 124.7 log pull: 182 lines
+[PHONE] t 133.8 log pull done
+t 147.4 cfg holeFrameEvery=1
+t 147.4 drv SCAN
+t 147.4 hole survey start (npx=150 b=200 gap=300 thr=30 domK=8)
+t 148.7 hole master grabbed (3 grabs)
+t 149.1 h0 FOUND pk201 n466 @(67,648) d105.7
+[PHONE] t 149.6 h1 FOUND pk182 n383 @(53,636) d105.5
+t 150.1 h2 FOUND pk210 n361 @(26,628) d105.1
+t 150.6 h3 FOUND pk222 n95 @(24,614) d104.6
+t 151.1 h4 FOUND pk198 n188 @(24,599) d105
+t 151.6 h5 FOUND pk188 n138 @(43,587) d105.3
+t 152.2 h6 FOUND pk174 n138 @(68,582) d105
+[PHONE] t 152.6 h7 FOUND pk130 n59 @(91,581) d104.6
+t 153.1 h8 FOUND pk160 n95 @(115,582) d104.6
+t 153.7 h9 FOUND pk163 n102 @(134,578) d104.9
+t 154.2 hole master regrabbed at pair 10
+t 154.7 h10 FOUND pk139 n89 @(150,569) d104.6
+t 155.2 h11 FOUND pk151 n90 @(152,559) d104.5
+[PHONE] t 155.6 h12 FOUND pk149 n21 @(150,549) d104.5
+t 156.1 h13 FOUND pk155 n141 @(147,545) d105
+t 156.7 h14 FOUND pk144 n57 @(126,547) d105.2
+t 157.2 h15 FOUND pk149 n84 @(104,553) d105.7
+t 157.7 h16 FOUND pk139 n235 @(102,564) d104.9
+t 158.2 h17 FOUND pk131 n181 @(101,574) d104.8
+[PHONE] t 158.7 h18 FOUND pk162 n179 @(94,587) d104.8
+t 159.1 h19 FOUND pk189 n158 @(98,603) d104.8
+t 159.6 hole master regrabbed at pair 20
+t 160.1 h20 FOUND pk165 n591 @(119,615) d1010.5
+t 160.6 h21 FOUND pk164 n335 @(145,608) d109.2
+t 161.2 h22 FOUND pk166 n331 @(169,604) d109.2
+[PHONE] t 161.7 h23 FOUND pk170 n238 @(190,600) d107.6
+t 162.3 h24 FOUND pk216 n114 @(215,599) d107.2
+t 162.4 hole progress 25/150 (15s)
+t 162.8 h25 FOUND pk226 n256 @(232,588) d107
+t 163.3 h26 FOUND pk228 n117 @(246,580) d108
+t 163.8 h27 FOUND pk168 n160 @(236,567) d108.6
+[PHONE] t 164.3 h28 FOUND pk194 n59 @(224,576) d108.8
+t 164.8 h29 FOUND pk234 n60 @(211,531) d108
+t 165.3 hole master regrabbed at pair 30
+t 165.8 h30 FOUND pk148 n25 @(202,519) d107
+t 166.4 h31 FOUND pk186 n30 @(203,504) d104.8
+t 167.0 h32 FOUND pk177 n33 @(201,485) d104.5
+[PHONE] t 167.5 h33 FOUND pk218 n83 @(199,463) d105.5
+t 168.1 h34 FOUND pk180 n45 @(199,441) d105.2
+t 168.5 h35 FOUND pk189 n30 @(198,418) d104.8
+t 169.0 h36 FOUND pk194 n37 @(197,396) d104.8
+t 169.6 h37 FOUND pk185 n46 @(198,374) d105.1
+t 170.1 h38 FOUND pk198 n321 @(205,350) d105.2
+[PHONE] t 170.7 h39 FOUND pk192 n238 @(204,328) d105.3
+t 171.1 hole master regrabbed at pair 40
+t 171.7 h40 FOUND pk212 n118 @(198,303) d107.7
+t 172.2 h41 FOUND pk219 n136 @(205,279) d107.4
+t 172.7 h42 FOUND pk222 n57 @(201,255) d107.1
+t 173.2 h43 FOUND pk215 n49 @(203,229) d106.2
+[PHONE] t 173.8 h44 FOUND pk211 n52 @(205,204) d106.3
+t 174.3 h45 FOUND pk223 n52 @(208,178) d108.2
+t 174.9 h46 FOUND pk234 n196 @(212,149) d104.7
+t 175.4 h47 FOUND pk250 n120 @(213,128) d107.3
+t 176.0 h48 FOUND pk242 n51 @(213,102) d106.8
+t 176.5 h49 FOUND pk229 n74 @(218,82) d108.2
+[PHONE] t 176.5 hole progress 50/150 (29s)
+t 177.0 hole master regrabbed at pair 50
+t 177.5 h50 FOUND pk186 n87 @(204,89) d105.8
+t 178.1 h51 FOUND pk176 n41 @(189,112) d105.2
+t 178.6 h52 FOUND pk237 n76 @(183,140) d104.6
+t 179.1 h53 FOUND pk181 n73 @(185,160) d104.9
+[PHONE] t 179.6 h54 FOUND pk143 n33 @(178,188) d104.7
+t 180.2 h55 FOUND pk183 n39 @(178,213) d105.3
+t 180.7 h56 FOUND pk167 n38 @(175,236) d105.2
+t 181.3 h57 FOUND pk195 n90 @(177,262) d105.4
+t 181.8 h58 FOUND pk148 n287 @(177,281) d105
+t 182.3 h59 FOUND pk192 n273 @(177,304) d104.9
+[PHONE] t 182.8 hole master regrabbed at pair 60
+t 183.3 h60 FOUND pk190 n187 @(174,323) d104.9
+t 183.8 h61 FOUND pk178 n151 @(175,343) d104.8
+t 184.3 h62 FOUND pk132 n41 @(166,365) d105.2
+t 184.8 h63 FOUND pk138 n17 @(170,390) d105.4
+t 185.3 h64 FOUND pk146 n39 @(164,406) d105.6
+[PHONE] t 185.9 h65 FOUND pk136 n25 @(164,425) d105.5
+t 186.3 h66 FOUND pk145 n27 @(167,443) d105.5
+t 186.9 h67 FOUND pk172 n27 @(161,457) d105.4
+t 187.4 h68 FOUND pk189 n34 @(156,472) d105.3
+t 187.9 h69 FOUND pk148 n30 @(153,486) d105.6
+t 188.5 hole master regrabbed at pair 70
+[PHONE] t 188.9 h70 FOUND pk134 n22 @(146,498) d106.1
+t 189.5 h71 FOUND pk216 n54 @(137,508) d105
+t 189.9 h72 FOUND pk183 n8 @(124,519) d105.3
+t 190.4 h73 FOUND pk138 n8 @(121,512) d105.5
+t 191.0 h74 FOUND pk173 n154 @(119,482) d105.6
+t 191.1 hole progress 75/150 (44s)
+[PHONE] t 191.6 h75 FOUND pk224 n45 @(120,461) d106
+t 192.1 h76 FOUND pk174 n34 @(119,444) d105.5
+t 192.7 h77 FOUND pk152 n36 @(117,427) d105
+t 193.2 h78 FOUND pk170 n28 @(116,409) d105
+t 193.7 h79 FOUND pk147 n28 @(114,393) d104.8
+t 194.2 hole master regrabbed at pair 80
+[PHONE] t 194.8 h80 FOUND pk159 n27 @(114,375) d104.7
+t 195.2 h81 FOUND pk146 n26 @(114,359) d104.5
+t 195.9 h82 FOUND pk198 n180 @(117,342) d104.8
+t 196.4 h83 FOUND pk199 n292 @(118,325) d105
+t 196.9 h84 FOUND pk211 n50 @(111,304) d105.2
+t 197.4 h85 FOUND pk241 n42 @(111,285) d105.3
+[PHONE] t 197.8 h86 FOUND pk225 n37 @(110,266) d105.3
+t 198.3 h87 FOUND pk209 n54 @(108,246) d105.4
+t 198.8 h88 FOUND pk167 n26 @(110,226) d106
+t 199.3 h89 FOUND pk174 n36 @(109,206) d106.6
+t 199.9 hole master regrabbed at pair 90
+t 200.3 h90 FOUND pk186 n28 @(108,185) d107.1
+[PHONE] t 200.8 h91 FOUND pk215 n84 @(113,166) d104.5
+t 201.4 h92 FOUND pk234 n234 @(123,152) d104.7
+t 201.9 h93 FOUND pk214 n71 @(134,141) d106.1
+t 202.5 h94 FOUND pk132 n15 @(138,140) d108.1
+t 202.9 h95 miss (blobs:5 acc:0)
+t 203.5 h96 FOUND pk180 n28 @(105,158) d104.5
+[PHONE] t 204.0 h97 FOUND pk40 n2 @(154,626) d104.3
+t 204.6 h98 miss (blobs:0 acc:0)
+t 205.4 h99 miss (blobs:0 acc:0)
+t 205.4 hole progress 100/150 (58s)
+t 206.0 hole master regrabbed at pair 100
+t 206.5 h100 miss (blobs:0 acc:0)
+[PHONE] t 207.1 h101 miss (blobs:0 acc:0)
+t 207.6 h102 FOUND pk42 n4 @(155,629) d104.2
+t 208.1 h103 FOUND pk44 n2 @(150,630) d104.2
+t 208.7 h104 FOUND pk55 n4 @(155,626) d104.2
+t 209.5 h105 FOUND pk44 n4 @(155,626) d104.3
+t 210.2 h106 FOUND pk39 n3 @(155,629) d104.2
+[PHONE] t 210.7 h107 miss (blobs:0 acc:0)
+t 211.3 h108 miss (blobs:0 acc:0)
+t 212.1 h109 miss (blobs:0 acc:0)
+t 212.8 hole master regrabbed at pair 110
+t 213.3 h110 miss (blobs:0 acc:0)
+t 213.9 h111 miss (blobs:1 acc:0)
+[PHONE] t 214.3 h112 miss (blobs:0 acc:0)
+t 214.9 h113 miss (blobs:0 acc:0)
+t 215.4 h114 FOUND pk38 n2 @(156,628) d104.2
+t 215.9 h115 FOUND pk67 n16 @(155,631) d104.2
+t 216.5 h116 FOUND pk72 n16 @(155,631) d104.3
+t 217.3 h117 miss (blobs:0 acc:0)
+[PHONE] t 218.0 h118 miss (blobs:0 acc:0)
+t 218.5 h119 FOUND pk35 n2 @(154,626) d104.2
+t 219.1 hole master regrabbed at pair 120
+t 219.5 h120 miss (blobs:0 acc:0)
+t 220.1 h121 FOUND pk48 n17 @(154,631) d104.3
+t 221.1 h122 FOUND pk94 n23 @(154,631) d104.3
+[PHONE] t 221.6 h123 FOUND pk89 n22 @(154,631) d104.3
+t 222.2 h124 FOUND pk57 n5 @(154,628) d104.2
+t 222.2 hole progress 125/150 (75s)
+t 222.7 h125 miss (blobs:1 acc:0)
+t 223.2 h126 miss (blobs:0 acc:0)
+t 223.9 h127 miss (blobs:0 acc:0)
+[PHONE] t 224.7 h128 miss (blobs:0 acc:0)
+t 225.4 h129 FOUND pk62 n5 @(155,628) d104.2
+t 226.3 hole master regrabbed at pair 130
+t 226.8 h130 miss (blobs:0 acc:0)
+t 227.3 h131 FOUND pk46 n4 @(156,629) d104.2
+t 227.9 h132 FOUND pk50 n2 @(150,630) d104.3
+[PHONE] t 228.4 h133 FOUND pk55 n4 @(155,626) d104.3
+t 229.0 h134 FOUND pk58 n6 @(155,626) d104.3
+t 229.8 h135 FOUND pk48 n2 @(150,630) d104.2
+t 230.6 h136 miss (blobs:0 acc:0)
+t 231.6 h137 miss (blobs:0 acc:0)
+t 232.0 h138 miss (blobs:1 acc:0)
+[PHONE] t 232.6 h139 FOUND pk47 n2 @(150,630) d104.3
+t 233.5 hole master regrabbed at pair 140
+t 234.2 h140 miss (blobs:0 acc:0)
+t 235.0 h141 FOUND pk40 n8 @(154,632) d104.3
+t 235.6 h142 FOUND pk77 n20 @(154,631) d104.4
+t 236.2 h143 FOUND pk94 n23 @(154,631) d104.3
+[PHONE] t 236.7 h144 FOUND pk81 n22 @(154,631) d104.4
+t 237.3 h145 FOUND pk46 n15 @(154,630) d104.3
+t 238.1 h146 miss (blobs:0 acc:0)
+t 238.8 h147 miss (blobs:0 acc:0)
+t 239.4 h148 miss (blobs:0 acc:0)
+t 240.3 h149 FOUND pk44 n16 @(154,630) d104.3
+[PHONE] t 240.3 hole progress 150/150 (93s)
+t 240.5 hole survey done: 123 found, 27 missed in 93s misses: 95,98,99,100,101,107,108,109,110,111,112,113,117,118,120,125,126,127,128,130,136,137,138,140,146,147,148
+t 240.5 evid 596B
+t 355.7 frame pull: 16 frames
+t 416.9 frame pull done
+t 442.8 cfg holeFrameEvery=1
+[PHONE] t 442.8 drv SCAN
+t 442.8 hole survey start (npx=150 b=200 gap=300 thr=30 domK=8)
+t 444.2 hole master grabbed (3 grabs)
+t 444.7 h0 FOUND pk189 n359 @(67,647) d104.8
+t 445.2 h1 FOUND pk186 n313 @(53,637) d104.6
+t 445.7 h2 FOUND pk212 n200 @(32,628) d104.5
+[PHONE] t 446.2 h3 FOUND pk219 n77 @(24,614) d104.1
+t 446.7 h4 FOUND pk192 n142 @(25,599) d104.4
+t 447.3 h5 FOUND pk185 n105 @(43,587) d104.7
+t 447.8 h6 FOUND pk175 n109 @(69,582) d104.4
+t 448.3 h7 FOUND pk136 n63 @(91,581) d104.2
+t 448.9 h8 FOUND pk163 n82 @(114,582) d104.2
+[PHONE] t 449.4 h9 FOUND pk162 n93 @(135,578) d104.2
+t 450.0 hole master regrabbed at pair 10
+t 450.4 h10 FOUND pk142 n80 @(150,569) d104.5
+t 451.0 h11 FOUND pk157 n79 @(152,559) d104.4
+t 451.6 h12 FOUND pk169 n24 @(150,548) d104.3
+t 452.1 h13 FOUND pk145 n137 @(147,545) d104.7
+[PHONE] t 452.7 h14 FOUND pk150 n55 @(125,547) d105
+t 453.2 h15 FOUND pk153 n77 @(104,553) d105.3
+t 453.7 h16 FOUND pk148 n223 @(103,564) d105.1
+t 454.2 h17 FOUND pk141 n175 @(101,574) d104.7
+t 454.8 h18 FOUND pk163 n151 @(95,588) d104.6
+t 455.3 h19 FOUND pk194 n132 @(98,603) d104.4
+[PHONE] t 455.8 hole master regrabbed at pair 20
+t 456.2 h20 FOUND pk159 n449 @(119,613) d105.7
+t 456.7 h21 FOUND pk158 n294 @(145,608) d105
+t 457.2 h22 FOUND pk154 n286 @(169,604) d105.3
+t 457.6 h23 FOUND pk150 n201 @(191,600) d104.7
+t 458.1 h24 FOUND pk203 n100 @(214,599) d104.6
+[PHONE] t 458.2 hole progress 25/150 (15s)
+t 458.7 h25 FOUND pk221 n231 @(232,588) d104.6
+t 459.2 h26 FOUND pk228 n99 @(245,580) d104.8
+t 459.7 h27 FOUND pk171 n148 @(236,568) d105
+t 460.2 h28 FOUND pk185 n58 @(224,576) d105.8
+t 460.7 h29 FOUND pk236 n45 @(211,531) d105.8
+[PHONE] t 461.2 hole master regrabbed at pair 30
+t 461.6 h30 FOUND pk147 n24 @(202,519) d105.6
+t 462.1 h31 FOUND pk181 n28 @(203,504) d104.1
+t 462.6 h32 FOUND pk187 n29 @(201,486) d104.2
+t 463.1 h33 FOUND pk214 n61 @(199,463) d104.6
+t 463.6 h34 FOUND pk181 n35 @(200,441) d104.5
+[PHONE] t 464.1 h35 FOUND pk174 n29 @(198,418) d104.2
+t 464.7 h36 FOUND pk158 n35 @(197,396) d104.1
+t 465.2 h37 FOUND pk128 n19 @(198,376) d104.2
+t 465.8 h38 FOUND pk120 n208 @(203,350) d104.6
+t 466.2 h39 FOUND pk163 n98 @(203,331) d105
+t 466.8 hole master regrabbed at pair 40
+[PHONE] t 467.2 h40 FOUND pk151 n66 @(198,305) d105.7
+t 467.8 h41 FOUND pk163 n57 @(202,281) d105.9
+t 468.3 h42 FOUND pk162 n50 @(201,256) d105.4
+t 468.8 h43 FOUND pk161 n44 @(203,230) d104.7
+t 469.4 h44 FOUND pk162 n48 @(205,204) d104.7
+t 469.8 h45 FOUND pk185 n47 @(207,178) d105.2
+[PHONE] t 470.4 h46 FOUND pk236 n166 @(213,149) d104.7
+t 470.9 h47 FOUND pk249 n93 @(212,128) d106.3
+t 471.5 h48 FOUND pk228 n49 @(213,102) d106.4
+t 472.0 h49 FOUND pk214 n67 @(217,82) d107.4
+t 472.0 hole progress 50/150 (29s)
+t 472.4 hole master regrabbed at pair 50
+[PHONE] t 472.9 h50 FOUND pk188 n65 @(203,91) d105.8
+t 473.4 h51 FOUND pk182 n39 @(189,112) d104.8
+t 474.0 h52 FOUND pk241 n48 @(182,138) d104.8
+t 474.5 h53 FOUND pk172 n55 @(184,160) d104.9
+t 475.1 h54 FOUND pk151 n28 @(178,188) d104.4
+t 475.6 h55 FOUND pk178 n36 @(178,213) d104.8
+[PHONE] t 476.0 h56 FOUND pk166 n32 @(175,236) d104.8
+t 476.5 h57 FOUND pk183 n33 @(173,259) d105
+t 477.1 h58 FOUND pk148 n233 @(177,282) d105.3
+t 477.6 h59 FOUND pk192 n228 @(177,304) d105.1
+t 478.1 hole master regrabbed at pair 60
+t 478.6 h60 FOUND pk188 n151 @(174,323) d104.6
+[PHONE] t 479.2 h61 FOUND pk165 n129 @(175,343) d104.3
+t 479.7 h62 FOUND pk128 n31 @(167,366) d104.5
+t 480.2 h63 FOUND pk149 n12 @(169,390) d104.5
+t 480.8 h64 FOUND pk153 n29 @(164,406) d104.7
+t 481.3 h65 FOUND pk153 n22 @(164,425) d104.4
+t 481.8 h66 FOUND pk143 n25 @(167,443) d104.6
+[PHONE] t 482.3 h67 FOUND pk178 n23 @(161,457) d104.8
+t 482.8 h68 FOUND pk193 n29 @(157,473) d104.9
+t 483.3 h69 FOUND pk150 n30 @(153,487) d105.2
+t 483.8 hole master regrabbed at pair 70
+t 484.3 h70 FOUND pk138 n20 @(146,498) d106.2
+t 484.8 h71 FOUND pk222 n50 @(136,509) d104.8
+[PHONE] t 485.3 h72 FOUND pk191 n13 @(125,518) d105.1
+t 485.8 h73 FOUND pk118 n10 @(121,516) d105.8
+t 486.3 h74 FOUND pk178 n145 @(119,482) d105.4
+t 486.4 hole progress 75/150 (44s)
+t 486.8 h75 FOUND pk235 n35 @(120,461) d105.4
+t 487.4 h76 FOUND pk174 n28 @(119,444) d104.9
+[PHONE] t 487.9 h77 FOUND pk162 n28 @(118,427) d104.7
+t 488.4 h78 FOUND pk158 n25 @(116,409) d104.4
+t 488.9 h79 FOUND pk146 n23 @(114,393) d104.5
+t 489.4 hole master regrabbed at pair 80
+t 489.9 h80 FOUND pk159 n24 @(114,376) d104.4
+t 490.4 h81 FOUND pk140 n22 @(114,359) d104.4
+[PHONE] t 490.9 h82 FOUND pk194 n137 @(117,342) d104.7
+t 491.4 h83 FOUND pk196 n233 @(118,325) d104.6
+t 492.0 h84 FOUND pk204 n35 @(111,305) d105.1
+t 492.5 h85 FOUND pk235 n28 @(111,286) d104.8
+t 493.1 h86 FOUND pk238 n26 @(110,266) d104.6
+t 493.6 h87 FOUND pk236 n32 @(109,248) d105
+[PHONE] t 494.2 h88 FOUND pk177 n22 @(110,226) d105.4
+t 494.6 h89 FOUND pk172 n17 @(110,206) d105.6
+t 495.1 hole master regrabbed at pair 90
+t 495.7 h90 FOUND pk186 n23 @(107,185) d106.5
+t 496.3 h91 FOUND pk210 n70 @(112,166) d104.5
+t 496.8 h92 FOUND pk236 n222 @(123,153) d104.5
+[PHONE] t 497.4 h93 FOUND pk218 n61 @(133,141) d106
+t 497.9 h94 FOUND pk124 n15 @(138,139) d107.8
+t 498.5 h95 miss (blobs:3 acc:0)
+t 499.0 h96 FOUND pk179 n8 @(108,155) d104.5
+t 499.5 h97 FOUND pk228 n76 @(101,169) d104.4
+t 499.9 h98 FOUND pk210 n154 @(101,187) d104.8
+[PHONE] t 500.4 h99 FOUND pk228 n91 @(102,207) d104.5
+t 500.5 hole progress 100/150 (58s)
+t 500.9 hole master regrabbed at pair 100
+t 501.5 h100 FOUND pk219 n85 @(103,228) d104.8
+t 502.0 h101 FOUND pk181 n29 @(106,242) d104.5
+t 502.6 h102 FOUND pk214 n18 @(107,263) d104.2
+[PHONE] t 503.1 h103 FOUND pk189 n22 @(112,281) d104.4
+t 503.6 h104 FOUND pk173 n27 @(118,300) d104.5
+t 504.2 h105 FOUND pk185 n100 @(129,319) d104.6
+t 504.6 h106 FOUND pk157 n37 @(132,338) d104.3
+t 505.1 h107 FOUND pk175 n37 @(137,355) d104.1
+t 505.6 h108 FOUND pk173 n33 @(141,371) d104.2
+[PHONE] t 506.2 h109 FOUND pk172 n25 @(146,387) d104.2
+t 506.7 hole master regrabbed at pair 110
+t 507.2 h110 FOUND pk163 n38 @(161,394) d104
+t 507.7 h111 FOUND pk136 n16 @(174,388) d104.2
+t 508.3 h112 FOUND pk118 n19 @(181,380) d104.2
+t 508.7 h113 FOUND pk119 n25 @(190,371) d104.2
+[PHONE] t 509.3 h114 FOUND pk115 n24 @(197,364) d104.5
+t 509.8 h115 FOUND pk202 n22 @(204,353) d104.8
+t 510.4 h116 FOUND pk186 n147 @(219,335) d104.8
+t 510.9 h117 FOUND pk204 n82 @(218,311) d105.7
+t 511.4 h118 FOUND pk195 n47 @(227,288) d105.7
+t 511.8 h119 FOUND pk186 n49 @(236,265) d105.8
+[PHONE] t 512.3 hole master regrabbed at pair 120
+t 512.7 h120 FOUND pk169 n41 @(244,241) d106.8
+t 513.2 h121 FOUND pk164 n37 @(250,214) d107
+t 513.7 h122 FOUND pk156 n42 @(252,186) d106.7
+t 514.3 h123 FOUND pk171 n251 @(267,149) d107.4
+t 514.9 h124 FOUND pk215 n83 @(273,131) d105.7
+[PHONE] t 514.9 hole progress 125/150 (72s)
+t 515.3 h125 FOUND pk204 n59 @(294,108) d107.6
+t 515.8 h126 FOUND pk210 n76 @(319,93) d106.6
+t 516.3 h127 FOUND pk209 n112 @(329,99) d106.7
+t 516.9 h128 FOUND pk213 n60 @(309,123) d105.7
+t 517.4 h129 FOUND pk202 n76 @(301,148) d105.6
+[PHONE] t 517.9 hole master regrabbed at pair 130
+t 518.4 h130 FOUND pk201 n54 @(303,181) d104.4
+t 519.0 h131 FOUND pk201 n45 @(299,213) d104.5
+t 519.5 h132 FOUND pk203 n64 @(297,245) d104.5
+t 520.0 h133 FOUND pk181 n77 @(297,275) d105.2
+t 520.5 h134 FOUND pk201 n66 @(297,303) d107.5
+[PHONE] t 521.0 h135 FOUND pk229 n226 @(301,334) d107.7
+t 521.5 h136 FOUND pk230 n251 @(305,364) d105.7
+t 522.0 h137 FOUND pk192 n615 @(313,384) d106.3
+t 522.6 h138 FOUND pk186 n51 @(299,419) d105
+t 523.1 h139 FOUND pk184 n44 @(295,446) d105
+t 523.7 hole master regrabbed at pair 140
+[PHONE] t 524.1 h140 FOUND pk192 n51 @(295,473) d104.8
+t 524.7 h141 FOUND pk194 n39 @(298,501) d105.3
+t 525.2 h142 FOUND pk208 n72 @(301,530) d106
+t 525.8 h143 FOUND pk219 n71 @(303,559) d105.7
+t 526.2 h144 FOUND pk200 n53 @(312,588) d106.8
+t 526.8 h145 FOUND pk167 n68 @(335,601) d106.5
+[PHONE] t 527.2 h146 FOUND pk202 n53 @(358,602) d106.4
+t 527.8 h147 FOUND pk193 n60 @(366,631) d108.5
+t 528.3 h148 FOUND pk220 n123 @(391,663) d107.2
+t 528.9 h149 FOUND pk223 n57 @(371,627) d105
+t 528.9 hole progress 150/150 (86s)
+t 529.0 hole survey done: 149 found, 1 missed in 86s misses: 95
+[PHONE] t 529.0 evid 595B
+t 529.7 frame pull: 16 frames
+t 602.1 frame pull done
+t 607.9 log pull: 400 lines
+[PHONE-LOG] end

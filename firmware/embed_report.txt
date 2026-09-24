@@ -1,0 +1,3 @@
+raw literals: 2 (want 2)
+BEGIN lines: 0
+PEM newline-terminated blocks: 2 (want 2)

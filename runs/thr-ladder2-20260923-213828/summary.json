@@ -1,0 +1,50 @@
+[
+ {
+  "tag": "thr30_r1",
+  "ok": false,
+  "wall": 245,
+  "foundN": null,
+  "missed": null
+ },
+ {
+  "tag": "thr45_r1",
+  "ok": true,
+  "wall": 33,
+  "foundN": 149,
+  "missed": [
+   95
+  ]
+ },
+ {
+  "tag": "thr45_r2",
+  "ok": false,
+  "wall": 245,
+  "foundN": null,
+  "missed": null
+ },
+ {
+  "tag": "thr60_r1",
+  "ok": true,
+  "wall": 33,
+  "foundN": 149,
+  "missed": [
+   95
+  ]
+ },
+ {
+  "tag": "thr60_r2",
+  "ok": false,
+  "wall": 245,
+  "foundN": null,
+  "missed": null
+ },
+ {
+  "tag": "thr30_r2",
+  "ok": true,
+  "wall": 33,
+  "foundN": 149,
+  "missed": [
+   95
+  ]
+ }
+]

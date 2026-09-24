@@ -1,0 +1,38 @@
+[PHONE-LOG] begin
+[PHONE] t   0.0 ws connect wss://192.168.4.1/ws
+t   0.0 wake lock acquired
+t   0.9 cam live 720x1280 track=camera 0, facing back
+t   0.9 proc 406x720 (video 720x1280)
+t   0.9 ev bias -1
+t   2.6 box hello fw=poc_survey px=150
+[PHONE] t 327.6 ack retry id217
+t 332.1 ack retry id218
+t 336.6 ack retry id219
+t 337.2 ws retry in 500ms
+t 337.8 ws connect wss://192.168.4.1/ws
+t 337.8 ws retry in 1000ms
+[PHONE] t 338.8 ws connect wss://192.168.4.1/ws
+t 338.8 ws retry in 2000ms
+t 340.8 ws connect wss://192.168.4.1/ws
+t 342.4 box hello fw=poc_survey px=200
+t 367.7 drv SCAN
+t 367.7 survey start
+[PHONE] t 369.1 black g0 pk255 cw0.0% bl0
+t 369.3 black g1 pk255 cw0.0% bl0
+t 369.5 black g2 pk255 cw0.0% bl0
+t 370.3 all g0 pk255 cw0.6% bl0
+t 370.4 all g1 pk255 cw0.6% bl0
+t 370.6 all g2 pk255 cw0.6% bl0
+[PHONE] t 371.5 frame:R g0 pk255 cw0.6% bl0
+t 371.9 frame:R g1 pk255 cw0.5% bl0
+t 372.2 frame:R g2 pk255 cw0.5% bl0
+t 373.0 frame:G g0 pk255 cw0.6% bl3 G(105,225)p57 G(104,228)p46 G(104,226)p45
+t 373.3 frame:G g1 pk255 cw0.5% bl2 G(105,225)p59 G(104,228)p45
+t 373.6 frame:G g2 pk255 cw0.5% bl2 G(105,225)p60 G(104,228)p48
+[PHONE] t 374.5 frame:B g0 pk255 cw0.5% bl0
+t 374.8 frame:B g1 pk255 cw0.5% bl0
+t 375.1 frame:B g2 pk255 cw0.5% bl0
+t 375.1 survey done
+t 375.1 evid 513B
+t 409.9 log pull: 35 lines
+[PHONE-LOG] end

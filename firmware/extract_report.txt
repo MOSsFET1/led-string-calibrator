@@ -1,0 +1,5 @@
+cert parse: rc=0 subject=CN=led-survey
+notBefore=Sep 21 07:24:15 2026 GMT
+notAfter=Sep 21 07:24:15 2027 GMT
+key parse: rc=0 
+cert/key MATCH: True
