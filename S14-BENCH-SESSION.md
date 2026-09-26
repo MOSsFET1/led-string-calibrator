@@ -1,4 +1,61 @@
-# S14 bench session — tomorrow (Oliver back home)
+# S14 bench session — CWC-form movement test (S14J, 27 Sep)
+
+## S14J: 19-frame CWC-form movement test (BUILT + FLASHED 27 Sep)
+
+The movement test now runs in the AGREE 19-frame CWC protocol shape (master +
+18 codeword planes, **no off frame** — agreed 27 Sep, point set later comes
+from the pile-up of registered (master − plane) diffs). Purpose: prove the
+comp + measurement machinery works on 50%-duty plane content before any
+decode is attempted, and measure per-plane comp residual on real handheld
+rounds. All-on movement burst still available with `--cwc 0`.
+
+```
+python3 tools/s14_bench.py burst --cwc 1 --comp 1 --b 150 --dur 40   # tripod first
+python3 tools/s14_bench.py pull runs/s14j-tripod
+python3 tools/cwc_analyse.py runs/s14j-tripod --save-pileup runs/s14j-tripod/pileup.png
+# handheld: same, operator holds the phone
+```
+
+Page CFG keys (sticky): `cwc` (0/1), `cwcN` (LEDs mapped, 10-200; plane
+payload fits the box WS limit at ≤200 px), `cwcSettle` (paint→grab ms,
+clamped ≥70). Codeword bank is embedded in the page (1600 codes, weight 9,
+planes exactly N/2 ON, d_min 6 within the first 150). CWCSTATS ships per-
+plane comp shifts in the BRAMP pull; `cwc_analyse.py` reads them plus the
+frames, re-registers plane-vs-master console-side (ground truth), rebuilds
+the pile-up, and runs the S13-mirror hole detector on it.
+
+Harness validation 27 Sep (mock box + headless Chromium, no phone):
+- estimator round trip on live page code: identity conf 1.00, known shift
+  recovered within half a grid cell, warp-back reduces error 87→30;
+  **test-lesson: white-noise content is pathological for the decimated NCC**
+  (sub-cell shifts decorrelate — real camera content is smooth, tripod
+  measured 0.00 residual; quote quantization-aware gates, not absolute px)
+- CWC burst runtime: exactly 1 all-on + 18 plane paints at cwcN=10, comp ON,
+  residual max 0.00 px, CWCSTATS shipped, no runtime errors
+- S14B-5 comp fix landed: NCC estimates now ×W/128 (decimated grid → source
+  px) before the integer pre-shift and the stored-frame warp; previously the
+  comp chain consumed grid units raw (~31% correction, 0.685× lag per frame)
+
+## What to watch on the first real CWC rounds
+
+1. **Cadence**: plane paint ack + settle 100 ms + grab ≈ the burst floor.
+   Expect slower than the all-on unpaced 6.5 fps (paint round-trips dominate).
+2. **Per-plane comp residual** (CWCSTATS + `cwc_analyse.py` console check):
+   must stay well inside ~5 px median on handheld for the pile-up point set
+   to hold — that residual is now measured on 50%-duty content, the known
+   pessimistic case for correlation (plane-vs-master conf 0.44–0.6 synthetic).
+3. **Pile-up image** (`--save-pileup`): 150-LED string should show ~150 dark
+   holes, each LED accumulated 9×; watch for fragmenting/merged holes at
+   handheld residual — this is the bench-unproven pile-up assumption.
+4. **Exposure pin** across the 19 frames (exp= line in FRAME meta): a jump
+   mid-burst is the AE-transition class — detect + drop, don't register.
+5. Codeword paint sanity at 150: each plane shows exactly 75 white + 75 black
+   (prefix balance) — visible as a mixed LATCH line in the mock, or via the
+   `cwc_analyse.py` weight check once decode lands.
+
+---
+
+# S14 bench session — historical (day 1/2 evidence below)
 
 Goal: measure the two unknowns the S14 plan leans on — **real phone frame
 cadence** (is 5 fps available?) and **handheld motion** (per-frame drift at

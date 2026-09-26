@@ -40,8 +40,10 @@ def send(ser, cmd, wait=0.4):
     return drain(ser, wait)
 
 
-def do_burst(ser, n, gap, hold, b, dur):
-    cfg = json.dumps({'bBurstN': n, 'bBurstGap': gap, 'bBurstHold': hold, 'bBurstB': b})
+def do_burst(ser, n, gap, hold, b, dur, cwc=0, comp=None):
+    cfg = {'bBurstN': n, 'bBurstGap': gap, 'bBurstHold': hold, 'bBurstB': b, 'cwc': cwc}
+    if comp is not None:
+        cfg['bComp'] = comp   # unset = leave the page's sticky bComp alone
     for ln in send(ser, f'CFG={cfg}'):
         if ln.strip():
             print(' ', ln)
@@ -63,7 +65,9 @@ def do_burst(ser, n, gap, hold, b, dur):
 
 def do_pull(ser, run_dir: Path, max_s=420):
     run_dir.mkdir(parents=True, exist_ok=True)
-    fp = run_dir / 'burst_frames.txt'
+    # CWC bursts ship cwc:master / cwc:pNN labels; all-on bursts burst:fK.
+    # Name the capture file after whichever run is in the frame store.
+    fp = run_dir / 'cwc_frames.txt'
     print('BRAMP: shipping frames (a few minutes; ~16 KB per frame)...')
     send(ser, 'BRAMP', wait=0.5)
     end = time.time() + max_s
@@ -90,6 +94,15 @@ def do_pull(ser, run_dir: Path, max_s=420):
         except Exception:
             pass
     nframes = len(re.findall(r'\[PHONE\] FRAME \{', text))
+    # CWCSTATS (S14J CWC bursts): per-plane comp shifts -> cwc_stats.json
+    mc = re.search(r'\[PHONE\] CWCSTATS (\{.*\})', text)
+    if mc:
+        try:
+            cwc_stats = json.loads(mc.group(1))
+            (run_dir / 'cwc_stats.json').write_text(json.dumps(cwc_stats, indent=1))
+            print('cwc stats: n=%s comp=%s' % (cwc_stats.get('n'), cwc_stats.get('comp')))
+        except Exception as e:
+            print('cwc stats parse failed:', e)
     (run_dir / 'burst_stats.json').write_text(json.dumps(stats, indent=1))
     print(f'shipped {nframes} frames -> {fp}')
     print('stats:', stats)
@@ -152,11 +165,13 @@ def main():
     ap.add_argument('--gap', type=int, default=0)
     ap.add_argument('--hold', type=int, default=1000)
     ap.add_argument('--b', type=int, default=150)
+    ap.add_argument('--cwc', type=int, default=1, help='1 = CWC-form burst (19 frames)')
+    ap.add_argument('--comp', type=int, default=None, help='force bComp 0/1 (default: sticky)')
     ap.add_argument('--dur', type=int, default=25)
     args = ap.parse_args()
     if args.cmd == 'burst':
         ser = open_port()
-        do_burst(ser, args.n, args.gap, args.hold, args.b, args.dur)
+        do_burst(ser, args.n, args.gap, args.hold, args.b, args.dur, cwc=args.cwc, comp=args.comp)
         return 0
     if args.cmd == 'pull':
         ser = open_port()
