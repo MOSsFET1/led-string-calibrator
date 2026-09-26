@@ -124,11 +124,13 @@ def detect_holes(master, pair, thr=HOLE_THR, domk=DOMK, merge_r=MERGE_R,
                 if merged:
                     break
     # dominance + area cap (page order: dominance accepted, then area filter)
+    # NOTE (S14 delta-sweep): d10's inputs (diff, seen) are loop-invariant —
+    # computing it per blob re-sorts the whole outside-set per blob (O(blobs ×
+    # N log N); 3.5 s/frame on noisy off-target diffs). Hoisted out: identical
+    # numbers, now ~10 ms/frame.
+    d10 = tail_d10(diff, seen)
     acc = []
     for b in blobs:
-        # per-blob outside tail (page uses whole-frame minus all blobs; the
-        # difference is immaterial at this blob density)
-        d10 = tail_d10(diff, seen)
         if b['peak'] >= domk * max(1.0, d10):
             acc.append(b)
     cap = area_frac * W * H

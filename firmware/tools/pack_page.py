@@ -29,7 +29,15 @@ if n1 != 1:
 new, n2 = re.subn(r'(PAGE_GZ_LEN\s*=\s*)\d+', lambda m: f'{m.group(1)}{len(gz)}', new)
 if n2 != 1:
     sys.exit(f"FAILED: PAGE_GZ_LEN replaced {n2} times, want 1")
+# keep the sketch's PAGE_BUILD in sync with the page's BUILD so the status
+# LED (red = page stale, green/breathe = up to date) tracks automatically.
+mb = re.search(r'const BUILD = "([^"]*)"', html.decode(errors="replace")) or None
+if mb is None:
+    sys.exit("FAILED: page BUILD constant not found in html")
+new, n3 = re.subn(r'(PAGE_BUILD\[\]\s*=\s*")[^"]*(")', lambda m: f'{m.group(1)}{mb.group(1)}{m.group(2)}', new)
+if n3 != 1:
+    sys.exit(f"FAILED: PAGE_BUILD replaced {n3} times, want 1")
 FW.write_text(new)
 
 print(f"packed {html_path.name}: {len(html)} B -> {len(gz)} B gz -> {len(b64)} B b64 "
-      f"({len(lines)} lines, delta {len(new)-len(src):+d} ino bytes)")
+      f"({len(lines)} lines, delta {len(new)-len(src):+d} ino bytes, PAGE_BUILD={mb.group(1)})")

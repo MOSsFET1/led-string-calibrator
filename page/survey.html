@@ -48,6 +48,7 @@
     <button id="bAll" disabled>All-on</button>
     <button id="bAcc" disabled>Accents</button>
     <button id="bOff" disabled>Off</button>
+    <button id="bBurst" disabled>Burst</button>
     <button id="bLog" disabled>Download log</button>
     <button id="bClear">Clear boxes</button>
     <button id="bWake">Keep screen on</button>
@@ -63,7 +64,7 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S13L-1900";
+const BUILD = "S14F-1900";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -122,6 +123,16 @@ const CFG = {
                       // reflection fix: the brightest clip source beside the
                       // hole drops, while the field stays bright for AE)
   holeDimFrac: 0.5,   // dimmed neighbour brightness as a fraction of holeB
+  // --- S14 burst bench (frame-rate + handheld motion) ---
+  bBurstN: 20,        // frames per burst (2-40)
+  bBurstGap: 0,       // ms pacing floor between grab STARTS (0 = as fast as
+                      // the camera delivers; try 200 to test 5 fps demand)
+  bBurstHold: 1000,   // ms all-on hold before frame 1 (AE settle)
+  bBurstB: 150,       // all-on brightness for the burst (150 = 1600-px-safe
+                      // per the polyfuse ladder; 150-px string could take more)
+  bComp: 0,           // 1 = S14A2 drift compensation: per-frame seeded NCC
+                      // estimate vs the burst master, warp the stored frame
+                      // back (bilinear), ship measured shifts in BSTATS
 };
 // S13 defaults (page loads with the hole survey parameters standing — the
 // console still overrides via CFG=; compField stays the accent-survey
@@ -1270,6 +1281,7 @@ function setButtons() {
   $('bAcc').disabled = !wsOpen || scanning;
   $('bOff').disabled = !wsOpen || scanning;
   $('bAbort').disabled = !scanning;
+  $('bBurst').disabled = !wsOpen || !camReady || benchRunning;
   $('bLog').disabled = logRing.length === 0;
 }
 async function manualAll() { manualMode = 'all'; await paint({ cmd: 'all', b: CFG.allB }).catch((e) => log('E ' + e.message)); log('all-on ' + CFG.allB); }
@@ -1284,6 +1296,10 @@ $('bAbort').onclick = () => { abortFlag = true; log('abort requested'); };
 $('bAll').onclick = manualAll;
 $('bAcc').onclick = manualAcc;
 $('bOff').onclick = manualOff;
+// Burst (bench): fires the compensated burst with the standing CFG bench
+// params (bBurstN/gap/hold/B + bComp). Same code path the console's BURST
+// directive drives — just operator-triggered, no serial round-trip.
+$('bBurst').onclick = () => benchRun();
 $('bLog').onclick = downloadLog;
 $('bClear').onclick = () => { ledBoxes.R = []; ledBoxes.G = []; ledBoxes.B = []; holeBoxes.clear(); log('boxes cleared'); };
 $('npxin').onchange = async () => {
@@ -1332,6 +1348,8 @@ setInterval(async () => {
     else if (r.drv === 'PING') { log('drv PING'); }
     else if (r.drv === 'LOGP') { logPull(); }
     else if (r.drv === 'FRAMP') { framePull(); }
+    else if (r.drv === 'BURST') { benchRun(); }
+    else if (r.drv === 'BRAMP') { benchPull(); }
   } catch (e) {}
   pollBusy = false;
   if (ackRetries > 0 && pending.size === 0) ackRetries = Math.max(0, ackRetries - 1);
@@ -1378,10 +1396,249 @@ async function framePull() {
       await sleep(30);
     if (abortFlag) break;
     }
+    await sendCmd({ cmd: 'logc', d: 'FSTATS ' + JSON.stringify(benchStats) }, { tries: 2, timeout: 2000 });
+    await sleep(30);
     await sendCmd({ cmd: 'logend' }, { tries: 2, timeout: 2000 });
     log('frame pull done');
   } catch (e) { log('E framepull ' + (e && e.message || e)); }
   framePulling = false;
+}
+
+// ---------------- S14 burst bench (Oliver, Sep 25) -------------------------
+// Goal: measure real phone frame cadence + handheld motion, in ONE burst,
+// box-driven. Store FULL-RESOLUTION frames in a dedicated ring (the main
+// frameStore downscales to 320 px) so registration + blob reads are honest.
+// Console drives via drv BURST / BRAMP; CFG keys: bBurst{N,Gap,Hold,Dur}.
+const benchMax = 48;                  // ~30 s at 1.5 Hz worst case
+const benchStore = [];                // full-res JPEGs + grab timing
+let benchStats = null;                // per-run cadence summary (ships in pull)
+let benchRunning = false;
+let benchPulling = false;
+function benchCapture(label) {
+  // synchronous snapshot AFTER an awaited grab(); t is wall-clock ms
+  try {
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    c.getContext('2d').drawImage(camCv, 0, 0, W, H);
+    const jpg = c.toDataURL('image/jpeg', 0.5).split(',')[1];
+    benchStore.push({ t: ((Date.now() - t0) / 1000).toFixed(3), label, W, H,
+                      exp: expLine(), jpg });
+    if (benchStore.length > benchMax) benchStore.shift();
+  } catch (e) { log('E benchcap ' + (e && e.message || e)); }
+}
+// phase correlation in-page: NCC on a 128-wide decimated grid
+// v2 (actual): downsample both to 256x144, FFT via cv-style naive 2D DFT on
+// the SMALL grid is still heavy in pure JS... pragmatic: use spatial-domain
+// normalised cross-correlation on a coarse grid via direct convolution at
+// 128x72 decimated resolution — good to ±1 px, cheap, and the remainder is
+// measured CONSOLE-side in analyse (which stays the ground truth).
+function phaseCorrJS(refLuma, curLuma) {
+  const DW = 128, DH = Math.round(128 * H / W / 2) * 2 || 72;
+  const a = new Float32Array(DW * DH), b = new Float32Array(DW * DH);
+  for (let y = 0; y < DH; y++) {
+    const sy = Math.min(H - 1, Math.round(y * H / DH));
+    for (let x = 0; x < DW; x++) {
+      const sx = Math.min(W - 1, Math.round(x * W / DW));
+      a[y * DW + x] = refLuma[sy * W + sx];
+      b[y * DW + x] = curLuma[sy * W + sx];
+    }
+  }
+  // normalised cross-correlation over ±12 px search, 1 px steps
+  let best = -1e9, bdx = 0, bdy = 0;
+  const mean = (arr) => { let s = 0; for (let i = 0; i < arr.length; i++) s += arr[i]; return s / arr.length; };
+  const ma = mean(a);
+  const aC = new Float32Array(a.length);
+  for (let i = 0; i < a.length; i++) aC[i] = a[i] - ma;
+  let a2 = 0; for (let i = 0; i < aC.length; i++) a2 += aC[i] * aC[i];
+  a2 = Math.sqrt(a2);
+  const mb = mean(b);
+  const bC = new Float32Array(b.length);
+  for (let i = 0; i < b.length; i++) bC[i] = b[i] - mb;
+  for (let dy = -12; dy <= 12; dy++) {
+    for (let dx = -12; dx <= 12; dx++) {
+      let s = 0, b2 = 0;
+      for (let y = 0; y < DH; y++) {
+        const sy = y + dy;
+        if (sy < 0 || sy >= DH) continue;
+        for (let x = 0; x < DW; x++) {
+          const sx = x + dx;
+          if (sx < 0 || sx >= DW) continue;
+          const v = bC[sy * DW + sx];
+          s += aC[y * DW + x] * v;
+          b2 += v * v;
+        }
+      }
+      b2 = Math.sqrt(b2);
+      const ncc = (a2 * b2) > 0 ? s / (a2 * b2) : 0;
+      if (ncc > best) { best = ncc; bdx = dx; bdy = dy; }
+    }
+  }
+  // Return the MEASURED MOTION of cur relative to ref: (bdx, bdy) is where
+  // cur must be sampled from to align with ref (verified in numpy: content
+  // moved (+10,+5) => best (+10,+5) => corrected[y] = cur[y+10] = ref[y]).
+  // The warp in benchCaptureComp consumes exactly this sign.
+  return { dx: bdx, dy: bdy, conf: Math.max(0, best) };
+}
+// corrected capture: warp the ORIGINAL camera pixels back by -(tot) using
+// bilinear sampling from procCx's current ImageData
+let benchLastLuma = null;   // raw ImageData of the last grab (set by benchRun)
+function benchCaptureComp(label, tot) {
+  try {
+    const d = procCx.getImageData(0, 0, W, H);
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const cx = c.getContext('2d');
+    // warp: build corrected ImageData by bilinear sampling at (x+dx, y+dy)
+    const out = cx.createImageData(W, H);
+    const dx = tot.dx, dy = tot.dy;
+    for (let y = 0; y < H; y++) {
+      const fy = y + dy;
+      const y0 = Math.floor(fy), ty = fy - y0;
+      const y0c = Math.max(0, Math.min(H - 1, y0));
+      const y1c = Math.max(0, Math.min(H - 1, y0 + 1));
+      for (let x = 0; x < W; x++) {
+        const fx = x + dx;
+        const x0 = Math.floor(fx), tx = fx - x0;
+        const x0c = Math.max(0, Math.min(W - 1, x0));
+        const x1c = Math.max(0, Math.min(W - 1, x0 + 1));
+        const o = (y * W + x) * 4;
+        for (let ch = 0; ch < 3; ch++) {
+          const v00 = d.data[(y0c * W + x0c) * 4 + ch];
+          const v10 = d.data[(y0c * W + x1c) * 4 + ch];
+          const v01 = d.data[(y1c * W + x0c) * 4 + ch];
+          const v11 = d.data[(y1c * W + x1c) * 4 + ch];
+          out.data[o + ch] = v00 * (1 - tx) * (1 - ty) + v10 * tx * (1 - ty) +
+                             v01 * (1 - tx) * ty + v11 * tx * ty;
+        }
+        out.data[o + 3] = 255;
+      }
+    }
+    cx.putImageData(out, 0, 0);
+    const jpg = c.toDataURL('image/jpeg', 0.5).split(',')[1];
+    benchStore.push({ t: ((Date.now() - t0) / 1000).toFixed(3), label, W, H,
+                      exp: expLine() + ' comp=' + tot.dx.toFixed(2) + ',' + tot.dy.toFixed(2) + '@' + tot.conf.toFixed(2), jpg });
+    if (benchStore.length > benchMax) benchStore.shift();
+  } catch (e) { log('E benchcapcomp ' + (e && e.message || e)); }
+}
+async function benchRun() {
+  if (benchRunning || !wsOpen || !camReady) { log('E burst: not ready'); return; }
+  benchRunning = true;
+  try {
+    const n = Math.max(2, Math.min(40, CFG.bBurstN | 0 || 20));
+    const gap = Math.max(0, CFG.bBurstGap | 0);
+    const hold = Math.max(0, CFG.bBurstHold | 0);
+    const b = Math.max(20, Math.min(255, CFG.bBurstB | 0 || CFG.holeB));
+    benchStore.length = 0; benchStats = null;
+    log('burst: all-on ' + b + ' hold ' + hold + 'ms');
+    await paint({ cmd: 'all', b });
+    const tHold0 = Date.now();
+    while (Date.now() - tHold0 < hold) await sleep(20);   // AE settle
+    const gts = [];
+    // ---- drift compensation (S14A2, Oliver's seeded scheme) -------------
+    // After each grab, estimate the frame's motion vs the MASTER frame and
+    // CORRECT the stored pixels: warpAffine by the seeded transform, so the
+    // stored frames are already registered to master. Console-side analyse
+    // then sees ~0 shift on a still rig, and the residual stats measure the
+    // compensation quality directly. Seed = last composed T (no prediction).
+    // Also ship the measured (dx, dy) per frame in the FRAME meta + BSTATS.
+    if (!window._benchComp) window._benchComp = { on: false };
+    const comp = CFG.bComp | 0;
+    let masterLuma = null;
+    if (comp) {
+      await grabTimeout();                       // FRESH all-on frame into procCx
+      const dm = procCx.getImageData(0, 0, W, H);
+      masterLuma = new Float32Array(W * H);
+      for (let i = 0, p = 0; i < masterLuma.length; i++, p += 4) {
+        const r = dm.data[p], g = dm.data[p + 1], b = dm.data[p + 2];
+        masterLuma[i] = r > g ? (r > b ? r : b) : (g > b ? g : b);
+      }
+      log('drift comp ON (seeded, master from fresh grab)');
+    }
+    const bShifts = [];
+    const loop = async () => {
+      for (let k = 0; k < n; k++) {
+        await grabTimeout();
+        const tGrab = Date.now();
+        if (comp && k > 0) {
+          // luma of the just-grabbed frame (procCx holds it)
+          const d = procCx.getImageData(0, 0, W, H);
+          const cur = new Float32Array(W * H);
+          for (let i = 0, p = 0; i < cur.length; i++, p += 4) {
+            cur[i] = d.data[p] > d.data[p+1] ? (d.data[p] > d.data[p+2] ? d.data[p] : d.data[p+2])
+                                             : (d.data[p+1] > d.data[p+2] ? d.data[p+1] : d.data[p+2]);
+          }
+          // seeded estimate: frame k vs MASTER, seeded by T_{k-1}
+          const prev = bShifts[bShifts.length - 1] || { dx: 0, dy: 0 };
+          const pre = new Float32Array(cur.length);
+          // integer pre-shift via sampling (sub-px remainder goes to phase corr)
+          const rdx = Math.round(prev.dx), rdy = Math.round(prev.dy);
+          for (let y = 0; y < H; y++) {
+            const sy = y + rdy;
+            if (sy < 0 || sy >= H) continue;
+            for (let x = 0; x < W; x++) {
+              const sx = x + rdx;
+              if (sx < 0 || sx >= W) continue;
+              pre[y * W + x] = cur[sy * W + sx];
+            }
+          }
+          const rem = phaseCorrJS(masterLuma, pre);   // remainder estimate
+          const tot = { dx: rdx + rem.dx, dy: rdy + rem.dy, conf: rem.conf };
+          bShifts.push(tot);
+          // CORRECT the stored frame: warp the ORIGINAL frame back by -tot
+          benchCaptureComp('burst:f' + k, tot);
+        } else {
+          bShifts.push({ dx: 0, dy: 0 });
+          benchCapture('burst:f' + k);
+        }
+        gts.push(tGrab);
+        if (abortFlag) break;
+        // pace: wait until gap ms after the PREVIOUS grab started
+        const target = gts[gts.length - 1] + gap;
+        while (Date.now() < target) await sleep(5);
+      }
+    };
+    await loop();
+    const iv = [];
+    for (let i = 1; i < gts.length; i++) iv.push(gts[i] - gts[i - 1]);
+    iv.sort((a, b) => a - b);
+    const med = iv.length ? iv[iv.length >> 1] : 0;
+    const fps = med > 0 ? 1000 / med : 0;
+    benchStats = { build: BUILD, n: gts.length, gap_cfg: gap,
+                   med_ms: med, min_ms: iv.length ? iv[0] : 0,
+                   max_ms: iv.length ? iv[iv.length - 1] : 0,
+                   fps: Math.round(fps * 100) / 100,
+                   comp: comp ? 1 : 0,
+                   shifts: bShifts };
+    log('burst stats: n=' + benchStats.n + ' med ' + med + 'ms (' + benchStats.fps +
+        ' fps) min/max ' + benchStats.min_ms + '/' + benchStats.max_ms +
+        (comp ? ' comp residual max ' + (bShifts.slice(1).reduce((m, s) => Math.max(m, Math.abs(s.dx) + Math.abs(s.dy)), 0)).toFixed(2) + 'px' : ''));
+    await paint({ cmd: 'black' });
+  } catch (e) { log('E burst ' + (e && e.message || e)); }
+  benchRunning = false;
+}
+async function benchPull() {
+  if (benchPulling) return;
+  benchPulling = true;
+  try {
+    await sendCmd({ cmd: 'logc', d: 'BSTATS ' + JSON.stringify(benchStats || {}) }, { tries: 2, timeout: 2000 });
+    await sleep(30);
+    log('bench pull: ' + benchStore.length + ' frames');
+    for (const f of benchStore) {
+      const meta = JSON.stringify({ t: f.t, label: f.label, W: f.W, H: f.H, exp: f.exp });
+      await sendCmd({ cmd: 'logc', d: 'FRAME ' + meta }, { tries: 2, timeout: 2000 });
+      await sleep(30);
+      for (let i = 0; i < f.jpg.length; i += 900) {
+        await sendCmd({ cmd: 'logc', d: 'FJPEG ' + f.jpg.slice(i, i + 900) }, { tries: 2, timeout: 2000 });
+        await sleep(20);
+      }
+      await sendCmd({ cmd: 'logc', d: 'FEND' }, { tries: 2, timeout: 2000 });
+      await sleep(30);
+      if (abortFlag) break;
+    }
+    await sendCmd({ cmd: 'logend' }, { tries: 2, timeout: 2000 });
+    log('bench pull done');
+  } catch (e) { log('E benchpull ' + (e && e.message || e)); }
+  benchPulling = false;
 }
 
 // ---------------- hello reply handling ------------------------------------

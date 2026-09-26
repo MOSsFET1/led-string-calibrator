@@ -32,6 +32,6 @@ out = rd(3.2)
 for l in out:
     if '[STAT]' in l or '[DRV]' in l:
         print(l, flush=True)
-ok = any('S13-1900' in l and 'ALIVE' in l for l in out)
+ok = any(('S13-1900' in l or 'S14A-1900' in l) and 'ALIVE' in l for l in out)
 print('BOOT CHECK:', 'PASS' if ok else 'FAIL', flush=True)
 sys.exit(0 if ok else 1)
