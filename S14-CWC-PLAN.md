@@ -1,5 +1,25 @@
 # S14 plan — CWC LED position detection (Oliver + Nellie, Sep 25 2026)
 
+> **27 Sep amendment — the off reference frame is DROPPED (agreed, Oliver +
+> Nellie).** §3 step 3 (All OFF → grab reference) is REVISED: the protocol is
+> now master + 18 planes = 19 frames. Rationale (all verified against the
+> real bank/pulls): NCC is gain-invariant so registration never needed the
+> off frame; the point set moves to the pile-up Σₚ(master − planeₚ) — 9
+> coherent hole samples per LED vs 1, SNR ×3 over the single master−off
+> diff; the per-LED bit read uses per-plane diffs against the pile-up's
+> local background (18-frame evidence per LED); collocation detection
+> becomes NOR-weight < 9 (ON-mode read has no 0-of-18 signal from an
+> unpainted pixel) — OR-weight 11–18 / NOR-weight 0–7 both cleanly off the
+> single-LED weight of exactly 9. Bright-background handling is sign-based:
+> OFF-planes always subtract light, so static background cancels, dynamic
+> background dilutes by √18, and brighter-than-master events pile POSITIVE
+> (invisible to the dark-hole read). Failure class: a background source
+> mostly DIMMER than its master-frame state accumulates a negative impostor
+> — caught by the standing domK/d10out/serpentine guards. Built + validated
+> in page S14J (see S14-BENCH-SESSION.md). Optional all-off diagnostic grab
+> at burst end remains bench-only (noise-floor measurement), not part of
+> the decode.
+
 Direction set by Oliver (24 Sep): drop intensity-level encoding; identify LEDs
 by binary plane codes; capture protocol: all-on 1 s (AE warm-up) → all-on
 frame → all-off reference → all-on 1 s → N plane frames. All runs BOX-driven
@@ -107,6 +127,9 @@ class — hidden flag + interpolation stays), and mid-burst scene changes
 4. All ON 1 s — AE returns to the master's exposure.
 5. 18 plane frames at 50% duty, b≤150: plane p paints LED i iff bit p of
    LED i's codeword is 1. Constant per-frame load keeps AE frozen.
+   Codewords: codewords_9of18.json — 1600 codes, weight 9 of 18 planes,
+   d_min 4, columns balanced exactly 800/plane (verified); the first N
+   are prefix-valid for any N (100–1600), first 150 balanced 75/plane.
 6. Per plane: register to master (phase-correlate) → diff vs off-reference →
    detect → per-LED bit read at expected (x, y) ± tolerance.
 7. Decode: nearest codeword within d 4 (syndrome-free popcount table);
