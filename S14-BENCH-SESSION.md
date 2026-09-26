@@ -28,6 +28,28 @@ pull is ~38 s/frame at 115200 → ~8 min for 20 frames; NEVER break on
 bug that killed several pulls; tools/s14_pull.py = the proven recipe
 (LOGP → 1 s → BRAMP → single patient read to FSTATS).
 BSTATS/FSTATS with comp ships `shifts` (dx, dy, conf per frame).
+
+## Day-2 handheld (26 Sep, S14F, Burst button, comp OFF)
+
+CFG reset to defaults on the page reload, so both handheld bursts ran with
+bComp=0 — raw frame-to-frame offsets, which is exactly the drift table wanted.
+Both runs n=20 frames, ~3.2 fps (med 302/313 ms), exposure pinned 500.05.
+
+| run | frame-to-frame mean | median | max | net drift | notes |
+|---|---|---|---|---|---|
+| handheld-1 | 0.63 px (17/19 conf>0.3) | 1.0 | 2.2 | 6.7 px | one failed lock (conf<0) ±17 px net-cancelling pair |
+| handheld-session | 1.70 px | 1.4 | 2.2 | 14.3 px | all 19 locks clean |
+| **combined** | **1.2 px** | 1.4 | **2.2 px** | — | 36 pairs |
+
+Verdicts: per-frame handheld drift ≈ 1–2 px at 3.2 fps — well inside the 6 px
+registered tolerance and comfortably inside the ~5 px residual budget with
+master-anchored registration. One failed NCC lock in 38 pairs (conf −0.1,
+net-cancelled by the next frame — the health gate + decode distance would
+absorb it; candidate for the knock detector). Net whole-burst drift 7–14 px
+at ~6 s burst = consistent with slow hand sway; chained per-frame correction
+handles it (each step is independent), master re-anchor unnecessary at this
+scale. NEXT: re-run handheld with bComp=1 (page reload reset it to 0 — the
+CFG default; consider making bComp sticky in localStorage) + rotation test.
 | burst gap=200 (5 fps demand) | **med 376 ms = 2.66 fps** (329–491) | ≤0.02 px | pinned exp=200.02 |
 
 - **5 fps: achievable but not yet held** — the phone serves 6.5–6.9 fps
