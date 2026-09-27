@@ -217,6 +217,16 @@ async def main():
             stj2 = json.loads(stats or "{}")
             ok = stj2.get("n") == 18 and len(plane) >= 18 and len(all_on) == 1
             tlog("CWC BURST RUNTIME: " + ("PASS" if ok else "FAIL"))
+            # S14M regression gate: after the auto-ship completes, the Burst
+            # button must be RE-ENABLED (the S14L sequencing bug froze it
+            # disabled: setButtons ran while benchRunning was still true)
+            await asyncio.sleep(3)   # let the auto-ship tail finish
+            btn = await cdp_eval(ws, "JSON.stringify({burst: document.getElementById('bBurst').disabled, log: document.getElementById('log').textContent.split('\\n').slice(-2).join(' | ')})")
+            tlog("BUTTON-STATE " + json.dumps(btn))
+            btj = json.loads(btn or "{}")
+            if btj.get("burst"):
+                tlog("FAIL: Burst button still disabled after auto-ship")
+                return 1
             return 0 if ok else 1
     finally:
         if proc and "--keep" not in sys.argv:

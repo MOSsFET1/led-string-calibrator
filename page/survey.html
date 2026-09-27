@@ -62,7 +62,7 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14L-1900";
+const BUILD = "S14M-1900";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -900,6 +900,8 @@ async function benchRun() {
     benchUploading = false; setButtons();
   } catch (e) { log('E burst ' + (e && e.message || e)); }
   benchRunning = false;
+  setButtons();   // S14M fix: the auto-ship's setButtons ran while benchRunning
+                  // was still true — the button froze disabled after the upload
 }
 async function benchPull() {
   if (benchPulling) return;
