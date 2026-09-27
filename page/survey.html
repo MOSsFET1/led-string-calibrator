@@ -46,6 +46,7 @@
     <button id="bSurvey" disabled>Survey</button>
     <button id="bAbort" disabled>Abort</button>
     <button id="bAll" disabled>All-on</button>
+    <button id="bOff" disabled>Off</button>
     <button id="bBurst" disabled>Burst</button>
     <button id="bLog" disabled>Download log</button>
     <button id="bWake">Keep screen on</button>
@@ -61,7 +62,7 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14K-1900";
+const BUILD = "S14L-1900";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -488,11 +489,13 @@ function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 function setButtons() {
   $('bSurvey').disabled = true;      // returns as the CWC decode run
   $('bAll').disabled = !wsOpen || scanning;
+  $('bOff').disabled = !wsOpen || scanning;
   $('bAbort').disabled = !scanning;
-  $('bBurst').disabled = !wsOpen || !camReady || benchRunning;
+  $('bBurst').disabled = !wsOpen || !camReady || benchRunning || benchUploading;
   $('bLog').disabled = logRing.length === 0;
 }
 async function manualAll() { await paint({ cmd: 'all', b: CFG.allB }).catch((e) => log('E ' + e.message)); log('all-on ' + CFG.allB); }
+async function manualOff() { await paint({ cmd: 'black' }).catch((e) => log('E ' + e.message)); log('off'); }
 // ---------------- log pull ---------------------------------------------------
 let pulling = false;
 async function logPull() {
@@ -518,12 +521,18 @@ async function logPull() {
 // box-driven. Store FULL-RESOLUTION frames in a dedicated ring (the main
 // frameStore downscales to 320 px) so registration + blob reads are honest.
 // Console drives via drv BURST / BRAMP; CFG keys: bBurst{N,Gap,Hold,Dur}.
-const benchMax = 48;                  // ~30 s at 1.5 Hz worst case
+// S14L: run-tagged ring — bursts ACCUMULATE (5 x 20-frame bursts ~ 100
+// frames, ~2.6 MB page RAM) and every frame's label carries its run number,
+// so one pull recovers all of them separately. The ring persists until
+// benchPull() ships it; a new burst only pushes old runs out (shift()).
+const benchMax = 100;                 // ~5 bursts of 20 frames
 const benchStore = [];                // full-res JPEGs + grab timing
+let benchRunNo = 0;                   // bumped at each burst start (labels)
 let benchStats = null;                // per-run cadence summary (ships in pull)
 let cwcStats = null;                  // S14J: per-plane comp shifts (CWC burst)
 let benchRunning = false;
 let benchPulling = false;
+let benchUploading = false;   // S14L: Burst locked during the end-of-burst auto-upload
 function benchCapture(label) {
   // synchronous snapshot AFTER an awaited grab(); t is wall-clock ms
   try {
@@ -631,16 +640,17 @@ function benchCaptureComp(label, tot) {
   } catch (e) { log('E benchcapcomp ' + (e && e.message || e)); }
 }
 async function benchRun() {
-  if (benchRunning || !wsOpen || !camReady) { log('E burst: not ready'); return; }
+  if (benchRunning || benchUploading || !wsOpen || !camReady) { log('E burst: not ready'); return; }
   benchRunning = true;
   try {
     const n = Math.max(2, Math.min(40, CFG.bBurstN | 0 || 20));
     const gap = Math.max(0, CFG.bBurstGap | 0);
     const hold = Math.max(0, CFG.bBurstHold | 0);
     const b = Math.max(20, Math.min(255, CFG.bBurstB | 0 || 150));
-    benchStore.length = 0; benchStats = null; window._driftTrail = null;
+    benchStats = null; window._driftTrail = null;
     cwcStats = null;                       // S14J: stale CWC stats never ship
     abortFlag = false;                     // an aborted survey must not abort the next burst
+    benchRunNo++;                          // run tag for the accumulating ring
     const cwcMode = (CFG.cwc | 0) === 1;   // CWC branch paints its own all-on
     if (!cwcMode) {
       log('burst: all-on ' + b + ' hold ' + hold + 'ms');
@@ -699,7 +709,7 @@ async function benchRun() {
         const r = dm.data[q], g = dm.data[q + 1], b2 = dm.data[q + 2];
         cwcMasterLuma[i] = r > g ? (r > b2 ? r : b2) : (g > b2 ? g : b2);
       }
-      benchCaptureComp('cwc:master', { dx: 0, dy: 0, conf: 1 });
+      benchCaptureComp('cwc:r' + benchRunNo + ':master', { dx: 0, dy: 0, conf: 1 });
       const cwcShifts = [];
       // 18 PLANES: paint p -> settle -> grab -> seeded comp -> warp-back
       for (let p = 0; p < 18; p++) {
@@ -744,8 +754,9 @@ async function benchRun() {
         cwcShifts.push(tot);
         // comp ON: store the warped-back frame; comp OFF: store the RAW
         // frame (the shift is recorded, never applied)
-        if (comp) benchCaptureComp('cwc:p' + String(p).padStart(2, '0'), tot);
-        else benchCapture('cwc:p' + String(p).padStart(2, '0'));
+        const pLbl = 'cwc:r' + benchRunNo + ':p' + String(p).padStart(2, '0');
+        if (comp) benchCaptureComp(pLbl, tot);
+        else benchCapture(pLbl);
       }
       cwcStats = { build: BUILD, n: cwcShifts.length, comp: comp ? 1 : 0,
                    shifts: cwcShifts.map((s, k) => ({ k, dx: +s.dx.toFixed(2), dy: +s.dy.toFixed(2), conf: +s.conf.toFixed(3) })) };
@@ -794,7 +805,7 @@ async function benchRun() {
           const tot = { dx: rdx + rem.dx * K, dy: rdy + rem.dy * K, conf: rem.conf };
           bShifts.push(tot);
           // CORRECT the stored frame: warp the ORIGINAL frame back by -tot
-          benchCaptureComp('burst:f' + k, tot);
+          benchCaptureComp('burst:r' + benchRunNo + ':f' + k, tot);
         } else {
           // comp=0: still MEASURE the frame-to-frame motion so the drift
           // report/trail works without correction (26 Sep gap: button
@@ -821,7 +832,7 @@ async function benchRun() {
             }
             bShifts.push({ dx: 0, dy: 0, conf: 1 });
           }
-          benchCapture('burst:f' + k);
+          benchCapture('burst:r' + benchRunNo + ':f' + k);
         }
         gts.push(tGrab);
         if (abortFlag) break;
@@ -877,6 +888,16 @@ async function benchRun() {
     } catch (e) { log('E drift ' + (e && e.message || e)); }
     await paint({ cmd: 'black' });
     } // end else: original all-on movement burst
+    // S14L AUTO-SHIP (operator design, 27 Sep): upload starts as soon as the
+    // burst ends — the pull is FAST (20 frames ~ 1 s) and safe by
+    // construction: the box prints logc chunks ONLY inside the armed LOGP
+    // window, so with no console reader the chunks are dropped silently and
+    // nothing backs up. benchPulling gates re-entry; benchUploading keeps
+    // the Burst button locked out until the upload completes.
+    benchUploading = true; setButtons();
+    try { await benchPull(); }
+    catch (e) { log('E autoship ' + (e.message || e)); }
+    benchUploading = false; setButtons();
   } catch (e) { log('E burst ' + (e && e.message || e)); }
   benchRunning = false;
 }
@@ -935,6 +956,7 @@ setInterval(pollDrv, 1500);
 $('bSurvey').onclick = () => surveyRun();
 $('bAbort').onclick = () => { abortFlag = true; log('abort requested'); };
 $('bAll').onclick = manualAll;
+$('bOff').onclick = manualOff;
 $('bLog').onclick = logPull;
 // Burst (bench): fires the compensated burst with the standing CFG bench
 // params (bBurstN/gap/hold/B + bComp). Same code path the console's BURST

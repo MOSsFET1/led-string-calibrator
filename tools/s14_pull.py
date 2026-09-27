@@ -37,14 +37,14 @@ with out.open('w') as f:
             n_frame += 1
             if n_frame % 4 == 0:
                 print(f'frame {n_frame} t+{time.time()-t0:.0f}s', flush=True)
-        # stats line moved with CWCSTATS (S14J): accept either, and the
-        # [PHONE-LOG] end after the frames as the real end-of-pull
+        # stats line moved with CWCSTATS (S14J): accept either. End-of-pull:
+        # [PHONE-LOG] end AFTER at least one frame (the LOGP arm's own logend
+        # precedes the frame stream — breaking on it kills the pull at 0
+        # frames, the reader bug that cost several pulls on 25 Sep).
         if ('BSTATS' in s or 'CWCSTATS' in s) and stats_line is None:
             stats_line = s
             print(f'stats at t+{time.time()-t0:.0f}s', flush=True)
-        if (n_frame >= want and stats_line) or '[PHONE-LOG] end' in s:
-            if n_frame >= want and stats_line:
-                pass
+        if (n_frame >= want and stats_line) or (n_frame > 0 and '[PHONE-LOG] end' in s):
             break
 ser.close()
 
