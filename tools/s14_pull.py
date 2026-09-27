@@ -37,10 +37,14 @@ with out.open('w') as f:
             n_frame += 1
             if n_frame % 4 == 0:
                 print(f'frame {n_frame} t+{time.time()-t0:.0f}s', flush=True)
-        if 'FSTATS' in s and stats_line is None:
+        # stats line moved with CWCSTATS (S14J): accept either, and the
+        # [PHONE-LOG] end after the frames as the real end-of-pull
+        if ('BSTATS' in s or 'CWCSTATS' in s) and stats_line is None:
             stats_line = s
-            print(f'FSTATS at t+{time.time()-t0:.0f}s', flush=True)
-        if n_frame >= want and stats_line:
+            print(f'stats at t+{time.time()-t0:.0f}s', flush=True)
+        if (n_frame >= want and stats_line) or '[PHONE-LOG] end' in s:
+            if n_frame >= want and stats_line:
+                pass
             break
 ser.close()
 
