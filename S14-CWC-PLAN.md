@@ -351,7 +351,62 @@ registration; what matters is the RESIDUAL after correction:
 - Evid/log per-frame pulls: ring keeps only the last 16 frames — pull each
   frame (or shrink payload) so a burst survives the ring.
 
-## 5. Context
+## 8. Point cloud format — `ledcloud/2` (AGREED SPEC, 27 Sep)
+
+The point cloud is a self-contained JSON file; array order IS the LED id.
+Designed against its worst consumer: pattern/text display code must be
+trivial — "canvas = k × (box.aspect, 1), sample points[id]".
+
+```json
+{
+  "schema": "ledcloud/2",
+  "created": "2026-09-27T21:40",
+  "build": "S14M-1900",
+  "strings": 8, "perString": 150,
+  "box": { "aspect": 3.42, "rot": 0 },
+  "mm": { "w": null, "h": null },
+  "points": [ [0.0123, 0.0044, "C"], [0.0131, 0.0046, "C"], ... ]
+}
+```
+
+- **Coordinates**: x/y floats in [0,1] of the CLOUD'S OWN BOUNDING BOX —
+  NOT camera-frame pixels (operator decision, 27 Sep: the camera session
+  is scaffolding; once decoded, the camera frame is no longer part of the
+  data, and survey-to-survey pixel similarity is NOT a requirement). The
+  box is declared data in the header (`aspect` = width/height; `rot`
+  reserved for a future cloud-axes-to-install alignment step; today the
+  cloud inherits the master frame's orientation). Consumers never rescale:
+  the player makes its canvas `k x (aspect, 1)` and uses points raw.
+- **Box rule (operator decision)**: computed over ALL points — every LED
+  has an XY so every LED can be included in an image, even one never
+  detected during the survey. Collocated points included. Outliers cannot
+  inflate the box because rejection is structural (below), not box-based.
+- **Every LED present, indexed by id** (operator decision): points[id] =
+  [x, y, class] with class letters C / I / X —
+  C = confirmed (weight 9-of-18, decode distance <=1, serpentine-consistent);
+  I = interpolated (folds hidden, dead, never-revealed, and gate-rejected
+  into one class; the per-LED REASON lives in the burst log, the cloud
+  carries the class);
+  X = collocated (one XY shared by both IDs — emit both IDs' entries with
+  the same XY; detection is weight < 9 in the ON-mode read, resolution
+  serpentine inference -> disambiguation burst -> manual pin).
+- **Outlier rejection at decode time** (operator confirmation, 27 Sep): a
+  detection unreasonably far from its expected position is rejected and
+  interpolated — the gates are (1) the serpentine continuity gate
+  (<= holeGateK 4 x measured median pitch from the ID neighbours'
+  midpoint), (2) decode distance <= 1, (3) per-LED weight 9-of-18 and
+  per-plane count exactly N/2. Rejection is structural; the cloud layer
+  never thresholds.
+- **Floats** (operator decision): human-readable during decoder bring-up;
+  integer 0-4095 grid is the pre-agreed downgrade if a firmware consumer
+  materialises.
+- Provenance (created/build) rides along; consumers ignore unknown fields.
+- `mm` (physical width/height) null until a scale reference is shot; the
+  extension is additive, the format unchanged.
+- Export is ONE conversion at generation: decode-space (capture px) ->
+  cloud box coordinates, producer-side; every consumer downstream is
+  conversion-free.
+
 
 - S13 hole survey: 149/150 at b=200, 150/150 at b=120/160; px95 proven
   physically hidden (impostor accept at (154,628) = static scene feature,
