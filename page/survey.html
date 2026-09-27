@@ -46,11 +46,8 @@
     <button id="bSurvey" disabled>Survey</button>
     <button id="bAbort" disabled>Abort</button>
     <button id="bAll" disabled>All-on</button>
-    <button id="bAcc" disabled>Accents</button>
-    <button id="bOff" disabled>Off</button>
     <button id="bBurst" disabled>Burst</button>
     <button id="bLog" disabled>Download log</button>
-    <button id="bClear">Clear boxes</button>
     <button id="bWake">Keep screen on</button>
   </div>
   <div id="log"></div>
@@ -64,67 +61,20 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14J-1900";
+const BUILD = "S14K-1900";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
+// S1-S13 survey constants REMOVED (27 Sep). Standing: all-on/accents for the
+// manual buttons, evBias, mergeR (the CWC pile-up's blob merge), and the
+// S14 burst keys. Nothing here is survey-specific any more.
 const CFG = {
-  allB: 160,      // all-on brightness 0-255
-  accB: 200,      // accent brightness (colour channel scale)
-  grabs: 3,       // grabs per survey mode
-  settle: 400,    // ms settle after paint ack, before first grab
-  domK: 32,       // blob acceptance: peak >= domK x outside-tail d10
-  thrK: 5,        // luma threshold: med + thrK x (d90 - med)
-  satFloor: 60,   // absolute saturation floor for accent detection
-  colFloor: 40,   // hue-excess floor for R/G/B LED detection (r-max(g,b) etc.)
-  domKHue: 8,     // hue-channel dominance bar (see offline_detect results)
-  compField: 1,   // 1 = scanning colour C uses a field of the OTHER two
-                  // colours (max headroom for C; operator's clipping fix)
-  diffThr: 40,    // accent-vs-all-on difference threshold (temporal diff,
-                  // bench-proven: green die margin 1.9 at thr 40)
-  mergeR: 6.0,    // blob merge: join blobs whose centroids are < mergeR x
-                  // sqrt(larger area) apart — Sep 24 bright-room ladder:
-                  // MONOTONE 28/5-6/3 fallbacks at 2/4/6 (dim room flat);
-                  // 6 = optimal bright, identical to 2 in dim
-  darkPair: 0,    // 1 = survey grabs die-on/all-black pairs in a brief dark
-                  // window (races the AE); exposure readback per grab
-  field2: 0,      // 1 = AE-control field is RED+GREEN only, detect BLUE
-                  // accents on the third channel (min cross-contamination)
+  allB: 160,      // All-on button brightness 0-255
+  accB: 200,      // (legacy; accent survey removed — kept for old CFG echoes)
   evBias: -1,     // exposureCompensation bias (Android only; iOS: none)
-  // --- S13 hole survey (operator scheme: all-on master, per-LED all-minus-
-  // one pairs; the die is a DARK HOLE in the bright field, luma diff) ---
-  holeSurvey: 0,      // 1 = surveyRun runs the hole survey instead of accents
-  holeB: 200,         // all-on brightness for master + pairs
-  holeSettle: 1000,   // ms AE/AF settle after the MASTER paint (AE recovers
-                      // only ~halfway in 300 ms — measured; settle the master)
-  holeGap: 100,       // ms between a pair's paint ack and its grab — timing
-                      // floor measured Sep 23: 80-100 clean, 60 flaky
-  holeMasterEvery: 10,// re-grab the master every K pairs (drift bound; 0=never)
-  holeThr: 60,        // hole diff threshold — Sep 23 walk-up: dim plateau
-                      // 45-90, cliff at 120; thr=60 = 4 clean runs, 2
-                      // fallbacks, (51,101) resolved; bright room holds
-                      // (149/148) with thinner margin (pk min 81-88)
-  holeDomK: 8,        // hole dominance bar (peak >= domK x outside-tail d10)
-  holeAreaFrac: 0.01, // area cap: reject blobs > this fraction of the frame
-  holeFrameEvery: 16, // frame-store capture: every Kth pair + every found LED
-  holeBatch: 3,       // S13B: LEDs off per pair (1 = the original singles
-                      // scheme). Batching needs the holeMap from a previous
-                      // singles run + the #0 anchor pair agreeing; ambiguous
-                      // groups auto-fall back to singles.
-  holeAssignR: 20,    // batch assignment radius (px) around the map position
-  holeWinFrac: 0.055, // S13H K-chain window FLOOR: radius as a fraction of
-                      // the frame diagonal (0.055 = 45 px @ 406x720) —
-                      // the operative window is max(this, 1.5 x measured
-                      // median chain pitch)
-  holeGateK: 4,       // serpentine gate: reject a hole farther than this
-                      // many x median-pitch from its ID neighbours' midpoint
-                      // (LED-122 scored 7.8; physical LEDs <= 2)
-  holeDimNext: 0,     // 1 = also dim each off-LED's +1 neighbour (operator's
-                      // reflection fix: the brightest clip source beside the
-                      // hole drops, while the field stays bright for AE)
-  holeDimFrac: 0.5,   // dimmed neighbour brightness as a fraction of holeB
-  // --- S14 burst bench (frame-rate + handheld motion) ---
-  bBurstN: 20,        // frames per burst (2-40)
+  mergeR: 6.0,    // blob merge (detectDiffBlobs, the CWC pile-up reader):
+                  // Sep 24 bright-room ladder: MONOTONE 28/5-6/3 fallbacks
+                  // at 2/4/6 (dim flat); 6 = optimal bright, = 2 in dim
   bBurstGap: 0,       // ms pacing floor between grab STARTS (0 = as fast as
                       // the camera delivers; try 200 to test 5 fps demand)
   bBurstHold: 1000,   // ms all-on hold before frame 1 (AE settle)
@@ -143,17 +93,9 @@ const CFG = {
 // sticky bench settings across reloads (localStorage)
 try { const saved = JSON.parse(localStorage.getItem('s14cfg') || '{}'); for (const key of Object.keys(saved)) if (key in CFG) CFG[key] = saved[key]; } catch (e) {}
 window._saveCfg = () => { try { localStorage.setItem('s14cfg', JSON.stringify(CFG)); } catch (e) {} };
-// S13 defaults (page loads with the hole survey parameters standing — the
-// console still overrides via CFG=; compField stays the accent-survey
-// default for that dormant path).
-CFG.holeSurvey = 1; CFG.holeB = 200; CFG.holeSettle = 1000; CFG.holeGap = 100;
-CFG.holeMasterEvery = 10; CFG.holeThr = 15; CFG.holeDomK = 8;
-CFG.holeAreaFrac = 0.01; CFG.holeFrameEvery = 16;
-CFG.holeBatch = 3; CFG.holeAssignR = 20;
-CFG.holeDimNext = 0; CFG.holeDimFrac = 0.5;
-CFG.holeThr = 60;
-CFG.mergeR = 6;
-CFG.holeWinFrac = 0.055; CFG.holeGateK = 4;
+// S13 defaults REMOVED with the S1-S13 survey (27 Sep): the CWC burst needs
+// only the keys above + mergeR (detectDiffBlobs, the pile-up reader).
+CFG.mergeR = 6;                 // used by detectDiffBlobs (the CWC pile-up reader)
 function applyCfg(j) {
   if (!j) return;
   let o; try { o = JSON.parse(j); } catch (e) { log('E cfgparse'); return; }
@@ -164,13 +106,10 @@ function applyCfg(j) {
   if (touched.length) { log('cfg ' + touched.join(',')); showCfg(); }
 }
 function showCfg() { $('cfgline').textContent =
-  'cfg: allB=' + CFG.allB + ' accB=' + CFG.accB + ' grabs=' + CFG.grabs +
-  ' settle=' + CFG.settle + ' domK=' + CFG.domK + ' thrK=' + CFG.thrK +
-  ' satFloor=' + CFG.satFloor + ' colFloor=' + CFG.colFloor + ' domKHue=' + CFG.domKHue + ' diffThr=' + CFG.diffThr +
-  ' holeSurvey=' + CFG.holeSurvey + ' holeB=' + CFG.holeB + ' holeGap=' + CFG.holeGap +
-  ' holeThr=' + CFG.holeThr + ' holeDomK=' + CFG.holeDomK + ' holeAreaFrac=' + CFG.holeAreaFrac +
-  ' holeBatch=' + CFG.holeBatch + ' holeDimNext=' + CFG.holeDimNext +
-  ' holeWinFrac=' + CFG.holeWinFrac + ' holeGateK=' + CFG.holeGateK; }
+  'cfg: allB=' + CFG.allB + ' accB=' + CFG.accB +
+  ' evBias=' + CFG.evBias +
+  ' mergeR=' + CFG.mergeR +
+  ' bComp=' + CFG.bComp + ' cwc=' + CFG.cwc + ' cwcN=' + CFG.cwcN + ' cwcSettle=' + CFG.cwcSettle; }
 
 // ---------------- log ring (page-side only; download button) ---------------
 const LOG_MAX_LINES = 400;
@@ -279,7 +218,6 @@ function sizeForVideo(vw, vh) {
   H = Math.max(2, Math.round(vh * scale / 2) * 2);
   procCv.width = W; procCv.height = H;
   lumaArr = new Float32Array(W * H); satArr = new Float32Array(W * H);
-  rExc = new Float32Array(W * H); gExc = new Float32Array(W * H); bExc = new Float32Array(W * H);
   log('proc ' + W + 'x' + H + ' (video ' + vw + 'x' + vh + ')');
 }
 let grabResolvers = [];            // rVFC-based grabs (single pump owns rVFC)
@@ -402,96 +340,13 @@ function frameMetrics(d) {     // d = ImageData
 }
 
 // ---------------- reusable blob detector -----------------------------------
-// chan: Float32Array (W*H) with the detection channel value per pixel
-// (luma or saturation). Steps: statistical threshold (med + k*(d90-med),
-// optionally floored), flood-fill 4-conn components, per-blob stats,
-// outside-tail d10 dominance bar. Returns accepted blobs, brightest first.
-function detectBlobs(chan, rgbData, opt) {
-  const n = W * H;
-  // threshold basis: histogram of chan
-  const hist = new Uint32Array(64);
-  for (let i = 0; i < n; i++) hist[Math.min(63, chan[i] >> 2)]++;
-  let acc = 0, med = 0, d90 = 0;
-  const q50 = n >> 1, q90 = (n * 9) >> 4;
-  for (let i = 0; i < 64; i++) {
-    acc += hist[i];
-    if (acc >= q50 && med === 0) med = (i << 2) + 2;
-    if (acc >= q90) { d90 = (i << 2) + 2; break; }
-  }
-  let thr = med + opt.thrK * (d90 - med);
-  if (opt.thrFloor != null) thr = Math.max(thr, opt.thrFloor);
-  // flood fill
-  const seen = new Uint8Array(n);
-  const blobs = [];
-  const qx = new Int32Array(256), stack = new Int32Array(n);
-  for (let s0 = 0; s0 < n; s0++) {
-    if (seen[s0] || chan[s0] < thr) continue;
-    let sp = 0; stack[sp++] = s0; seen[s0] = 1;
-    let cnt = 0, sx = 0, sy = 0, peak = 0, peakIdx = s0;
-    const sr = 0, sg = 0, sb = 0;
-    let sr2 = 0, sg2 = 0, sb2 = 0;
-    while (sp > 0) {
-      const idx = stack[--sp];
-      cnt++;
-      const x = idx % W, y = (idx / W) | 0;
-      sx += x; sy += y;
-      const v = chan[idx];
-      if (v > peak) { peak = v; peakIdx = idx; }
-      const p4 = idx * 4;
-      sr2 += rgbData[p4]; sg2 += rgbData[p4 + 1]; sb2 += rgbData[p4 + 2];
-      if (x > 0 && !seen[idx - 1] && chan[idx - 1] >= thr) { seen[idx - 1] = 1; stack[sp++] = idx - 1; }
-      if (x < W - 1 && !seen[idx + 1] && chan[idx + 1] >= thr) { seen[idx + 1] = 1; stack[sp++] = idx + 1; }
-      if (y > 0 && !seen[idx - W] && chan[idx - W] >= thr) { seen[idx - W] = 1; stack[sp++] = idx - W; }
-      if (y < H - 1 && !seen[idx + W] && chan[idx + W] >= thr) { seen[idx + W] = 1; stack[sp++] = idx + W; }
-    }
-    if (cnt >= opt.minPx) {
-      blobs.push({ cnt, cx: sx / cnt, cy: sy / cnt, peak, peakIdx, pkx: peakIdx % W, pky: (peakIdx / W) | 0,
-                   r: sr2 / cnt, g: sg2 / cnt, b: sb2 / cnt });
-    }
-  }
-  blobs.sort((a, b) => b.peak - a.peak);
-  // dominance bar: mean of the top decile of chan OUTSIDE every blob's pixel
-  // (candidate never lifts its own bar; B109 d10out, whole-frame form)
-  const inBlob = seen;         // 'seen' now marks exactly the blob pixels
-  const tail = [];
-  for (let i = 0; i < n; i += 2) if (!inBlob[i]) tail.push(chan[i]);   // subsample x2
-  tail.sort((a, b) => b - a);
-  const k = Math.max(1, Math.floor(tail.length / 10));
-  let d10out = 0;
-  for (let i = 0; i < k; i++) d10out += tail[i];
-  d10out /= k;
-  const accepted = [];
-  for (const b of blobs) {
-    if (b.peak >= opt.domK * Math.max(1, d10out)) { b.d10out = d10out; accepted.push(b); }
-    else break;                // sorted by peak; first fail ends the accepted set
-  }
-  return { blobs, accepted, thr, med, d90, d10out };
-}
-function hueClass(b) {         // mean-rgb -> R/G/B/W by dominance
-  const r = b.r, g = b.g, bl = b.b;
-  const mx = Math.max(r, g, bl), mn = Math.min(r, g, bl);
-  const sat = mx - mn;
-  if (sat < 50) return 'W';
-  if (r === mx && r > 1.25 * g && r > 1.25 * bl) return 'R';
-  if (g === mx && g > 1.25 * r && g > 1.25 * bl) return 'G';
-  if (bl === mx && bl > 1.25 * r && bl > 1.25 * g) return 'B';
-  return '?';
-}
-
-// channel builders from ImageData
-function buildChannels(d) {
-  const px = d.data;
-  for (let i = 0, p = 0; i < lumaArr.length; i++, p += 4) {
-    const r = px[p], g = px[p + 1], b = px[p + 2];
-    const luma = r > g ? (r > b ? r : b) : (g > b ? g : b);
-    lumaArr[i] = luma;
-    satArr[i] = luma - (r < g ? (r < b ? r : b) : (g < b ? g : b));
-  }
-}
+// chan: Float32Array (W*H) with the detection channel value per pixel.
+// Steps: statistical threshold (med + k*(d90-med), optionally floored),
+// flood-fill 4-conn components, per-blob stats, outside-tail d10 dominance
+// bar. Returns accepted blobs, brightest first.
 
 // ---------------- live state, overlay, metric strip ------------------------
 let scanning = false, abortFlag = false;
-let manualMode = '';           // '', 'all', 'acc'
 let lastDet = null;
 let allOnRef = null;           // survey's all-on frame (ImageData) for temporal diffs
 let allOnExc = null;           // cached hue-excess of the all-on reference
@@ -523,73 +378,14 @@ function drawDriftTrail() {
 function drawOverlay(det) {
   camCx.drawImage($('vid'), 0, 0, W, H);
   drawDriftTrail();               // persistent drift trail (survives redraws)
-  if (!det) return;
-  for (const b of det.accepted) {
-    const hue = hueClass(b);
-    camCx.strokeStyle = hue === 'R' ? '#f44' : hue === 'G' ? '#4f4' : hue === 'B' ? '#48f' : '#fff';
-    camCx.lineWidth = 1.5;
-    const r = Math.sqrt(b.cnt / Math.PI) + 4;
-    camCx.strokeRect(b.cx - r, b.cy - r, 2 * r, 2 * r);
-    camCx.fillStyle = camCx.strokeStyle;
-    camCx.font = '10px monospace';
-    camCx.fillText(hue + ' ' + Math.round(b.peak), b.cx - r, b.cy - r - 3);
-  }
 }
 function stripLine(m, det) {
   const s = $('vid').srcObject && videoTrack ? expLine() : '';
   return 'pk:' + m.pk + ' med:' + m.med + ' d90:' + m.d90 +
     ' clipW:' + (100 * m.clipW / m.n).toFixed(2) + '%' +
     ' clipC:' + (100 * m.clipC / m.n).toFixed(2) + '%' +
-    ' satHi:' + m.satHi + ' blobs:' + (det ? det.accepted.length : '-') +
+    ' satHi:' + m.satHi +
     (s ? ' ' + s : '');
-}
-let idleMetrics = null;
-// per-colour channel builders: hue-excess over the other two channels
-let rExc = null, gExc = null, bExc = null;   // sized in sizeForVideo (was: W*H at load — WRONG after resize)
-function buildColourExcess(d) {
-  const px = d.data;
-  for (let i = 0, p = 0; i < rExc.length; i++, p += 4) {
-    const r = px[p], g = px[p + 1], b = px[p + 2];
-    rExc[i] = r - Math.max(g, b);
-    gExc[i] = g - Math.max(r, b);
-    bExc[i] = b - Math.max(r, g);
-  }
-}
-// persistent last-known LED boxes: updated whenever detection sees them,
-// drawn EVERY idle tick in EVERY mode until cleared (Oliver: boxes must remain)
-const ledBoxes = { R: [], G: [], B: [] };
-// S13 hole survey review boxes: LED index -> {x, y, r, pk, miss, ts}. Drawn
-// after EVERY pair (found or missed — a miss must never erase, same rule as
-// the hue layer), double-stroked so they read on the bright field.
-const holeBoxes = new Map();
-// S13B position map: LED index -> {x, y} of its LAST located hole. Lives in
-// the page across runs (a reload clears it; the first post-reload survey is
-// necessarily all-singles and rebuilds it). The batched path assigns holes
-// to indices by proximity to this map; LED #0's pair is the per-run ANCHOR
-// that validates the map before any batching is trusted.
-const holeMap = new Map();
-function updateLedBoxes(det3) {
-  const now = performance.now();
-  for (const hue of ['R', 'G', 'B']) {
-    if (det3[hue].accepted.length) {         // a MISS must never erase last-known
-      ledBoxes[hue] = det3[hue].accepted.slice(0, 12).map((b) => ({
-        x: b.cx, y: b.cy, r: Math.sqrt(b.cnt / Math.PI) + 4, pk: Math.round(b.peak), ts: now }));
-    }
-  }
-}
-function drawLedBoxes() {
-  const now = performance.now();
-  for (const hue of ['R', 'G', 'B']) {
-    const col = hue === 'R' ? '#ff5555' : hue === 'G' ? '#55ff55' : '#5588ff';
-    for (const b of ledBoxes[hue]) {
-      camCx.globalAlpha = (now - b.ts > 1000) ? 0.45 : 1;   // stale = dim
-      camCx.strokeStyle = col; camCx.lineWidth = 2;
-      camCx.strokeRect(b.x - b.r, b.y - b.r, 2 * b.r, 2 * b.r);
-      camCx.fillStyle = col; camCx.font = '10px monospace';
-      camCx.fillText(hue + ' ' + b.pk, b.x - b.r, b.y - b.r - 3);
-      camCx.globalAlpha = 1;
-    }
-  }
 }
 // difference-blob detection: signed difference array (accent - all-on),
 // absolute threshold, flood fill, dominance vs outside positive tail.
@@ -667,734 +463,40 @@ function detectDiffBlobs(diffArr, thr, domK, mergeR) {
   }
   return { blobs, accepted, thr, d10out };
 }
-function updateLedBoxesDiff(dets) {
-  const now = performance.now();
-  for (const hue of ['R', 'G', 'B']) {
-    if (dets[hue].accepted.length) {
-      ledBoxes[hue] = dets[hue].accepted.slice(0, 12).map((b) => ({
-        x: b.cx, y: b.cy, r: Math.sqrt(b.cnt / Math.PI) + 4, pk: Math.round(b.peak), ts: now }));
-    }
-  }
-}
-function detectColours(d) {    // F1 overlay goal: find R/G/B LED blobs
-  buildChannels(d); buildColourExcess(d);
-  const opt = { thrK: CFG.thrK, thrFloor: CFG.colFloor, domK: CFG.domKHue, minPx: 2 };
-  const res = {};
-  res.R = detectBlobs(rExc, d.data, opt);
-  res.G = detectBlobs(gExc, d.data, opt);
-  res.B = detectBlobs(bExc, d.data, opt);
-  return res;
-}
-function idleFrame() {         // ~10 Hz idle: metrics + detect + overlay
+function idleFrame() {         // ~10 Hz idle: metrics + drift-trail overlay
   try {
     const d = procCx.getImageData(0, 0, W, H);
-    buildChannels(d);
     const m = frameMetrics(d);
-    let det = null, label = '[luma]';
-    if (manualMode === 'acc') {
-      det = detectColours(d);
-      updateLedBoxes(det);
-      $('strip').textContent = '[hue] ' + stripLine(m, det.R) +
-        ' R:' + det.R.accepted.length + ' G:' + det.G.accepted.length + ' B:' + det.B.accepted.length;
-      camCx.drawImage($('vid'), 0, 0, W, H);
-      drawLedBoxes();
-      if (holeBoxes.size) drawHoleBoxes();   // S13 review layer in acc idle too
-      captureFrame('idle:acc', det);
-      return;
-    }
-    const opt = { thrK: CFG.thrK, thrFloor: null, domK: CFG.domK, minPx: 2 };
-    det = detectBlobs(lumaArr, d.data, opt);
-    lastDet = det; idleMetrics = m;
-    drawOverlay(det);
-    drawLedBoxes();                 // persistent layer survives mode switches
-    if (holeBoxes.size) drawHoleBoxes();   // S13 review layer survives too
-    $('strip').textContent = label + ' ' + stripLine(m, det);
-  } catch (e) { log('E idle ' + (e && e.message || e)); }
+    drawOverlay(null);             // drift trail survives the idle redraws
+    $('strip').textContent = '[idle] ' + stripLine(m, null);
+  } catch (e) { log('E idle ' + (e.message || e)); }
 }
 // idleFrame is called from the pump via idleFrameTick below (timer, ~10 Hz)
 setInterval(() => { if (camReady && !scanning) idleFrame(); }, 100);
 
-// ---------------- frame store (offline detector debugging) ----------------
-// Ring of recent detection moments as compact JPEGs + full context. Pulled
-// on demand via the FRAMP serial protocol; nothing ships in the background.
-const FRAMES_MAX = 16;
-const frameStore = [];
-function captureFrame(label, det) {
-  try {
-    const c = document.createElement('canvas');
-    const sc = 320 / Math.max(W, H);
-    c.width = Math.round(W * sc); c.height = Math.round(H * sc);
-    c.getContext('2d').drawImage(camCv, 0, 0, c.width, c.height);
-    const jpg = c.toDataURL('image/jpeg', 0.5).split(',')[1];
-    let detLine = '';
-    if (det && det.R) detLine = ['R','G','B'].map(h => h + ':' + det[h].accepted.length +
-      '/' + det[h].blobs.length + '/thr' + Math.round(det[h].thr) + '/d10' + (Math.round(det[h].d10out * 10) / 10)).join(' ');
-    else if (det) detLine = 'bl:' + det.accepted.length + '/' + det.blobs.length + '/thr' + Math.round(det.thr) + '/d10' + (Math.round(det.d10out * 10) / 10);
-    frameStore.push({ t: ((Date.now() - t0) / 1000).toFixed(1), label, W, H, exp: expLine(), det: detLine, jpg });
-    if (frameStore.length > FRAMES_MAX) frameStore.shift();
-  } catch (e) { log('E capframe ' + (e && e.message || e)); }
-}
 // ---------------- box paint helpers ---------------------------------------
 async function paint(cmdObj) { await sendCmd(cmdObj, { tries: 2, timeout: 2500 }); }
 
 // ---------------- survey run ----------------------------------------------
-const ACCENTS = [['R', 'FF0000'], ['G', '00FF00'], ['B', '0000FF']];
-function paintArr(fn) {        // build the p[] paint array for 'frame'
-  const p = [];
-  for (let i = 0; i < window._npx; i++) p.push(fn(i));
-  return p;
-}
-async function surveyRun() {
-  if (scanning) return;
-  if (CFG.holeSurvey === 1) { await holeSurveyRun(); return; }   // S13 hole scheme
-  scanning = true; abortFlag = false; setButtons();
-  log('survey start');
-  const evid = { build: BUILD, px: window._npx, modes: [] };
-  try {
-    await paint({ cmd: 'black' });
-    await sleep(CFG.settle);
-    // BLACK baseline
-    const black = await grabMode('black', null, evid);
-    if (abortFlag) throw new Error('aborted');
-    // PLAIN all-on baseline (white field, CFG.allB) — global reference
-    const all = await grabMode('all2', { cmd: 'all', b: CFG.allB }, evid, null);
-    if (abortFlag) throw new Error('aborted');
-    // PER-DIE COMPLEMENTARY FIELD (S11): scanning die colour C uses a field
-    // of the two OTHER colours, alternating down the string. Channel C stays
-    // dark across the whole field -> the C die has MAXIMUM headroom (the
-    // operator's clipping diagnosis: R/G dies clipped to white under the
-    // white field; blue survived because the warm-white field left B low).
-    // The field is still bright, so AE reads ~the same total luminance.
-    const OTHERS = { R: ['00FF00', '0000FF'], G: ['FF0000', '0000FF'], B: ['FF0000', '00FF00'] };
-    const fieldFor = (hue) => paintArr((i) => (i % 2 === 0 ? OTHERS[hue][0] : OTHERS[hue][1]));
-    for (const [nm, hex] of ACCENTS) {
-      if (abortFlag) throw new Error('aborted');
-      const pxIdx = accentIdx(nm);
-      const accField = (CFG.compField === 1)
-        ? fieldFor(nm)
-        : (CFG.field2 === 1 ? paintArr((i) => (i % 2 === 0 ? 'FF0000' : '00FF00')) : null);
-      // reference for the diff: the SAME field WITHOUT the die lit
-      const refMode = CFG.compField === 1 ? 'ref:' + nm : 'all2';
-      const refPaint = (CFG.compField === 1)
-        ? { cmd: 'frame', b: CFG.allB, p: fieldFor(nm) }
-        : null;
-      // grab the reference field first (3 grabs), then the die frames
-      const ref = await grabMode(refMode, refPaint, evid, null);
-      if (abortFlag) throw new Error('aborted');
-      const refGrab = lastGrab;
-      let refExc = null;
-      if (refGrab) { buildChannels(refGrab); buildColourExcess(refGrab);
-        refExc = { R: Float32Array.from(rExc), G: Float32Array.from(gExc), B: Float32Array.from(bExc) }; }
-      const savedRef = { allOnRef, allOnExc };
-      if (CFG.compField === 1 && refExc) { allOnRef = refGrab; allOnExc = refExc; }
-      await grabMode('frame', {
-        cmd: 'frame', b: CFG.accB,
-        p: paintArr((i) => (i === pxIdx ? hex : (accField ? accField[i] : 'W')))
-      }, evid, nm);
-      allOnRef = savedRef.allOnRef; allOnExc = savedRef.allOnExc;
-    }
-    // DARK-PAIR EXPERIMENT (CFG.darkPair=1): pin exposure bright with the
-    // field, then grab die-on / all-black pairs as fast as the WS allows,
-    // logging exposure readback per grab — measures how long the AE takes to
-    // re-converge and whether the die pair survives in the under-exposed gap.
-    if (CFG.darkPair === 1) {
-      await paint({ cmd: 'all', b: CFG.allB });      // pin exposure bright
-      await sleep(600);
-      for (const [nm, hex] of ACCENTS) {
-        if (abortFlag) throw new Error('aborted');
-        const pxIdx = accentIdx(nm);
-        await paint({ cmd: 'frame', b: CFG.accB,
-          p: paintArr((i) => (i === pxIdx ? hex : 'W')) });   // die + field
-        await sleep(CFG.dpGap || 300);          // LED latch + new video frame
-        const onGrab = await grabRaw('dp:' + nm + ':on');
-        await paint({ cmd: 'black' });                       // all black
-        await sleep(CFG.dpGap || 300);
-        const offGrab = await grabRaw('dp:' + nm + ':off');
-        // byte-diff guard: identical pair = capture race, mark it in the log
-        if (onGrab && offGrab) {
-          const a = new Uint8Array(onGrab.data.buffer), b = new Uint8Array(offGrab.data.buffer);
-          let diff = 0;
-          for (let i = 0; i < a.length; i += 997) if (a[i] !== b[i]) diff++;
-          log('dp ' + nm + ' guard: ' + (diff > 50 ? 'OK (' + diff + ' samples differ)' : 'RACE (identical)'));
-        }
-      }
-    }
-    await paint({ cmd: 'black' });
-    log('survey done');
-  } catch (e) {
-    log('E survey ' + (e && e.message || e));
-    try { await paint({ cmd: 'black' }); } catch (e2) {}
-  } finally {
-    scanning = false; setButtons();
-    // Evidence ships as ONE compact summary for the whole run (box keeps a
-    // single bounded string; serial pull: EV). Per-frame detail lives in the
-    // page log (download button) — the box only gets decisions.
-    const sum = evid.modes.map(modeSummary);
-    const evStr = JSON.stringify({ b: BUILD, px: evid.px, s: sum });
-    log('evid ' + evStr.length + 'B');
-    if (evStr.length <= 1100) sendCmd({ cmd: 'evid', e: evStr }).catch(() => log('E evid ship'));
-    else log('E evid too big — full data in page log');
-  }
-}
-// ---------------- S13 hole survey (operator scheme) ------------------------
-// Paint EVERY LED white at holeB (master), settle the AE (1 s — measured:
-// AE recovers only ~halfway in 300 ms), grab the MASTER frame; then per LED:
-// paint all-on-minus-that-LED, wait holeGap (latch + fresh video frame), grab
-// the PAIR. luma diff master-pair: the die is a DARK HOLE in the bright
-// field — detected by the bench-proven detectDiffBlobs (signed diff, merge,
-// outside-tail dominance) + the S13 giant-blob area cap. Review box per LED
-// on the camera view (bright double-stroke + #i), drawn even on a MISS.
-// Both pair frames are the same bright field (one LED of ~150 toggles <1% of
-// scene luma), so the AE-pump blob class of the accent era is excluded BY
-// CONSTRUCTION; a miss is truthfully logged, never retried by geometry.
-function drawHoleBoxes() {
-  const now = performance.now();
-  for (const [i, b] of holeBoxes) {
-    const stale = now - b.ts > 2000;
-    camCx.globalAlpha = stale ? 0.4 : 1;
-    camCx.lineWidth = 2;                       // dark under-stroke: reads on white
-    camCx.strokeStyle = '#000';
-    camCx.strokeRect(b.x - b.r, b.y - b.r, 2 * b.r, 2 * b.r);
-    camCx.lineWidth = 1.5;                     // bright over-stroke
-    camCx.strokeStyle = b.miss ? '#ff3333' : '#ffee00';
-    camCx.strokeRect(b.x - b.r, b.y - b.r, 2 * b.r, 2 * b.r);
-    camCx.fillStyle = camCx.strokeStyle;
-    camCx.font = 'bold 11px monospace';
-    camCx.fillText((b.miss ? 'M#' : '#') + i, b.x - b.r, b.y - b.r - 3);
-    camCx.globalAlpha = 1;
-  }
-}
-async function holeSurveyRun() {
-  scanning = true; abortFlag = false; setButtons();
-  log('hole survey start (npx=' + window._npx + ' b=' + CFG.holeB +
-      ' gap=' + CFG.holeGap + ' thr=' + CFG.holeThr + ' domK=' + CFG.holeDomK + ')');
-  const evid = { build: BUILD, px: window._npx, modes: [] };
-  const tRun = performance.now();
-  const bUsed = CFG.holeB;            // brightness captured BEFORE any await; evid must report what was PAINTED
-  try {
-    if (!W || !lumaArr) throw new Error('camera not ready');
-    const npx = window._npx;
-    // MASTER: all-on at holeB, long AE/AF settle, multi-grab median luma
-    await paint({ cmd: 'all', b: bUsed });
-    await sleep(CFG.holeSettle);
-    let masterLuma = null;
-    {
-      const grabs = [];
-      for (let g = 0; g < 3 && !abortFlag; g++) {
-        await grabTimeout();
-        const d = procCx.getImageData(0, 0, W, H);
-        buildChannels(d);
-        grabs.push(Float32Array.from(lumaArr));
-        captureFrame('hole:master', null);
-      }
-      if (!grabs.length) throw new Error('aborted');
-      const n = W * H;
-      masterLuma = new Float32Array(n);
-      for (let i = 0; i < n; i++) {
-        const vs = grabs.map((g) => g[i]).sort((a, b) => a - b);
-        masterLuma[i] = grabs.length === 3 ? vs[1] : vs[0];   // median of 3
-      }
-      log('hole master grabbed (' + grabs.length + ' grabs)');
-    }
-    // PAIRS — K-CHAIN scheme (S13H, operator-directed): NO prior map. Every
-    // run starts with K single-LED ANCHOR pairs (0, 50, 100 for K=3),
-    // double-grabbed for stability; then K-spaced batch groups (1,51,101)…
-    // where each chain's hole must fall inside a GENEROUS WINDOW (~5% of the
-    // frame diagonal) around that chain's PREVIOUS LED position. Groups whose
-    // chains' windows overlap (or whose assignment is ambiguous) revert to
-    // individual single pairs — window-constrained (not whole-frame), so an
-    // edge reflection like LED-122's (402,198) can never re-enter via the
-    // fallback. Whole-frame search survives ONLY in the K anchor pairs.
-    // Post-run serpentine audit: deviation from ID-neighbours' midpoint
-    // > holeGateK x median pitch => HIDDEN + interpolated from neighbours.
-    const found = [], missed = [];
-    let sinceMaster = 0;
-    const K = Math.max(1, Math.min(8, Math.round(CFG.holeBatch)));
-    const capPx = CFG.holeAreaFrac * (W * H);
-    const winR = Math.round(Math.hypot(W, H) * CFG.holeWinFrac);   // ~41 px @ 406x720
-    const stride = Math.ceil((npx - 1) / K);   // chain c covers indices
-                                               // [c*stride .. (c+1)*stride-1]:
-                                               // chain membership is a RANGE,
-                                               // not i%K (S13H bench bug)
-    const grabDiff = async () => {
-      await sleep(CFG.holeGap);
-      await grabTimeout();
-      const d = procCx.getImageData(0, 0, W, H);
-      buildChannels(d);
-      const n = W * H;
-      const diff = new Float32Array(n);
-      for (let k = 0; k < n; k++) diff[k] = masterLuma[k] - lumaArr[k];
-      return detectDiffBlobs(diff, CFG.holeThr, CFG.holeDomK, CFG.mergeR);
-    };
-    const setVerdict = (i, pick, det) => {
-      const now = performance.now();
-      if (pick) {
-        holeBoxes.set(i, { x: pick.wcx, y: pick.wcy, r: Math.sqrt(pick.cnt / Math.PI) + 6,
-          pk: Math.round(pick.peak), miss: false, ts: now });
-        found.push(i);
-        log('h' + i + ' FOUND pk' + Math.round(pick.peak) + ' n' + pick.cnt +
-            ' @(' + Math.round(pick.wcx) + ',' + Math.round(pick.wcy) + ')');
-      } else {
-        holeBoxes.set(i, { x: -1, y: -1, r: 0, pk: 0, miss: true, ts: now });
-        missed.push(i);
-        log('h' + i + ' miss (blobs:' + det.blobs.length + ' acc:' + det.accepted.length + ')');
-      }
-      return now;
-    };
-    const regrabMaster = async (at) => {
-      await paint({ cmd: 'all', b: bUsed });
-      await sleep(CFG.holeGap);
-      await grabTimeout();
-      const d = procCx.getImageData(0, 0, W, H);
-      buildChannels(d);
-      masterLuma = Float32Array.from(lumaArr);
-      sinceMaster = 0;
-      log('hole master regrabbed at pair ' + at);
-    };
-    // chain state: chainPos[c] = last located LED position in chain c
-    // (anchor first, then each resolved batch member extends its chain)
-    const chainPos = [];
-    // WINDOW GEOMETRY (S13K, operator spec): the window RADIUS is
-    // max(holeWinFrac x frame diagonal, 1.5 x MEASURED median pitch) —
-    // the diagonal-derived value is a FLOOR, never the operative size when
-    // the string's pitch is larger. Median pitch comes from the PREVIOUS
-    // run's map (updated every run); before the first map exists it falls
-    // back to the floor alone.
-    const chainPitch = [];                      // median pitch per chain (px)
-    const winRFor = (c) => Math.max(
-      winR,                                     // floor: holeWinFrac x diag
-      1.5 * (chainPitch[c] || 0));              // 1.5x measured median pitch
-    const inWindowNow = (c, h) => !chainPos[c] ||
-      Math.hypot(h.wcx - chainPos[c].x, h.wcy - chainPos[c].y) <= winRFor(c);
-    const runSingles = async (idxs, constrained) => {
-      // single-LED pairs; when constrained, each index i searches only inside
-      // its CHAIN's window (chain c for index i is a RANGE: floor(i/stride))
-      // called from a batch fallback; for the anchor pass it is whole-frame).
-      for (const i of idxs) {
-        if (abortFlag) break;
-        if (CFG.holeMasterEvery > 0 && sinceMaster >= CFG.holeMasterEvery) await regrabMaster(i);
-        const p = [];
-        for (let j = 0; j < npx; j++) p.push(j === i ? null : 'W');
-        if (CFG.holeDimNext === 1) {
-          const nb = (i + 1) % npx;
-          p[nb] = 'H';
-        }
-        await paint({ cmd: 'frame', b: bUsed, p });
-        const det = await grabDiff();
-        const cands = det.accepted.filter((b) => b.cnt <= capPx);
-        // S13I: pick the brightest IN-WINDOW hole, not the global brightest —
-        // at mergeR=2 a bloom fragment can outshine the real hole, and a
-        // global-brightest pick then fails the window test while the real
-        // hole sits inside the window unused. Window size = max(floor,
-        // 1.5x measured chain pitch) — measured from the previous run's map.
-        let pick = null;
-        if (constrained) {
-          const c = Math.min(K - 1, Math.floor(i / stride));   // RANGE mapping
-          const inWin = cands.filter((b) => inWindowNow(c, b));
-          pick = inWin.length ? inWin[0] : null;
-          if (!pick && cands.length)
-            log('h' + i + ' ' + cands.length + ' candidates, none in chain-' + c +
-                ' window (r=' + Math.round(winRFor(c)) + 'px, pitch ' +
-                Math.round(chainPitch[c] || 0) + ', chainPos ' +
-                (chainPos[c] ? Math.round(chainPos[c].x) + ',' + Math.round(chainPos[c].y) : '?') + ') — miss');
-        } else {
-          pick = cands.length ? cands[0] : null;
-        }
-        setVerdict(i, pick, det);
-        if (pick && constrained) {
-          const c = Math.min(K - 1, Math.floor(i / stride));
-          // per-step measured pitch, exponential average (alpha=0.5) —
-          // this chain's OWN local pitch, robust to single outliers.
-          // Computed BEFORE chainPos overwrites: previous chain LED is
-          // chainPos[c]'s pre-update value.
-          if (chainPos[c]) {
-            const step = Math.hypot(pick.wcx - chainPos[c].x, pick.wcy - chainPos[c].y);
-            if (step > 0 && step < winR * 4)        // sane steps only
-              chainPitch[c] = chainPitch[c] ? chainPitch[c] * 0.5 + step * 0.5 : step;
-          }
-          chainPos[c] = { x: pick.wcx, y: pick.wcy };
-        }
-        camCx.drawImage($('vid'), 0, 0, W, H);
-        drawHoleBoxes();
-        if (pick || i % CFG.holeFrameEvery === 0) captureFrame('hole:p' + i, det);
-        sinceMaster++;
-        if (i % 25 === 24) log('hole progress ' + (i + 1) + '/' + npx +
-          ' (' + Math.round((performance.now() - tRun) / 1000) + 's)');
-      }
-    };
-    // K ANCHOR PAIRS (operator-directed): one single-LED pair per chain,
-    // double-grabbed, positions must agree <= 5 px
-    const anchors = [];
-    for (let c = 0; c < K; c++) {
-      const i = c * stride;               // operator spec: anchors at 0, 50, 100
-                                          // (the stride multiples = chain starts)
-      const p = [];
-      for (let j = 0; j < npx; j++) p.push(j === i ? null : 'W');
-      await paint({ cmd: 'frame', b: bUsed, p });
-      const detA = await grabDiff();
-      await paint({ cmd: 'frame', b: bUsed, p });   // re-paint the SAME frame for a second grab
-      const detB = await grabDiff();
-      const candsA = detA.accepted.filter((b) => b.cnt <= capPx);
-      const candsB = detB.accepted.filter((b) => b.cnt <= capPx);
-      const a = candsA.length ? candsA[0] : null;
-      const bB = candsB.length ? candsB[0] : null;
-      const stable = a && bB && Math.hypot(a.wcx - bB.wcx, a.wcy - bB.wcy) <= 5;
-      if (a && stable) {
-        setVerdict(i, a, detA);
-        chainPos[c] = { x: a.wcx, y: a.wcy };
-        log('hole anchor chain-' + c + ' LED#' + i + ' @(' + Math.round(a.wcx) + ',' +
-            Math.round(a.wcy) + ') stable');
-        anchors.push(c);
-      } else {
-        setVerdict(i, a, detA);
-        log('hole anchor chain-' + c + ' LED#' + i + ' UNSTABLE/MISSING (' +
-            (a ? 'shifted ' + (a && bB ? Math.round(Math.hypot(a.wcx - bB.wcx, a.wcy - bB.wcy)) : '?') + 'px' : 'no hole') +
-            ') — chain runs UNCONSTRAINED');
-        anchors.push(-c - 100);   // marker: unconstrained chain
-      }
-      sinceMaster += 2;
-      camCx.drawImage($('vid'), 0, 0, W, H);
-      drawHoleBoxes();
-      if (a) captureFrame('hole:a' + i, detA);
-    }
-    log('hole K-chain run: K=' + K + ' anchors ' +
-        anchors.filter((c) => c >= 0).length + '/' + K + ' stable, winR=' + winR + 'px');
-    // K-SPACED BATCH GROUPS with per-chain window assignment
-    {
-      const seen = new Set();               // indices already decided (anchors)
-      for (const c of anchors) if (c >= 0) seen.add(c * stride);
-      let processed = 0;
-      for (let g = 0; g < stride && !abortFlag; g++) {
-        if (CFG.holeMasterEvery > 0 && sinceMaster >= CFG.holeMasterEvery) await regrabMaster(g);
-        const idxs = [];
-        for (let j = 0; j < K; j++) { const v = 1 + g + j * stride; if (v < npx && !seen.has(v)) idxs.push(v); }
-        await paint({ cmd: 'frame', b: bUsed, p: (() => {
-          const p = [];
-          for (let j = 0; j < npx; j++) p.push(idxs.includes(j) ? null : 'W');
-          if (CFG.holeDimNext === 1) {
-            for (const i of idxs) {
-              const nb = (i + 1) % npx;
-              if (!idxs.includes(nb)) p[nb] = 'H';
-            }
-          }
-          return p;
-        })() });
-        const det = await grabDiff();
-        const holes = det.accepted.filter((b) => b.cnt <= capPx);
-        // per-chain assignment: chain c of index i is the RANGE mapping;
-        // windows ESCALATE per consecutive chain miss (winRFor)
-        const groups = idxs.map((i) => {
-          const c = Math.min(K - 1, Math.floor(i / stride));
-          return { i, c, cands: holes.filter((h) => inWindowNow(c, h)) };
-        });
-        const taken = new Set();
-        const resolved = groups.every((gr) => gr.cands.length === 1) &&
-          groups.every((gr) => { const h = gr.cands[0];
-            if (taken.has(h)) return false; taken.add(h); return true; });
-        if (resolved) {
-          const now = performance.now();
-          for (const gr of groups) {
-            const h = gr.cands[0];
-            holeBoxes.set(gr.i, { x: h.wcx, y: h.wcy, r: Math.sqrt(h.cnt / Math.PI) + 6,
-              pk: Math.round(h.peak), miss: false, ts: now });
-            found.push(gr.i);
-            // per-step measured pitch (exp average, alpha=0.5), BEFORE the
-            // chainPos overwrite — same as the singles path
-            if (chainPos[gr.c]) {
-              const step = Math.hypot(h.wcx - chainPos[gr.c].x, h.wcy - chainPos[gr.c].y);
-              if (step > 0 && step < winR * 4)
-                chainPitch[gr.c] = chainPitch[gr.c] ? chainPitch[gr.c] * 0.5 + step * 0.5 : step;
-            }
-            chainPos[gr.c] = { x: h.wcx, y: h.wcy };
-            log('h' + gr.i + ' FOUND pk' + Math.round(h.peak) + ' n' + h.cnt +
-                ' @(' + Math.round(h.wcx) + ',' + Math.round(h.wcy) + ') bK' + idxs.length);
-          }
-          if (idxs[0] % CFG.holeFrameEvery === 0) captureFrame('hole:g' + idxs[0], det);
-        } else {
-          log('hole batch [' + idxs.join(',') + '] ambiguous/out-of-window (' +
-              holes.length + ' holes) -> constrained singles fallback');
-          await runSingles(idxs, true);
-        }
-        processed += idxs.length;
-        sinceMaster++;
-        if (processed % 25 === 0 || processed >= npx - 1)
-          log('hole progress ' + (processed + 1) + '/' + npx + ' (' +
-              Math.round((performance.now() - tRun) / 1000) + 's)');
-      }
-    }
-    // POST-RUN SERPENTINE AUDIT (F2 gate, operator-directed after LED-122):
-    // deviation from the midpoint of the ID neighbours, in units of the
-    // measured median pitch. > holeGateK pitches => the accepted hole is an
-    // IMPOSTOR: reject it, mark the index HIDDEN, interpolate the position
-    // from the neighbours. Neighbour midpoints use ONLY non-HIDDEN positions
-    // (a rejected index must not poison the next pass). Also flags holes
-    // within ~10 px of a frame edge for review.
-    {
-      const posOf = (i) => {
-        const b = holeBoxes.get(i);
-        return b && !b.miss && b.x >= 0 ? { x: b.x, y: b.y } : null;
-      };
-      const hidden = new Set();
-      for (let i = 0; i < npx; i++) {
-        const self = posOf(i);
-        if (!self) continue;
-        if (self.x <= 10 || self.x >= W - 10 || self.y <= 10 || self.y >= H - 10)
-          log('h' + i + ' EDGE FLAG: hole within ~10 px of the frame edge @(' +
-              Math.round(self.x) + ',' + Math.round(self.y) + ') — review');
-      }
-      const pitchOf = (i) => {                     // median local pitch
-        const a = posOf(i - 1), b = posOf(i + 1);
-        if (!a || !b) return null;
-        return Math.hypot(b.x - a.x, b.y - a.y) / 2;
-      };
-      const pitches = [];
-      for (let i = 2; i < npx - 2; i++) {
-        const p = pitchOf(i);
-        if (p && p > 0) pitches.push(p);
-      }
-      pitches.sort((x, y) => x - y);
-      const medPitch = pitches.length ? pitches[Math.floor(pitches.length / 2)] : 0;
-      let auditChanged = true, passes = 0;
-      while (auditChanged && passes < 3) {         // iterate: rejections unpoison
-        auditChanged = false;
-        passes++;
-        for (let i = 1; i < npx - 1 && !abortFlag; i++) {
-          if (hidden.has(i)) continue;
-          const self = posOf(i);
-          if (!self) continue;
-          // nearest non-hidden neighbours at i-1/-2, i+1/+2
-          let a = null, aI = 0, b = null, bI = 0;
-          for (let d = 1; d <= 2 && !a; d++) { const q = posOf(i - d);
-            if (q && !hidden.has(i - d)) { a = q; aI = i - d; } }
-          for (let d = 1; d <= 2 && !b; d++) { const q = posOf(i + d);
-            if (q && !hidden.has(i + d)) { b = q; bI = i + d; } }
-          if (!a || !b) continue;
-          const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-          const dev = Math.hypot(self.x - mid.x, self.y - mid.y);
-          const pitch = Math.max(1, medPitch);
-          if (dev > CFG.holeGateK * pitch) {
-            const ni = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-            holeBoxes.set(i, { x: ni.x, y: ni.y, r: 6, pk: 0, miss: true, ts: performance.now(), hid: true });
-            hidden.add(i);
-            auditChanged = true;
-            log('h' + i + ' SERPENTINE REJECT: dev ' + Math.round(dev) + 'px = ' +
-                (dev / pitch).toFixed(1) + 'x pitch (> ' + CFG.holeGateK + ') between ' + aI +
-                '/' + bI + ' — HIDDEN, interpolated @(' + Math.round(ni.x) + ',' + Math.round(ni.y) + ')');
-          }
-        }
-      }
-      log('hole serpentine audit: ' + hidden.size + ' hidden, median pitch ' +
-          Math.round(medPitch) + 'px, gate ' + CFG.holeGateK + 'x, ' + passes + ' pass(es)');
-      if (missed.length || hidden.size) {
-        log('hidden indices: ' + (hidden.size ? Array.from(hidden).join(',') : '(none)'));
-      }
-    }
-    // POSITION MAP (F2 seed): every LED this run located (HIDDEN entries excluded)
-    holeMap.clear();
-    for (const [i, b] of holeBoxes) if (!b.miss && b.x >= 0 && !b.hid) holeMap.set(i, { x: b.x, y: b.y });
-    log('hole map saved (' + holeMap.size + ' entries)');
-    await paint({ cmd: 'black' });
-    log('hole survey done: ' + found.length + ' found, ' + missed.length +
-        ' missed in ' + Math.round((performance.now() - tRun) / 1000) + 's' +
-        (missed.length ? ' misses: ' + missed.join(',') : ''));
-    evid.hole = { build: BUILD, px: npx, allB: bUsed, thr: CFG.holeThr,
-      domK: CFG.holeDomK, foundN: found.length, missedN: missed.length,
-      found: found, missed: missed };
-  } catch (e) {
-    log('E holesurvey ' + (e && e.message || e));
-    try { await paint({ cmd: 'black' }); } catch (e2) {}
-  } finally {
-    scanning = false; setButtons();
-    let evStr;
-    try { evStr = JSON.stringify(evid.hole || { build: BUILD, err: 'no evidence' }); }
-    catch (e2) { evStr = '{"err":"evid stringify"}'; }
-    log('evid ' + evStr.length + 'B');
-    if (evStr.length <= 1100) sendCmd({ cmd: 'evid', e: evStr }).catch(() => log('E evid ship'));
-    else log('E evid too big — full data in page log');
-  }
-}
-function modeSummary(mo) {
-  const fr = mo.frames.filter(Boolean);
-  const name = mo.acc ? 'acc:' + mo.acc : mo.mode;
-  if (!fr.length) return { m: name, nb: 0 };
-  const med = (a) => a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)];
-  const last = fr[fr.length - 1];
-  const s = { m: name, pk: med(fr.map((f) => f.m.pk)),
-    cw: +med(fr.map((f) => 100 * f.m.clipW / f.m.n)).toFixed(2),
-    nb: last.accs.length, e: last.exp };
-  if (mo.acc) s.b = last.accs.slice(0, 4).map((a) => a.h + '@' + a.x + ',' + a.y + 'p' + a.pk + 'n' + a.n);
-  if (mo.acc && mo.frames.length && mo.frames[mo.frames.length - 1].det) s.dc = mo.frames[mo.frames.length - 1].det;
-  return s;
-}
-function accentIdx(nm) {       // spread accents along the string, not at ends
-  const n = window._npx || 10;
-  return nm === 'R' ? Math.round(n * 0.2) : nm === 'G' ? Math.round(n * 0.5) : Math.round(n * 0.8);
-}
-async function grabMode(mode, paintCmd, evid, accName) {
-  if (paintCmd) await paint(paintCmd);
-  await sleep(CFG.settle);
-  const frames = [];
-  for (let g = 0; g < CFG.grabs && !abortFlag; g++) {
-    await grabTimeout();
-    try {
-      const d = procCx.getImageData(0, 0, W, H);
-      lastGrab = d;
-      buildChannels(d);
-      const isAcc = !!accName;
-      const opt = isAcc
-        ? { thrK: CFG.thrK, thrFloor: CFG.satFloor, domK: CFG.domK, minPx: 2 }
-        : { thrK: CFG.thrK, thrFloor: null, domK: CFG.domK, minPx: 2 };
-      let det, accs;
-      const m = frameMetrics(d);
-      if (isAcc && allOnRef) {
-        // TEMPORAL DIFF path (bench-proven): accent minus all-on cancels the
-        // static scene; the die is the only residual. Detect per colour.
-        const now = performance.now();
-        const pxNow = d.data;
-        buildChannels(d); buildColourExcess(d);
-        const dR = new Float32Array(W * H), dG = new Float32Array(W * H), dB = new Float32Array(W * H);
-        for (let i = 0; i < dR.length; i++) {
-          dR[i] = rExc[i] - allOnExc.R[i];
-          dG[i] = gExc[i] - allOnExc.G[i];
-          dB[i] = bExc[i] - allOnExc.B[i];
-        }
-        const o = { thr: CFG.diffThr, domK: CFG.domKHue };
-        const dets = { R: detectDiffBlobs(dR, CFG.diffThr, CFG.domKHue, CFG.mergeR),
-                       G: detectDiffBlobs(dG, CFG.diffThr, CFG.domKHue, CFG.mergeR),
-                       B: detectDiffBlobs(dB, CFG.diffThr, CFG.domKHue, CFG.mergeR) };
-        det = { R: dets.R, G: dets.G, B: dets.B, diff: true };
-        updateLedBoxesDiff(dets);
-        camCx.drawImage($('vid'), 0, 0, W, H);
-        drawLedBoxes();
-        accs = ['R', 'G', 'B'].flatMap((h) => dets[h].accepted.map((b) => ({ x: Math.round(b.cx), y: Math.round(b.cy),
-          pk: Math.round(b.peak), n: b.cnt, h })));
-        captureFrame('survey:' + (accName || mode), det);
-      } else if (isAcc) {
-        det = detectColours(d);
-        updateLedBoxes(det);
-        camCx.drawImage($('vid'), 0, 0, W, H);
-        drawLedBoxes();
-        accs = ['R', 'G', 'B'].flatMap((h) => det[h].accepted.map((b) => ({ x: Math.round(b.cx), y: Math.round(b.cy),
-          pk: Math.round(b.peak), n: b.cnt, h })));
-        captureFrame('survey:' + (accName || mode), det);
-      } else {
-        det = detectBlobs(lumaArr, d.data, opt);
-        drawOverlay(det);
-        drawLedBoxes();
-        accs = det.accepted.map((b) => ({ x: Math.round(b.cx), y: Math.round(b.cy),
-          pk: Math.round(b.peak), n: b.cnt, h: hueClass(b) }));
-        captureFrame('survey:' + mode, det);
-      }
-      frames.push({ m, accs, exp: expLine() });
-      log(mode + (accName ? ':' + accName : '') + ' g' + g +
-        ' pk' + m.pk + ' cw' + (100 * m.clipW / m.n).toFixed(1) + '% bl' + accs.length +
-        (accs.length ? ' ' + accs.map((a) => a.h + '(' + a.x + ',' + a.y + ')p' + a.pk).join(' ') : ''));
-    } catch (e) { log('E grab ' + (e && e.message || e)); }
-  }
-  evid.modes.push({ mode, acc: accName || null, frames });
-  return frames;
-}
-async function grabRaw(label) {
-  await grabTimeout();
-  try {
-    const d = procCx.getImageData(0, 0, W, H);
-    lastGrab = d;
-    const m = frameMetrics(d);
-    log(label + ' pk' + m.pk + ' med' + m.med + ' exp ' + expLine());
-    captureFrame(label, null);
-    return d;
-  } catch (e) { log('E grabRaw ' + (e && e.message || e)); return null; }
-}
+// The old accent/hole survey (per-LED diffs, S1-S13) is REMOVED (27 Sep).
+// Survey returns as the CWC decode run: Burst captures the 19-frame CWC
+// burst, the decode builds the point cloud, and 'Survey' will trigger it.
+function surveyRun() { log('survey: removed - returns as CWC decode run'); }
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
 // ---------------- buttons --------------------------------------------------
 function setButtons() {
-  const ready = wsOpen && camReady && window._npx > 0;
-  $('bSurvey').disabled = !ready || scanning;
+  $('bSurvey').disabled = true;      // returns as the CWC decode run
   $('bAll').disabled = !wsOpen || scanning;
-  $('bAcc').disabled = !wsOpen || scanning;
-  $('bOff').disabled = !wsOpen || scanning;
   $('bAbort').disabled = !scanning;
   $('bBurst').disabled = !wsOpen || !camReady || benchRunning;
   $('bLog').disabled = logRing.length === 0;
 }
-async function manualAll() { manualMode = 'all'; await paint({ cmd: 'all', b: CFG.allB }).catch((e) => log('E ' + e.message)); log('all-on ' + CFG.allB); }
-async function manualAcc() { manualMode = 'acc'; try {
-    await paint({ cmd: 'frame', b: CFG.accB, p: paintArr((i) =>
-      (i === accentIdx('R') ? 'FF0000' : i === accentIdx('G') ? '00FF00' : i === accentIdx('B') ? '0000FF' : 'W')) });
-    log('accents ' + CFG.accB);
-  } catch (e) { log('E ' + e.message); } }
-async function manualOff() { manualMode = ''; await paint({ cmd: 'black' }).catch((e) => log('E ' + e.message)); }
-$('bSurvey').onclick = () => surveyRun();
-$('bAbort').onclick = () => { abortFlag = true; log('abort requested'); };
-$('bAll').onclick = manualAll;
-$('bAcc').onclick = manualAcc;
-$('bOff').onclick = manualOff;
-// Burst (bench): fires the compensated burst with the standing CFG bench
-// params (bBurstN/gap/hold/B + bComp). Same code path the console's BURST
-// directive drives — just operator-triggered, no serial round-trip.
-$('bBurst').onclick = () => benchRun();
-$('bLog').onclick = downloadLog;
-$('bClear').onclick = () => { ledBoxes.R = []; ledBoxes.G = []; ledBoxes.B = []; holeBoxes.clear(); log('boxes cleared'); };
-$('npxin').onchange = async () => {
-  const v = Math.max(1, Math.min(200, parseInt($('npxin').value, 10) || 1));
-  $('npxin').value = v;
-  try { await paint({ cmd: 'npx', n: v }); window._npx = v; log('npx set ' + v); setButtons(); }
-  catch (e) { log('E npx ' + e.message); }
-};
-
-// ---------------- screen wake lock (no sleep / no lock while open) --------
-let wakeLock = null;
-async function requestWake() {
-  try {
-    if (!('wakeLock' in navigator)) { log('wake: not supported (iOS Safari — use Settings > Auto-Lock)'); return; }
-    wakeLock = await navigator.wakeLock.request('screen');
-    log('wake lock acquired');
-    $('bWake').textContent = 'Screen: held';
-    $('bWake').classList.add('on');
-    wakeLock.addEventListener('release', () => {
-      log('wake lock released (tab hidden?)');
-      $('bWake').textContent = 'Keep screen on';
-      $('bWake').classList.remove('on');
-    });
-  } catch (e) { log('E wake ' + (e && e.message || e)); }
-}
-document.addEventListener('visibilitychange', async () => {
-  if (document.visibilityState === 'visible' && wakeLock !== null && wakeLock.released) {
-    await requestWake();           // re-acquire on return (browser auto-releases on hide)
-  }
-});
-$('bWake').onclick = () => {
-  if (wakeLock && !wakeLock.released) return;   // already held
-  requestWake();
-};
-
-// ---------------- drv? poll: serial directives + CFG ----------------------
-let pollBusy = false;
-setInterval(async () => {
-  if (!wsOpen || pollBusy || scanning) return;   // poll through pauses? no pauses exist
-  pollBusy = true;
-  try {
-    const r = await sendCmd({ cmd: 'drv?', scanning: scanning }, { tries: 1, timeout: 2000 });
-    if (r.cfg) applyCfg(r.cfg);          // cfg BEFORE directives: surveyRun reads CFG synchronously
-    if (r.drv === 'SCAN') { log('drv SCAN'); surveyRun(); }
-    else if (r.drv === 'ABRT') { log('drv ABRT'); abortFlag = true; }
-    else if (r.drv === 'PING') { log('drv PING'); }
-    else if (r.drv === 'LOGP') { logPull(); }
-    else if (r.drv === 'FRAMP') { framePull(); }
-    else if (r.drv === 'BURST') { benchRun(); }
-    else if (r.drv === 'BRAMP') { benchPull(); }
-  } catch (e) {}
-  pollBusy = false;
-  if (ackRetries > 0 && pending.size === 0) ackRetries = Math.max(0, ackRetries - 1);
-}, 1500);
-
-// on-demand log pull (bench sends LOGP when a serial reader is attached):
-// chunk the ring to the box with acked sends — 6 lines per 60 ms, proven
-// pacing from the old build, but ONLY when asked (nothing in the background)
+async function manualAll() { await paint({ cmd: 'all', b: CFG.allB }).catch((e) => log('E ' + e.message)); log('all-on ' + CFG.allB); }
+// ---------------- log pull ---------------------------------------------------
 let pulling = false;
 async function logPull() {
-  if (pulling || scanning) return;
+  if (pulling) return;
   pulling = true;
   try {
     log('log pull: ' + logRing.length + ' lines');
@@ -1402,7 +504,6 @@ async function logPull() {
       const chunk = logRing.slice(i, i + 6).join('\n');
       await sendCmd({ cmd: 'logc', d: chunk }, { tries: 2, timeout: 2000 });
       await sleep(60);
-      if (abortFlag) break;
     }
     await sendCmd({ cmd: 'logend' }, { tries: 2, timeout: 2000 });
     log('log pull done');
@@ -1410,34 +511,8 @@ async function logPull() {
   pulling = false;
 }
 
-// FRAMP pull: chunk the frame store through logc (the box prints [PHONE]
-// lines; the bench decodes base64 JPEGs from them). Same pacing as logPull.
-let framePulling = false;
-async function framePull() {
-  if (framePulling || scanning) return;
-  framePulling = true;
-  try {
-    log('frame pull: ' + frameStore.length + ' frames');
-    for (const f of frameStore) {
-      const meta = JSON.stringify({ t: f.t, label: f.label, W: f.W, H: f.H, exp: f.exp, det: f.det });
-      await sendCmd({ cmd: 'logc', d: 'FRAME ' + meta }, { tries: 2, timeout: 2000 });
-      await sleep(30);
-      for (let i = 0; i < f.jpg.length; i += 900) {
-        await sendCmd({ cmd: 'logc', d: 'FJPEG ' + f.jpg.slice(i, i + 900) }, { tries: 2, timeout: 2000 });
-        await sleep(20);
-      }
-      await sendCmd({ cmd: 'logc', d: 'FEND' }, { tries: 2, timeout: 2000 });
-      await sleep(30);
-    if (abortFlag) break;
-    }
-    await sendCmd({ cmd: 'logc', d: 'FSTATS ' + JSON.stringify(benchStats) }, { tries: 2, timeout: 2000 });
-    await sleep(30);
-    await sendCmd({ cmd: 'logend' }, { tries: 2, timeout: 2000 });
-    log('frame pull done');
-  } catch (e) { log('E framepull ' + (e && e.message || e)); }
-  framePulling = false;
-}
-
+// FRAMP pull REMOVED with the S1-S13 survey (27 Sep); the CWC burst ships
+// frames through benchPull (BRAMP) only.
 // ---------------- S14 burst bench (Oliver, Sep 25) -------------------------
 // Goal: measure real phone frame cadence + handheld motion, in ONE burst,
 // box-driven. Store FULL-RESOLUTION frames in a dedicated ring (the main
@@ -1562,9 +637,10 @@ async function benchRun() {
     const n = Math.max(2, Math.min(40, CFG.bBurstN | 0 || 20));
     const gap = Math.max(0, CFG.bBurstGap | 0);
     const hold = Math.max(0, CFG.bBurstHold | 0);
-    const b = Math.max(20, Math.min(255, CFG.bBurstB | 0 || CFG.holeB));
+    const b = Math.max(20, Math.min(255, CFG.bBurstB | 0 || 150));
     benchStore.length = 0; benchStats = null; window._driftTrail = null;
     cwcStats = null;                       // S14J: stale CWC stats never ship
+    abortFlag = false;                     // an aborted survey must not abort the next burst
     const cwcMode = (CFG.cwc | 0) === 1;   // CWC branch paints its own all-on
     if (!cwcMode) {
       log('burst: all-on ' + b + ' hold ' + hold + 'ms');
@@ -1610,7 +686,7 @@ async function benchRun() {
       log('E cwc: codeword bank missing');
     } else if (cwcMode) {
       const nL = Math.max(10, Math.min(200, CFG.cwcN | 0 || 150));
-      const cb = Math.max(20, Math.min(255, CFG.bBurstB | 0 || CFG.holeB));
+      const cb = Math.max(20, Math.min(255, CFG.bBurstB | 0 || 150));
       log('cwc burst: master + 18 planes, ' + nL + ' leds, b=' + cb);
       await paint({ cmd: 'all', b: cb });
       const tH0 = Date.now();
@@ -1833,6 +909,38 @@ async function benchPull() {
   benchPulling = false;
 }
 
+// ---------------- drv? poll: serial directives + CFG ----------------------
+let drvPollFail = 0;
+async function pollDrv() {
+  try {
+    const r = await sendCmd({ cmd: 'drv?' }, { tries: 1, timeout: 1500 });
+    wsOpen = true;
+    drvPollFail = 0;
+    if (r.cfg) applyCfg(r.cfg);          // cfg BEFORE directives: burst reads CFG synchronously
+    const d = r.drv || '';
+    if (d === 'BURST') { benchRun(); }
+    else if (d === 'BRAMP') { benchPull(); }
+    else if (d === 'SCAN') { surveyRun(); }
+    else if (d === 'ABRT') { log('drv ABRT'); abortFlag = true; }
+    else if (d === 'FRAMP') { log('FRAMP removed (survey deleted)'); }
+    else if (d === 'LOGP') { logPull(); }
+  } catch (e) {
+    wsOpen = false; setButtons();
+    if (++drvPollFail % 8 === 0) log('drv? failed x' + drvPollFail + ' (' + (e.message || e) + ')');
+  }
+}
+setInterval(pollDrv, 1500);
+
+// ---------------- button handlers (BOOT-CALL SAFE: defined before boot) ----
+$('bSurvey').onclick = () => surveyRun();
+$('bAbort').onclick = () => { abortFlag = true; log('abort requested'); };
+$('bAll').onclick = manualAll;
+$('bLog').onclick = logPull;
+// Burst (bench): fires the compensated burst with the standing CFG bench
+// params (bBurstN/gap/hold/B + bComp). Same code path the console's BURST
+// directive drives — just operator-triggered, no serial round-trip.
+$('bBurst').onclick = () => benchRun();
+
 // Bank embedded INLINE (single-file page; regeneration source: page/codewords.js
 // <- tools/codewords_9of18.json). // CWC codewords, 9-of-18 (S14): window.CWC_CODES_9OF18 = array of "p,p,..p"
 // ON-plane index lists (weight exactly 9 of 18 planes). Banked at
@@ -1859,6 +967,21 @@ function cwcPlanePaint(p, nLeds, b) {
   return { cmd: 'frame', p: arr, b };
 }
 
+// ---------------- wake lock (the phone must not sleep mid-burst) -----------
+async function requestWake() {
+  try {
+    if ('wakeLock' in navigator) {
+      window._wakeLock = await navigator.wakeLock.request('screen');
+      log('wake lock acquired');
+      window._wakeLock.addEventListener('release', () => { window._wakeLock = null; log('wake lock released'); });
+    } else log('wake lock not supported — set Auto-Lock=Never');
+  } catch (e) { log('E wakelock ' + (e.message || e)); }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && window._wakeLock === null) requestWake();
+});
+
+window._wakeLock = null;           // re-acquired on visibilitychange
 // BOOT CALLS — very end of script (TDZ rule; B118 lesson)
 $('bl2').textContent = BUILD;
 showCfg();
