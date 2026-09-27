@@ -69,6 +69,8 @@ def do_pull(ser, run_dir: Path, max_s=420):
     # Name the capture file after whichever run is in the frame store.
     fp = run_dir / 'cwc_frames.txt'
     print('BRAMP: shipping frames (a few minutes; ~16 KB per frame)...')
+    send(ser, 'LOGP', wait=1.0)   # arm the 15 s window FIRST (S14M bug: a bare
+                                  # BRAMP ships into a closed window -> 0 frames)
     send(ser, 'BRAMP', wait=0.5)
     end = time.time() + max_s
     frames = 0
