@@ -21,6 +21,10 @@ def tlog(s):
     print(s, flush=True)
 
 
+# each run must see ONLY its own paints: truncate the mock log at start
+(TOOLS / "mock_box.log").write_text("")
+
+
 async def cdp_call(ws, msg_id, method, params=None, timeout=20):
     await ws.send(json.dumps({"id": msg_id, "method": method, "params": params or {}}))
     while True:
@@ -198,7 +202,10 @@ async def main():
                 return 1
             # count paints by label in the mock log (fake camera = identical
             # frames, so the paint sequence IS the evidence)
-            await asyncio.sleep(1)
+            await asyncio.sleep(4)   # auto-ship runs ~1-2 s after the burst
+            pagelog = await cdp_eval(ws, "document.getElementById('log').textContent")
+            tail = [l for l in (pagelog or "").split("\n")[-8:]]
+            tlog("PAGELOG-TAIL: " + " | ".join(tail))
             mlog = (TOOLS / "mock_box.log").read_text()
             paints = [l for l in mlog.splitlines() if l.startswith("LATCH ")]
             frame_paints = [l for l in paints if " white@" in l or l.endswith("white@150") or " black" in l]
