@@ -98,7 +98,8 @@ def main():
         # register the plane onto the master frame (sub-pixel, the decoder's
         # warp): shift plane content by (dx, dy) to align with master
         M = np.float32([[1, 0, dx], [0, 1, dy]])
-        aligned = cv2.warpAffine(planes[p]['img'], M, (mimg.shape[1], mimg.shape[0]),
+        pimg = np.asarray(planes[p]['img'])
+        aligned = cv2.warpAffine(pimg, M, (mlum.shape[1], mlum.shape[0]),
                                  flags=cv2.INTER_LINEAR)
         pile += mlum - luma(aligned).astype(np.float32)
     mags = [(dx * dx + dy * dy) ** 0.5 for _, dx, dy, _ in rows]
