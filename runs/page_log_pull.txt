@@ -1,0 +1,64 @@
+[PHONE-LOG] begin
+[PHONE] t   0.0 ws connect wss://192.168.4.1/ws
+t   0.0 wake lock acquired
+t   0.9 cam live 720x1280 track=camera 0, facing back
+t   0.9 proc 406x720 (video 720x1280)
+t   0.9 ev bias -1
+t   1.7 box hello fw=poc_survey px=150
+[PHONE] t  10.5 burst: all-on 150 hold 1000ms
+t  15.8 burst stats: n=20 med 200ms (5 fps) min/max 190/306
+t  15.8 drift: peak (-5.0, -7.0) px, total (-4.0, -18.0) px, max step 7.8 px
+t  16.1 bench pull: 20 frames
+t 106.0 bench pull done
+t1359.4 burst: all-on 150 hold 1000ms
+[PHONE] t1364.4 burst stats: n=20 med 196ms (5.1 fps) min/max 97/213
+t1364.4 drift: peak (3.0, 2.0) px, total (22.0, 14.0) px, max step 3.6 px
+t1364.6 bench pull: 40 frames
+t1543.9 bench pull done
+t2758.8 burst: all-on 150 hold 1000ms
+t2763.7 burst stats: n=20 med 193ms (5.18 fps) min/max 110/203
+[PHONE] t2763.7 drift: peak (-5.0, 2.0) px, total (-10.0, 18.0) px, max step 5.0 px
+t2763.9 bench pull: 60 frames
+t3007.4 bench pull done
+t3163.7 log pull: 21 lines
+t3164.2 log pull done
+t3165.3 bench pull: 60 frames
+[PHONE] t3187.6 log pull: 24 lines
+t3188.4 log pull done
+t3189.1 log pull: 26 lines
+t3190.3 log pull done
+t3413.0 bench pull done
+t4170.1 log pull: 29 lines
+[PHONE] t4170.8 log pull done
+t4171.7 bench pull: 60 frames
+t4415.4 bench pull done
+t4704.1 log pull: 33 lines
+t4704.9 log pull done
+t4705.7 bench pull: 60 frames
+[PHONE] t4954.9 bench pull done
+t5209.7 log pull: 37 lines
+t5210.4 log pull done
+t5211.1 log pull: 39 lines
+t5211.9 log pull done
+t5235.1 log pull: 41 lines
+[PHONE] t5236.2 log pull done
+t5236.8 bench pull: 60 frames
+t5481.6 bench pull done
+t5688.3 bench pull: 60 frames
+t5933.7 bench pull done
+t6118.7 log pull: 47 lines
+[PHONE] t6119.6 log pull done
+t6120.1 log pull: 49 lines
+t6121.2 log pull done
+t6133.6 log pull: 51 lines
+t6134.7 log pull done
+t6136.6 log pull: 53 lines
+[PHONE] t6137.6 log pull done
+t6154.6 log pull: 55 lines
+t6155.7 log pull done
+t6156.2 bench pull: 60 frames
+t6256.7 log pull: 58 lines
+t6258.4 log pull done
+[PHONE] t6401.6 bench pull done
+t7026.1 log pull: 61 lines
+[PHONE-LOG] end

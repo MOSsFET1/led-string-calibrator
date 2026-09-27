@@ -553,6 +553,10 @@ static char sNpx[8] = "";        // NPX= override, echoed in hello+drv?
 static bool sLogArm = false;     // LOGP arms a 15 s window: logc prints to serial
 static uint32_t sLogArmAt = 0;   // (a serial reader must be attached — LOGP is only
                                  //  ever sent while one is, so the CDC ring never fills)
+static bool sLogPerm = false;    // LOGA: persistent arm for a dedicated bench reader
+                                 //  (the S14L auto-upload fires ~1 s after a burst —
+                                 //  a 15 s window is closed by the previous pull's
+                                 //  logend, so without LOGA every auto-ship drops)
 static char sPageBuild[16] = "";
 // status-LED state machine (operator request): breathing OFF during
 // experiments (scanning flag from drv? traffic), solid RED until a page
@@ -684,9 +688,11 @@ esp_err_t ws_handler(httpd_req_t *req) {
   } else if (!strcmp(cmd, "logc")) {
     // On-demand log pull, page -> box -> SERIAL ONLY (no NVS, no flood): the
     // bench sends LOGP when a reader is attached, the page then chunks its
-    // ring through here; prints are gated on the arm window.
-    if (sLogArm && millis() - sLogArmAt < 15000) {
-      sLogArmAt = millis();          // sliding window: idle timeout, not total cap
+    // ring through here; prints are gated on the arm window. LOGA (the bench
+    // daemon) arms PERSISTENTLY so a pull's logend never closes the window
+    // mid-pull and the S14L auto-ship (~1 s after every burst) reaches serial.
+    if ((sLogArm && millis() - sLogArmAt < 15000) || sLogPerm) {
+      if (!sLogPerm) sLogArmAt = millis();   // sliding window: idle timeout, not total cap
       const char* d = doc["d"] | "";
       Serial.printf("[PHONE] %s\n", d);
     }
@@ -694,8 +700,12 @@ esp_err_t ws_handler(httpd_req_t *req) {
     snprintf(b, sizeof(b), "{\"ok\":true,\"id\":%d}", id);
     wsSendJson(req, b);
   } else if (!strcmp(cmd, "logend")) {
-    sLogArm = false;
-    Serial.println("[PHONE-LOG] end");
+    if (sLogPerm) {
+      Serial.println("[PHONE-LOG] end (persistent arm stays)");  // LOGA: stream ends, window stays
+    } else {
+      sLogArm = false;
+      Serial.println("[PHONE-LOG] end");
+    }
     char b[40];
     snprintf(b, sizeof(b), "{\"ok\":true,\"id\":%d}", id);
     wsSendJson(req, b);
@@ -877,6 +887,14 @@ void loop() {
           sLogArm = true; sLogArmAt = millis();
           strncpy(sDrv, "LOGP", sizeof(sDrv) - 1); sDrv[sizeof(sDrv) - 1] = 0;
           Serial.println("[PHONE-LOG] begin");
+        }
+        else if (!strncmp(sLine, "LOGA", 4)) {   // persistent arm (bench daemon)
+          sLogPerm = true; sLogArm = true; sLogArmAt = millis();
+          Serial.println("[LOGA] persistent arm ON");
+        }
+        else if (!strncmp(sLine, "LOGX", 4)) {   // release the persistent arm
+          sLogPerm = false; sLogArm = false;
+          Serial.println("[LOGA] persistent arm OFF");
         }
         else if (!strncmp(sLine, "CFG=", 4)) { strncpy(sCfg, sLine + 4, sizeof(sCfg) - 1); sCfg[sizeof(sCfg) - 1] = 0; Serial.printf("[CFG] queued: %s\n", sCfg); }
         else if (!strncmp(sLine, "STAT", 4)) {
