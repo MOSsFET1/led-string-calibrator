@@ -62,7 +62,7 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14M-1900";
+const BUILD = "S14P-1903";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -90,6 +90,9 @@ const CFG = {
                       // registered to the master. Movement test in CWC form.
   cwcN: 150,          // LEDs mapped to codewords 0..cwcN-1 (10-1600)
   cwcSettle: 100,     // ms paint-ack -> grab (holeGap floor lesson: <70 flaky)
+  // --- Single-LED toggle test (cwcTestMode=1) ---
+  cwcTestMode: 0,     // 0 = normal CWC; 1 = P00 1s -> P01..P17 -> fast master
+  cwcTestLed: 0,      // LED index to track (0..cwcN-1)
 };
 // sticky bench settings across reloads (localStorage)
 try { const saved = JSON.parse(localStorage.getItem('s14cfg') || '{}'); for (const key of Object.keys(saved)) if (key in CFG) CFG[key] = saved[key]; } catch (e) {}
@@ -110,7 +113,8 @@ function showCfg() { $('cfgline').textContent =
   'cfg: allB=' + CFG.allB + ' accB=' + CFG.accB +
   ' evBias=' + CFG.evBias +
   ' mergeR=' + CFG.mergeR +
-  ' bComp=' + CFG.bComp + ' cwc=' + CFG.cwc + ' cwcN=' + CFG.cwcN + ' cwcSettle=' + CFG.cwcSettle; }
+  ' bComp=' + CFG.bComp + ' cwc=' + CFG.cwc + ' cwcN=' + CFG.cwcN + ' cwcSettle=' + CFG.cwcSettle +
+  ' cwcTestMode=' + CFG.cwcTestMode + ' cwcTestLed=' + CFG.cwcTestLed; }
 
 // ---------------- log ring (page-side only; download button) ---------------
 const LOG_MAX_LINES = 400;
@@ -521,11 +525,14 @@ async function logPull() {
 // box-driven. Store FULL-RESOLUTION frames in a dedicated ring (the main
 // frameStore downscales to 320 px) so registration + blob reads are honest.
 // Console drives via drv BURST / BRAMP; CFG keys: bBurst{N,Gap,Hold,Dur}.
-// S14L: run-tagged ring — bursts ACCUMULATE (5 x 20-frame bursts ~ 100
-// frames, ~2.6 MB page RAM) and every frame's label carries its run number,
-// so one pull recovers all of them separately. The ring persists until
-// benchPull() ships it; a new burst only pushes old runs out (shift()).
-const benchMax = 100;                 // ~5 bursts of 20 frames
+// S14P-1902: runs now SHIP ONCE per burst (cleared at the next burst start),
+// so one armed pull recovers the one run in the store; the next run takes its
+// place. S14L design that caused the pile-up problem: the ring ACCUMULATED
+// every run since the page loaded — a re-pull re-shipped old runs, the count
+// of images grew with every armed pull, and a 5-burst page (benchMax 100,
+// ~2.6 MB JPEG strings in live JS arrays) sat on the edge of the box's
+// known WS-heap squeeze (mbedtls ALLOC_FAILED session).
+const benchMax = 100;                 // safety ring cap (one burst = 19-40)
 const benchStore = [];                // full-res JPEGs + grab timing
 let benchRunNo = 0;                   // bumped at each burst start (labels)
 let benchStats = null;                // per-run cadence summary (ships in pull)
@@ -649,6 +656,16 @@ async function benchRun() {
     const b = Math.max(20, Math.min(255, CFG.bBurstB | 0 || 150));
     benchStats = null; window._driftTrail = null;
     cwcStats = null;                       // S14J: stale CWC stats never ship
+    // S14P-1902 (operator request): runs ship ONCE — clear the ring at the
+    // START of each burst. The previous design kept every run since the page
+    // loaded, so re-pulls re-shipped old frames (the pile-up) and the heap
+    // never shrank. A failed/missed pull is still recoverable: the store
+    // keeps its frames until the NEXT burst starts (BRAMP any time before
+    // then; LOGA keeps the arm open so nothing is lost to a closed window).
+    if (benchStore.length) {
+      log('bench store cleared: ' + benchStore.length + ' unshipped or unpulled frames dropped');
+      benchStore.length = 0;
+    }
     abortFlag = false;                     // an aborted survey must not abort the next burst
     benchRunNo++;                          // run tag for the accumulating ring
     const cwcMode = (CFG.cwc | 0) === 1;   // CWC branch paints its own all-on
@@ -695,78 +712,186 @@ async function benchRun() {
     if (cwcMode && (!cwcCodes || !cwcCodes.length)) {
       log('E cwc: codeword bank missing');
     } else if (cwcMode) {
+      // Check for test mode
+      const testMode = (CFG.cwcTestMode | 0) === 1;
       const nL = Math.max(10, Math.min(200, CFG.cwcN | 0 || 150));
       const cb = Math.max(20, Math.min(255, CFG.bBurstB | 0 || 150));
-      log('cwc burst: master + 18 planes, ' + nL + ' leds, b=' + cb);
-      await paint({ cmd: 'all', b: cb });
-      const tH0 = Date.now();
-      while (Date.now() - tH0 < Math.max(hold, 500)) await sleep(20);  // AE settle
-      // MASTER (fresh grab — never from a shared channel array; S14E lesson)
-      await grabTimeout();
-      const dm = procCx.getImageData(0, 0, W, H);
-      const cwcMasterLuma = new Float32Array(W * H);
-      for (let i = 0, q = 0; i < cwcMasterLuma.length; i++, q += 4) {
-        const r = dm.data[q], g = dm.data[q + 1], b2 = dm.data[q + 2];
-        cwcMasterLuma[i] = r > g ? (r > b2 ? r : b2) : (g > b2 ? g : b2);
+      const testLed = Math.max(0, Math.min(nL - 1, CFG.cwcTestLed | 0 || 0));
+      
+      if (testMode) {
+        log('cwc test: P00 1s -> P01..P17 -> fast master, led=' + testLed + ', ' + nL + ' leds, b=' + cb);
+      } else {
+        log('cwc burst: primer(1s) -> master -> 18 planes, ' + nL + ' leds, b=' + cb);
       }
-      benchCaptureComp('cwc:r' + benchRunNo + ':master', { dx: 0, dy: 0, conf: 1 });
-      const cwcShifts = [];
-      // 18 PLANES: paint p -> settle -> grab -> seeded comp -> warp-back
-      for (let p = 0; p < 18; p++) {
-        if (abortFlag) break;
-        await paint(cwcPlanePaint(p, nL, cb));
-        const sClamp = settleClamp(CFG.cwcSettle);
-        const tP = Date.now();
-        while (Date.now() - tP < sClamp) await sleep(10);
-        await grabTimeout();
-        const tG = Date.now();
-        gts.push(tG);
-        const d = procCx.getImageData(0, 0, W, H);
-        const cur = new Float32Array(W * H);
-        for (let i = 0, q = 0; i < cur.length; i++, q += 4) {
-          const r = d.data[q], g = d.data[q + 1], b2 = d.data[q + 2];
-          cur[i] = r > g ? (r > b2 ? r : b2) : (g > b2 ? g : b2);
+      
+      const cwcCodes = window.CWC_CODES_9OF18;
+      if (!cwcCodes || !cwcCodes.length) {
+        log('E cwc: codeword bank missing');
+      } else {
+        // Helper: get codeword bits for test LED
+        function cwcBits(led) {
+          return cwcCodes[led].split(',').map(v => +v);
         }
-        let tot = { dx: 0, dy: 0, conf: 1 };
-        if (comp) {
-          const prev = cwcShifts[cwcShifts.length - 1] || { dx: 0, dy: 0 };
-          const rdx = Math.round(prev.dx), rdy = Math.round(prev.dy);
-          const pre = new Float32Array(cur.length);
-          for (let y = 0; y < H; y++) {
-            const sy = y + rdy;
-            if (sy < 0 || sy >= H) continue;
-            for (let x = 0; x < W; x++) {
-              const sx = x + rdx;
-              if (sx < 0 || sx >= W) continue;
-              pre[y * W + x] = cur[sy * W + sx];
-            }
+        const testBits = testMode ? cwcBits(testLed) : null;
+        
+        if (testMode) {
+          // ---- TEST MODE: P00 1s hold -> P01..P17 -> fast master ----
+          // P00: paint plane 0 (all LEDs per codeword), 1s AE settle, grab
+          await paint(cwcPlanePaint(0, nL, cb));
+          const tPr = Date.now();
+          while (Date.now() - tPr < 1000) await sleep(20);
+          await grabTimeout();
+          const p00_img = procCx.getImageData(0, 0, W, H);
+          const p00_luma = new Float32Array(W * H);
+          for (let i = 0, q = 0; i < p00_luma.length; i++, q += 4) {
+            const r = p00_img.data[q], g = p00_img.data[q + 1], b2 = p00_img.data[q + 2];
+            p00_luma[i] = r > g ? (r > b2 ? r : b2) : (g > b2 ? g : b2);
           }
-          const rem = phaseCorrJS(cwcMasterLuma, pre);
-          const K = W / 128;   // decimated-grid -> source px (S14B-5 fix)
-          tot = { dx: rdx + rem.dx * K, dy: rdy + rem.dy * K, conf: rem.conf };
+          benchCapture('cwc:r' + benchRunNo + ':p00');
+          gts.push(Date.now());
+          
+          // P01..P17: paint each plane, minimal settle, grab
+          const planeLumas = [p00_luma];
+          const planeLabels = ['p00'];
+          for (let p = 1; p < 18; p++) {
+            if (abortFlag) break;
+            await paint(cwcPlanePaint(p, nL, cb));
+            const sClamp = settleClamp(CFG.cwcSettle);
+            const tP = Date.now();
+            while (Date.now() - tP < sClamp) await sleep(10);
+            await grabTimeout();
+            const d = procCx.getImageData(0, 0, W, H);
+            const cur = new Float32Array(W * H);
+            for (let i = 0, q = 0; i < cur.length; i++, q += 4) {
+              const r = d.data[q], g = d.data[q + 1], b2 = d.data[q + 2];
+              cur[i] = r > g ? (r > b2 ? r : b2) : (g > b2 ? g : b2);
+            }
+            planeLumas.push(cur);
+            planeLabels.push('p' + String(p).padStart(2, '0'));
+            benchCapture('cwc:r' + benchRunNo + ':' + planeLabels[planeLabels.length - 1]);
+            gts.push(Date.now());
+          }
+          
+          // Master: all-on. S14P-1902 fix — the immediate grab delivered the
+          // PREVIOUS plane's content (camera pipeline latency ~2 frames):
+          // tonight's r4 master matched p17 at mean-abs 2.3 vs 6.0 for real
+          // planes, so every hole/pile-up built from it was junk. Paint, let
+          // the pipeline flush (~2 frames at the 406x720 cadence), then grab.
+          await paint({ cmd: 'all', b: cb });
+          const tAe = Date.now();
+          while (Date.now() - tAe < 500) await sleep(20);
+          await grabTimeout();
+          const dm = procCx.getImageData(0, 0, W, H);
+          const masterLuma = new Float32Array(W * H);
+          for (let i = 0, q = 0; i < masterLuma.length; i++, q += 4) {
+            const r = dm.data[q], g = dm.data[q + 1], b2 = dm.data[q + 2];
+            masterLuma[i] = r > g ? (r > b2 ? r : b2) : (g > b2 ? g : b2);
+          }
+          benchCapture('cwc:r' + benchRunNo + ':master');
+          gts.push(Date.now());
+          
+          // Console-side will register backwards: each plane -> master
+          // For now, measure plane-vs-master shifts (like comp=0 path)
+          const testShifts = [];
+          for (let p = 0; p < planeLumas.length; p++) {
+            const st = phaseCorrJS(masterLuma, planeLumas[p]);
+            const K = W / 128;
+            testShifts.push({ dx: st.dx * K, dy: st.dy * K, conf: st.conf });
+          }
+          
+          // Log test LED bit read prediction
+          log('test LED ' + testLed + ' codeword bits: ' + testBits.join(','));
+          log('plane-vs-master shifts (source px): ' + testShifts.map((s, i) => 'p' + i + '=(' + s.dx.toFixed(1) + ',' + s.dy.toFixed(1) + '@' + s.conf.toFixed(2) + ')').join(' '));
+          
+          cwcStats = { build: BUILD, n: planeLumas.length, comp: 0, testMode: 1, testLed, testBits,
+                       shifts: testShifts.map((s, k) => ({ k, dx: +s.dx.toFixed(2), dy: +s.dy.toFixed(2), conf: +s.conf.toFixed(3) })) };
+          log('cwc test: ' + planeLumas.length + ' planes + master captured');
+          window._driftTrail = { pairs: testShifts.slice(1).map((s, i) => ({
+                               dx: s.dx - testShifts[i].dx, dy: s.dy - testShifts[i].dy })),
+                             scale: 6, text: 'cwc test mode, led ' + testLed };
+          drawDriftTrail();
+          await paint({ cmd: 'black' });
+          // NO benchPull here: the shared S14L auto-ship at benchRun's end
+          // ships the store once (a local call double-shipped the 19 frames —
+          // harness-verified 29 Sep).
         } else {
-          // comp OFF still measures plane-vs-master so the drift report
-          // works and the pile-up analysis can pre-register console-side
-          const st = phaseCorrJS(cwcMasterLuma, cur);
-          const K = W / 128;
-          tot = { dx: st.dx * K, dy: st.dy * K, conf: st.conf };
-        }
-        cwcShifts.push(tot);
-        // comp ON: store the warped-back frame; comp OFF: store the RAW
-        // frame (the shift is recorded, never applied)
-        const pLbl = 'cwc:r' + benchRunNo + ':p' + String(p).padStart(2, '0');
-        if (comp) benchCaptureComp(pLbl, tot);
-        else benchCapture(pLbl);
-      }
-      cwcStats = { build: BUILD, n: cwcShifts.length, comp: comp ? 1 : 0,
-                   shifts: cwcShifts.map((s, k) => ({ k, dx: +s.dx.toFixed(2), dy: +s.dy.toFixed(2), conf: +s.conf.toFixed(3) })) };
-      log('cwc burst: ' + cwcShifts.length + ' planes, residual max ' +
-          (cwcShifts.reduce((m, s) => Math.max(m, Math.abs(s.dx) + Math.abs(s.dy)), 0)).toFixed(2) + 'px');
-      window._driftTrail = { pairs: cwcShifts.slice(1).map((s, i) => ({
+          // ---- NORMAL CWC MODE (existing) ----
+          // S14N PRIMER: Start with P00 for 1s to settle AE to plane level
+          await paint(cwcPlanePaint(0, nL, cb));
+          const tPr = Date.now();
+          while (Date.now() - tPr < 1000) await sleep(20);
+          
+          // MASTER: Paint all-on, fast-settle AE, then grab
+          await paint({ cmd: 'all', b: cb });
+          const tAe = Date.now();
+          while (Date.now() - tAe < 500) await sleep(20);
+          await grabTimeout();
+          const dm = procCx.getImageData(0, 0, W, H);
+          const cwcMasterLuma = new Float32Array(W * H);
+          for (let i = 0, q = 0; i < cwcMasterLuma.length; i++, q += 4) {
+            const r = dm.data[q], g = dm.data[q + 1], b2 = dm.data[q + 2];
+            cwcMasterLuma[i] = r > g ? (r > b2 ? r : b2) : (g > b2 ? g : b2);
+          }
+          benchCaptureComp('cwc:r' + benchRunNo + ':master', { dx: 0, dy: 0, conf: 1 });
+          const cwcShifts = [];
+          // 18 PLANES: paint p -> settle -> grab -> seeded comp -> warp-back
+          for (let p = 0; p < 18; p++) {
+            if (abortFlag) break;
+            await paint(cwcPlanePaint(p, nL, cb));
+            const sClamp = settleClamp(CFG.cwcSettle);
+            const tP = Date.now();
+            while (Date.now() - tP < sClamp) await sleep(10);
+            await grabTimeout();
+            const tG = Date.now();
+            gts.push(tG);
+            const d = procCx.getImageData(0, 0, W, H);
+            const cur = new Float32Array(W * H);
+            for (let i = 0, q = 0; i < cur.length; i++, q += 4) {
+              const r = d.data[q], g = d.data[q + 1], b2 = d.data[q + 2];
+              cur[i] = r > g ? (r > b2 ? r : b2) : (g > b2 ? g : b2);
+            }
+            let tot = { dx: 0, dy: 0, conf: 1 };
+            if (comp) {
+              const prev = cwcShifts[cwcShifts.length - 1] || { dx: 0, dy: 0 };
+              const rdx = Math.round(prev.dx), rdy = Math.round(prev.dy);
+              const pre = new Float32Array(cur.length);
+              for (let y = 0; y < H; y++) {
+                const sy = y + rdy;
+                if (sy < 0 || sy >= H) continue;
+                for (let x = 0; x < W; x++) {
+                  const sx = x + rdx;
+                  if (sx < 0 || sx >= W) continue;
+                  pre[y * W + x] = cur[sy * W + sx];
+                }
+              }
+              const rem = phaseCorrJS(cwcMasterLuma, pre);
+              const K = W / 128;   // decimated-grid -> source px (S14B-5 fix)
+              tot = { dx: rdx + rem.dx * K, dy: rdy + rem.dy * K, conf: rem.conf };
+            } else {
+              // comp OFF still measures plane-vs-master so the drift report
+              // works and the pile-up analysis can pre-register console-side
+              const st = phaseCorrJS(cwcMasterLuma, cur);
+              const K = W / 128;
+              tot = { dx: st.dx * K, dy: st.dy * K, conf: st.conf };
+            }
+            cwcShifts.push(tot);
+            // comp ON: store the warped-back frame; comp OFF: store the RAW
+            // frame (the shift is recorded, never applied)
+            const pLbl = 'cwc:r' + benchRunNo + ':p' + String(p).padStart(2, '0');
+            if (comp) benchCaptureComp(pLbl, tot);
+            else benchCapture(pLbl);
+          }
+          cwcStats = { build: BUILD, n: cwcShifts.length, comp: comp ? 1 : 0,
+                       shifts: cwcShifts.map((s, k) => ({ k, dx: +s.dx.toFixed(2), dy: +s.dy.toFixed(2), conf: +s.conf.toFixed(3) })) };
+          log('cwc burst: ' + cwcShifts.length + ' planes, residual max ' +
+              (cwcShifts.reduce((m, s) => Math.max(m, Math.abs(s.dx) + Math.abs(s.dy)), 0)).toFixed(2) + 'px');
+          window._driftTrail = { pairs: cwcShifts.slice(1).map((s, i) => ({
                                dx: s.dx - cwcShifts[i].dx, dy: s.dy - cwcShifts[i].dy })),
                              scale: 6, text: 'cwc planes 18, comp ' + (comp ? 'on' : 'off') };
-      drawDriftTrail();
-      await paint({ cmd: 'black' });
+          drawDriftTrail();
+          await paint({ cmd: 'black' });
+        }
+      }
     } else {
     // ---- original all-on movement burst (unchanged; CWCSTATS added so the
     // pull ships stats even when BSTATS loses the arm race) ----

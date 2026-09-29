@@ -40,11 +40,15 @@ def send(ser, cmd, wait=0.4):
     return drain(ser, wait)
 
 
-def do_burst(ser, n, gap, hold, b, dur, cwc=0, comp=None):
+def do_burst(ser, n, gap, hold, b, dur, cwc=0, comp=None, cwc_test_mode=None, cwc_test_led=None):
     cfg = {'bBurstN': n, 'bBurstGap': gap, 'bBurstHold': hold, 'bBurstB': b, 'cwc': cwc}
     if comp is not None:
         cfg['bComp'] = comp   # unset = leave the page's sticky bComp alone
-    for ln in send(ser, f'CFG={cfg}'):
+    if cwc_test_mode is not None:
+        cfg['cwcTestMode'] = cwc_test_mode
+    if cwc_test_led is not None:
+        cfg['cwcTestLed'] = cwc_test_led
+    for ln in send(ser, f'CFG={json.dumps(cfg)}'):
         if ln.strip():
             print(' ', ln)
     for ln in send(ser, 'BURST'):
@@ -56,7 +60,8 @@ def do_burst(ser, n, gap, hold, b, dur, cwc=0, comp=None):
     while time.time() < end:
         lines += drain(ser, 0.5)
         joined = '\n'.join(lines)
-        if 'burst stats:' in joined or 'E burst' in joined:
+        if ('burst stats:' in joined or 'planes + master captured' in joined
+                or 'planes, residual' in joined or 'E burst' in joined):
             break
     for ln in lines:
         if ('burst' in ln or ln.startswith('E ')) and ln.strip():
@@ -69,11 +74,21 @@ def do_pull(ser, run_dir: Path, max_s=420):
     # Name the capture file after whichever run is in the frame store.
     fp = run_dir / 'cwc_frames.txt'
     print('BRAMP: shipping frames (a few minutes; ~16 KB per frame)...')
+    # sDrv is ONE slot: a directive still latched (burst ends inside the
+    # next poll) is overwritten by the next send = the pull never runs.
+    # Flush it with PING (harmless when consumed) — NEVER ABRT: the page
+    # sets abortFlag and benchPull breaks on it -> 0 frames shipped.
+    ser.write(b'PING\n')
+    time.sleep(2.0)
+    ser.reset_input_buffer()
     send(ser, 'LOGP', wait=1.0)   # arm the 15 s window FIRST (S14M bug: a bare
                                   # BRAMP ships into a closed window -> 0 frames)
+    time.sleep(1.5)               # LOGP must CONSUME before BRAMP lands
+    ser.reset_input_buffer()
     send(ser, 'BRAMP', wait=0.5)
     end = time.time() + max_s
     frames = 0
+    logends = 0
     with fp.open('w') as f:
         while time.time() < end:
             line = ser.readline()
@@ -81,11 +96,20 @@ def do_pull(ser, run_dir: Path, max_s=420):
                 continue
             s = line.decode(errors='replace').rstrip()
             f.write(s + '\n')
-            if 'FRAME {' in s:
+            if '[PHONE] FRAME {' in s:
                 frames += 1
                 print(f'\r  frame {frames}', end='', flush=True)
             if '[PHONE-LOG] end' in s:
-                break
+                logends += 1
+                # LOGP first ships the page's LOG RING, whose own logend
+                # precedes the BRAMP frame stream — breaking on the first
+                # logend killed pulls at 0 frames (s14o, 28 Sep). Break on
+                # a logend AFTER frames arrived, or give up at the third.
+                if frames > 0 and logends >= 2:
+                    break
+                if logends >= 3:
+                    print('  (no frames after 3 stream ends — pull aborted)')
+                    break
     print()
     text = fp.read_text()
     m = re.search(r'\[PHONE\] BSTATS (\{.*\})', text)
@@ -108,6 +132,21 @@ def do_pull(ser, run_dir: Path, max_s=420):
     (run_dir / 'burst_stats.json').write_text(json.dumps(stats, indent=1))
     print(f'shipped {nframes} frames -> {fp}')
     print('stats:', stats)
+    # Post-pull decode verification: the frames are useless if the analyser
+    # can't see them — surface label-set completeness HERE, not at analyse.
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from offline_hole_verify import decode_run
+        got = decode_run(run_dir, 'cwc')
+        labels = [f['label'] for f in got if f.get('img') is not None]
+        ok_imgs = len(labels)
+        print(f'decode check: {ok_imgs} frames with images; labels: '
+              + (', '.join(sorted(set(labels))[:24]) if labels else '(none)'))
+        if nframes and ok_imgs == 0:
+            print('WARNING: FRAME headers arrived but decode_run sees no images '
+                  '- label/parse mismatch; check the capture file')
+    except Exception as e:
+        print(f'decode check skipped ({e})')
     return nframes
 
 
@@ -170,10 +209,12 @@ def main():
     ap.add_argument('--cwc', type=int, default=1, help='1 = CWC-form burst (19 frames)')
     ap.add_argument('--comp', type=int, default=None, help='force bComp 0/1 (default: sticky)')
     ap.add_argument('--dur', type=int, default=25)
+    ap.add_argument('--cwc-test-mode', type=int, default=None, help='test mode: 0=normal, 1=single-LED')
+    ap.add_argument('--cwc-test-led', type=int, default=None, help='test LED index')
     args = ap.parse_args()
     if args.cmd == 'burst':
         ser = open_port()
-        do_burst(ser, args.n, args.gap, args.hold, args.b, args.dur, cwc=args.cwc, comp=args.comp)
+        do_burst(ser, args.n, args.gap, args.hold, args.b, args.dur, cwc=args.cwc, comp=args.comp, cwc_test_mode=args.cwc_test_mode, cwc_test_led=args.cwc_test_led)
         return 0
     if args.cmd == 'pull':
         ser = open_port()
