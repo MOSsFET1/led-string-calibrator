@@ -15,8 +15,10 @@ Checks, in order:
      (offline_hole_verify.detect_holes, the S13-mirror) -> per-LED point set
   6. per-LED weight check: holes-in-(master-plane_p) count per LED should
      average 9 (weight 9 of 18); spread is the first decode-readiness metric
+  7. TEST MODE (cwcTestMode=1): single-LED bit read via master×gain,
+     backwards registration (plane->master), zero-error target
 
-Usage: python3 cwc_analyse.py runs/<dir> [--save-pileup png]
+Usage: python3 cwc_analyse.py runs/<dir> [--save-pileup png] [--test-led N]
 """
 import argparse, json, sys
 from pathlib import Path
@@ -32,12 +34,20 @@ NPLANES = 18
 
 def load_frames(run_dir: Path):
     frames = decode_run(run_dir, 'cwc')
-    master = [f for f in frames if f['label'] == 'cwc:master']
-    planes = {}
+    # Labels ship run-tagged since S14L (cwc:rN:master / cwc:rN:pNN); the
+    # bare cwc:master / cwc:pNN shapes predate it. A mixed pull keeps the
+    # newest of each label (dict overwrite; master list takes the last).
+    master, planes = [], {}
     for f in frames:
-        m = __import__('re').fullmatch(r'cwc:p(\d\d)', f['label'])
-        if m:
-            planes[int(m.group(1))] = f
+        m = __import__('re').fullmatch(
+            r'cwc:(?:r(\d+):)?(master|p(\d\d))', f['label'])
+        if not m:
+            continue
+        pno = m.group(3)
+        if pno is not None:
+            planes[int(pno)] = f
+        else:
+            master.append(f)
     return master, planes
 
 
@@ -56,6 +66,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('run_dir')
     ap.add_argument('--save-pileup', default=None)
+    ap.add_argument('--test-led', type=int, default=None, help='LED index to analyze in test mode (default: from cwc_stats.json)')
     args = ap.parse_args()
     run = Path(args.run_dir)
 
@@ -140,6 +151,108 @@ def main():
     print(f"  - plane-vs-master conf {min(confs):.2f}-{max(confs):.2f} "
           f"(content toggle: 50% of LEDs flip per plane — low conf here is "
           f"the known pessimistic case)")
+
+    # TEST MODE: single-LED bit read via master×gain (backwards registration)
+    if stats.get('testMode') == 1:
+        test_led = args.test_led if args.test_led is not None else stats.get('testLed', 0)
+        test_bits = stats.get('testBits', [])
+        print(f'\n=== TEST MODE: LED {test_led} bit read ===')
+        print(f'Expected bits (9 of 18): {test_bits}')
+
+        # Codeword -> expected ON/OFF planes. Bank format: dict with
+        # 'codes' = list of int-lists (tools/codewords_9of18.json); the page's
+        # embedded CWC_CODES_9OF18 is the same codes as "p,p,.." strings.
+        codewords_path = BASE / 'codewords_9of18.json'
+        expected_on_planes = set()
+        if codewords_path.exists():
+            with open(codewords_path) as f:
+                bank = json.load(f)
+            codes_l = bank['codes'] if isinstance(bank, dict) else bank
+            if test_led < len(codes_l):
+                expected_on_planes = {int(p) for p in codes_l[test_led]}
+        if not expected_on_planes:
+            print('WARNING: no codeword for test LED', test_led, '- ON/OFF check is vacuous')
+
+        # Locate the test LED: its hole in the pile-up = every OFF-plane minus
+        # 0 = the pile-up already has it (Σ master-plane; OFF planes contribute
+        # 9 dark samples). Take the accepted blob nearest the expected hole
+        # (test mode: the LED's hole is the pile-up's strongest local minimum
+        # among detected blobs; with one test LED lit in pattern, the blob set
+        # is dominated by its 9 OFF-plane contributions).
+        pile_np = pile_norm.copy()
+        # Re-run the detector on the already-normalised pile (detect_holes
+        # diffs its two args internally — same trick as above)
+        zeros2 = np.zeros_like(pile_np)
+        try:
+            acc2, allblobs2, _ = detect_holes(pile_np, zeros2, thr=HOLE_THR,
+                                              domk=DOMK, merge_r=MERGE_R,
+                                              area_frac=AREA_FRAC)
+        except TypeError:
+            acc2, allblobs2 = acc, allblobs
+        if not acc2 and not allblobs2:
+            print('bit read BLOCKED: no pile-up blobs — cannot locate LED')
+            return 1
+        # The test LED's pile-up hole is the blob with the deepest pile-up
+        # deficit (9 dark samples vs impostors' <9); pick the peak hole.
+        cand = acc2 or allblobs2
+        hole = max(cand, key=lambda b: b['peak'])
+        hole_r = max(2.0, (hole['n'] / 3.14159) ** 0.5)
+        led_xy = (hole['cx'], hole['cy'])
+        print(f"LED hole: ({led_xy[0]:.0f},{led_xy[1]:.0f}) peak {hole['peak']:.0f} n={hole['n']}")
+
+        # Backwards registration is ALREADY DONE: rows[] holds per-plane
+        # (dx, dy) plane->master shifts (console-side ground truth). Sample
+        # bit = plane_luma(led + shift) / (master_luma(led) x k_p)
+        mlum_at_led = luma(mimg).astype(np.float32)[int(round(led_xy[1])), int(round(led_xy[0]))]
+        print(f'master luma at LED: {mlum_at_led:.0f}')
+        results = []
+        for p in sorted(planes):
+            dx, dy, conf = next(((r[1], r[2], r[3]) for r in rows if r[0] == p), (0.0, 0.0, 1.0))
+            plum = luma(planes[p]['img']).astype(np.float32)
+            # plane->master: sample the plane at (led + shift). An OFF plane's
+            # hole is the ONLY structure in the frame — phase correlation
+            # finds nothing (conf ~ 0, junk shift) — so read the raw position
+            # when conf is low and say so (the s14n r6 lesson: reads against
+            # junk registrations were the original failure).
+            low_conf = conf < 0.3
+            sx, sy = led_xy if low_conf else (led_xy[0] + dx, led_xy[1] + dy)
+            sx = max(0, min(plum.shape[1]-1, sx)); sy = max(0, min(plum.shape[0]-1, sy))
+            plane_lum_at_led = plum[int(round(sy)), int(round(sx))]
+            # k_p: per-plane gain = median(non-LED pixels in plane / master) —
+            # non-LED = pixels far from every pile-up hole; approximate with
+            # the frame's median luma ratio (test string: one LED hole is
+            # tiny; the median sees ~all non-LED pixels)
+            k_p = float(np.median(plum)) / max(float(np.median(mlum)), 1.0)
+            if k_p <= 0.05 or k_p > 20:
+                print(f'  p{p:02d}: WARNING bogus gain k={k_p:.2f} (flat/black frame?) — clamped to 1.0')
+                k_p = 1.0
+            read = plane_lum_at_led / max(mlum_at_led * k_p, 1.0)
+            exp = 'ON ' if p in expected_on_planes else 'OFF'
+            results.append((p, exp, read, conf))
+            reg = 'raw (conf %.2f)' % conf if low_conf else 'reg (%+.1f,%+.1f conf %.2f)' % (dx, dy, conf)
+            print(f'  p{p:02d}: read={read:.2f} expected={exp} ({reg}, k={k_p:.2f})')
+        # r6 normalisation: divide each read by its own top-9 mean (the 9
+        # highest of the 18) — residual bloom/limb darkening divides out and
+        # ON lands ~1.0, OFF ~0.3-0.5. Then gate ON/OFF at the 0.5 boundary.
+        reads = np.array([r for _, _, r, _ in results])
+        top9 = np.mean(np.sort(reads)[-9:]) if len(reads) >= 9 else max(reads.max(), 1e-6)
+        errs = 0
+        for (p, e, r, c), rnorm in zip(results, reads / max(top9, 1e-6)):
+            got = 'ON ' if rnorm > 0.5 else 'OFF'
+            if got.strip() != e.strip():
+                errs += 1
+                print(f'  BIT ERROR p{p:02d}: norm read {rnorm:.2f} -> {got}, expected {e}')
+        on_n = [rn for rn, (_, e, _, _) in zip(reads / max(top9, 1e-6), results) if e.strip() == 'ON']
+        off_n = [rn for rn, (_, e, _, _) in zip(reads / max(top9, 1e-6), results) if e.strip() == 'OFF']
+        if on_n and off_n:
+            print(f'normalised reads: ON {min(on_n):.2f}-{max(on_n):.2f}, '
+                  f'OFF {min(off_n):.2f}-{max(off_n):.2f} '
+                  f'(ON/OFF ratio {min(on_n)/max(max(off_n),1e-6):.2f}x)')
+        else:
+            print('WARNING: empty ON or OFF set — bimodal check vacuous')
+        verdict = 'PASS' if errs == 0 else f'FAIL ({errs} bit errors)'
+        print(f'\nTEST MODE VERDICT: {verdict} — {18-errs}/18 bits correct')
+
     return 0
 
 

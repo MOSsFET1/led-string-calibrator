@@ -4,28 +4,39 @@ Camera-based calibration for an addressable LED string (WS2815 on an
 ESP32-C6): the box paints patterns, a phone's browser camera watches, and the
 web app builds a per-LED position map — zero install, nothing but a browser.
 
-**Current paradigm — S13 "hole survey"** (validated: 148–149/150 LEDs located
-per run in 20–45 s, dim and bright rooms, 150-px bench string):
+**Predecessor — S13 "hole survey"** (validated 148–149/150 LEDs per run in
+20–45 s, dim and bright rooms; retired from the page in S14K — the S14
+decode still reuses its detector + serpentine guard):
 
-1. All LEDs on white at `holeB` → wait for the camera AE to settle → grab the
-   **master** frame.
-2. Per LED (batched in K=3 windowed chains): turn that one LED **off** → grab
-   the **pair** → `master − pair` isolates the LED as a *dark hole* in the
-   bright field.
-3. Detection = threshold → connected components → bloom merge → outside-tail
-   dominance bar → per-chain window → **serpentine-continuity audit** (a hole
-   farther than `holeGateK` × median pitch from its ID neighbours' midpoint is
-   an impostor — e.g. a shelf reflection — rejected, marked HIDDEN,
-   interpolated from its neighbours).
+1. All LEDs on white → AE settle → **master** frame.
+2. Per LED (K=3 windowed chains): LED **off** → **pair** →
+   `master − pair` isolates it as a *dark hole*.
+3. Detection = threshold → components → bloom merge → dominance bar →
+   per-chain window → **serpentine-continuity audit** (an impostor — e.g.
+   a shelf reflection — is rejected, marked HIDDEN, interpolated).
 
 This replaced two dead ends, each killed by real evidence (see
 `docs/`): the per-pixel ON/OFF diff *march* (identity carried by scan order —
 needs 100 s of tripod stillness, dies on camera motion) and colour/hue
 detection (AWB re-balance moves the field's hue-excess ±40 between grabs —
 indistinguishable from a die). Luma-only hole diffs on an AE-pinned bright
-field carry none of those failure modes; the next step (designed, not built)
-is Twinkly-style binary coded bit-planes, which carry identity in the code
-instead of in a march.
+field carry none of those failure modes.
+
+**Current era — S14 CWC (built, handheld-validated)**: the hole survey is
+retired from the page (S14K removed the survey line); the burst now carries
+identity IN THE LIGHT PATTERN (Twinkly-style). One handheld burst = master +
+a 50%-duty primer plane (S14N, settles the phone AE once) + 18 codeword
+bit-planes (9-of-18, 1600 codes, d_min 4); each LED's identity arrives as a
+9-bit code read against the registered master × per-plane gain. First
+handheld round (r6, 27 Sep): 13 cores decode strictly from deliberate-
+movement frames; per-bit error ~17% — bulk decode is the next step
+(see `S14-CWC-PLAN.md` §3/§9; point cloud = `ledcloud/2`, §8).
+**In progress (S14O/S14P-1901)**: single-LED toggle test (plan §4) — validate
+the bit-read path end-to-end on one LED (zero-error tripod gate) before bulk
+decode; page ship path harness-PASSED (mock box + headless Chromium),
+console analysis built + synthetic-validated. The 28 Sep 'frames don't
+ship' failure was console-side (pull reader + directive-slot race), not
+the page — see `S14-BENCH-SESSION.md` §S14O/S14P.
 
 ## Layout
 
@@ -59,40 +70,51 @@ Partition scheme `min_spiffs` is part of the FQBN — repeat it on every compile
 stamp, recompile, reflash, then reload the page on the phone. The onboard
 status LED shows solid red until the phone loads the matching build.
 
-## Bench console (drives a scan without touching the phone)
+## Bench console (drives a burst without touching the phone)
 
-`tools/hole_session.py` — STAT gate, single-burst `CFG=` + `SCAN`, EV-verify,
-LOGP/FRAMP pulls into `runs/`. `tools/offline_hole_verify.py` re-runs
-detection offline on pulled frames and cross-checks the page's verdicts.
-Serial directives: `PING`, `STAT`, `SCAN`, `ABRT`, `CFG=<json>`, `EV`, `NPX=`.
+`tools/s14_bench.py` — `burst` (CFG + BURST), `pull` (LOGP→BRAMP frames
+into `runs/<dir>/cwc_frames.txt`), `analyse` (cadence + motion).
+`tools/bench_daemon.py` — persistent-serial capture with LOGA (arm that
+survives between pulls) + cmds/ trigger files. `tools/cwc_analyse.py` —
+the 19-frame CWC analysis (registration, pile-up, single-LED bit read).
+`tools/offline_hole_verify.py` — frame decode + the S13-mirror detector.
+Serial directives: `PING`, `STAT`, `ABRT`, `CFG=<json>`, `BURST`,
+`BRAMP`, `LOGP`, `LOGA`, `NPX=`.
 
 ## Key parameters (page CFG, serial-tunable live)
 
 | param | default | meaning |
 |---|---|---|
-| `holeThr` | 60 | hole diff threshold (walk-up: plateau 45–90, cliff at 120) |
-| `mergeR` | 6 | bloom-merge radius (bright-room ladder: 2 fragments, 6 optimal) |
-| `holeDomK` | 8 | dominance bar: peak ≥ domK × outside-blob d10 |
-| `holeWinFrac` | 0.055 | K-chain window radius floor (× frame diagonal) |
-| `holeGateK` | 4 | serpentine gate in units of measured median pitch |
-| `holeB` | 200 | all-on master/pair brightness |
+| `allB` | 160 | All-on button brightness |
+| `evBias` | -1 | exposureCompensation bias (Android only) |
+| `mergeR` | 6 | blob merge (detectDiffBlobs, the CWC pile-up reader) |
+| `bBurstN/Gap/Hold/B` | 20/0/1000/150 | bench burst frames, pacing, all-on hold, brightness |
+| `bComp` | 0 | in-page drift compensation (seeded NCC vs burst master) |
+| `cwc` | 0 | 1 = CWC-form burst (master + 18 codeword planes) |
+| `cwcN` | 150 | LEDs mapped to codewords 0..cwcN-1 |
+| `cwcSettle` | 100 | ms paint→grab (clamped ≥70) |
+| `cwcTestMode` | 0 | 1 = single-LED toggle test (plan §4) |
+| `cwcTestLed` | 0 | test LED index |
 
 ## Known issues
 
-- Anchor bookkeeping (fixed in S13L, bench-verified Sep 24: anchors 50/100
-  found in all 3 EV-verified runs; miss list is now only the 94/95 diffuser
-  pair).
-- px94/95 (hidden die behind a diffuser) flaps between found/missed run-to-run;
-  accepted as geometry, not detection.
+- S13 leftovers are history (px94/95 diffuser = geometry, anchor bookkeeping
+  fixed Sep 24) — carried as accepted limits into the S14 decode gates.
+- Serial directive slot is single (`sDrv`): a directive sent while another is
+  pending is LOST — the bench console drains before sending (29 Sep).
+- Phone page must be foregrounded for the drv? poll to run (screen asleep =
+  GONE on STAT); the wake lock only helps while the tab is open.
 
 ## Hardware (proven on the bench, carried from the design docs)
 
 ESP32-C6-Zero · WS2815 lane on GPIO1 (bench chips are RGB-wired, not GRB) ·
 status WS2812 on GPIO8 · self-signed cert baked into the firmware (it's the
 box's own hotspot identity, regenerated for every real deployment).
-Runtime LED count via `NPX=` (150 default, 200 max).
+Runtime LED count via `NPX=` (150 default, 200 max — the CWC page maps
+cwcN of them to codewords).
 
 ## Status LED
 
-solid red = new build flashed, phone not yet reloaded · off = survey running ·
+solid red = new build flashed, phone not yet reloaded · dark while a paint
+is recent (burst/survey activity — the LED must not photobomb the camera) ·
 slow green breathe = idle and up to date.

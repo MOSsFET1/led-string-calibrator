@@ -1,361 +1,179 @@
-# S14 plan — CWC LED position detection (Oliver + Nellie, Sep 25 2026)
+# S14 plan — CWC LED position detection (Oliver + Nellie, Sep 2026)
 
-> **27 Sep amendment — the off reference frame is DROPPED (agreed, Oliver +
-> Nellie).** §3 step 3 (All OFF → grab reference) is REVISED: the protocol is
-> now master + 18 planes = 19 frames. Rationale (all verified against the
-> real bank/pulls): NCC is gain-invariant so registration never needed the
-> off frame; the point set moves to the pile-up Σₚ(master − planeₚ) — 9
-> coherent hole samples per LED vs 1, SNR ×3 over the single master−off
-> diff; the per-LED bit read uses per-plane diffs against the pile-up's
-> local background (18-frame evidence per LED); collocation detection
-> becomes NOR-weight < 9 (ON-mode read has no 0-of-18 signal from an
-> unpainted pixel) — OR-weight 11–18 / NOR-weight 0–7 both cleanly off the
-> single-LED weight of exactly 9. Bright-background handling is sign-based:
-> OFF-planes always subtract light, so static background cancels, dynamic
-> background dilutes by √18, and brighter-than-master events pile POSITIVE
-> (invisible to the dark-hole read). Failure class: a background source
-> mostly DIMMER than its master-frame state accumulates a negative impostor
-> — caught by the standing domK/d10out/serpentine guards. Built + validated
-> in page S14J (see S14-BENCH-SESSION.md). Optional all-off diagnostic grab
-> at burst end remains bench-only (noise-floor measurement), not part of
-> the decode.
+State of play, 29 Sep: one burst = the whole calibration. Identity lives in
+the light pattern (9-of-18 codewords, Twinkly-style); the camera only reads
+bits + positions. S13's per-LED hole survey is retired from the page. The
+movement/registration machinery is built and handheld-proven (r6); the
+remaining work is bulk decode of the 150-px string and the point cloud.
 
-Direction set by Oliver (24 Sep): drop intensity-level encoding; identify LEDs
-by binary plane codes; capture protocol: all-on 1 s (AE warm-up) → all-on
-frame → all-off reference → all-on 1 s → N plane frames. All runs BOX-driven
-while the phone is unavailable (returns in days).
+## 1. Agreed capture protocol (19 frames: master + 18 planes, S14N primer)
 
-## 1. Corrected scheme: 9-of-18 (the 7-of-14 claim was wrong)
+1. p00 frame on for 1s — AE settles.
+2. Grab frames p00 to p18 as quickly as possible. at 50% duty, b=150: plane 
+    p paints LED i iff bit p of LED i's codeword is 1. Constant per-frame 
+    load keeps AE stationary.
+3. Grab all-on master frame as quickly as possible to minimise AE changes. 
+4. Per plane: Starting with p17 and then working backwards to p00, register 
+   each plane to master (seeded, master-anchored) → per-LED bit
+   read = plane luma / (master luma × per-plane gain k from non-LED
+   pixels). NOT a local-ring average — rings sit on neighbour bloom (r6
+   lesson).
+6. Decode: nearest codeword within d 4; gates: per-plane ON count exactly
+   N/2, per-LED weight 9-of-18, decode distance ≤1, serpentine continuity
+   (S13 impostor guard); failing LEDs → interpolated (§5).
+7. Master once per burst; mid-burst re-anchor only on health triggers.
 
-The 24 Sep discussion pitched 7-of-14 (C(14,7) = 3432 ≥ 1600). Combinatorially
-impossible for 1600 codes: two 7-of-14 codewords at d ≥ 4 cannot share a
-6-plane subset, so the count is bounded by C(14,6)/C(7,6) = 3003/7 = 429 —
-measured greedy exhausted at 156. Corrected candidates (greedy max-min +
-column balance, `tools/cwc_feas2.py`):
 
-| scheme | 1600 codes? | d_min | columns | duty | frames (+master+off) |
-|---|---|---|---|---|---|
-| 7-of-14 | no (156) | — | — | — | — |
-| 8-of-17 | no (1196) | — | — | — | — |
-| **9-of-18** | **yes, 15 s** | 4 | **800/plane exact** | 50% | 20 |
-| 10-of-20 | yes, 91 s | 4 | 800/plane exact | 50% | 22 |
+The off reference frame is DROPPED (agreed 27 Sep): NCC registration is
+gain-invariant; the point set comes from the pile-up Σₚ(master − planeₚ)
+— 9 coherent hole samples per LED, SNR ×3 over the single master−off
+diff; collocation detection = NOR-weight < 9. Optional all-off diagnostic
+grab at burst end stays bench-only (noise floor), not part of the decode.
 
-**Decision: 9-of-18.** Codewords banked at `tools/codewords_9of18.json`
-(1600 codes, d_min 4 = single-error correction, every plane exactly 800 ON,
-duty 50% per LED). 18 planes + master + off = **20 frames total for ALL
-1600 LEDs** — vs 1600 per-LED paint+diff cycles in the S13 hole scheme; the
-frame count is the win: 20 captures + two 1-s paint brackets ≈ **12 s per
-burst at today's measured 0.5 s/grab cadence** (10 s of grabs at 2 Hz + 2 s
-of brackets; 6 s at 5 fps if the phone bench proves it).
+## 2. Codeword bank (built, verified)
 
-Frame budget notes: 50% duty at 1600 px = ~1.2 A/lane (safe); the all-on
-master at 1600 px is ~2.35 A/lane at b=200 → **cap master/plane brightness at
-b≤150** (1.77 A) per the polyfuse ladder; detection is brightness-insensitive
-(S13 matrix: 150/150 at b=120/160/200/255).
+`tools/codewords_9of18.json`: 1600 codes, weight 9 of 18, d_min 4 (6
+within the first 150), every plane exactly 800 ON for N=1600 (75 for
+N=150), duty 50% per LED. Greedy max-min + column balance
+(`tools/cwc_feas2.py`; the 7-of-14 record is kept there as the
+impossibility note: C(14,7)-bound d≥4 caps at 429, greedy exhausted at
+156). **Prefix property (measured):** the first N codewords keep d_min AND
+exact N/2 per-plane balance for every N tested (100–1600) — N is just an
+index count; no re-selection for smaller strings. Page embeds the bank
+inline (page/codewords.js is the regeneration source).
 
-## 2. Bench step 1 DONE — camera-movement tolerance (artificial offsets)
+Frame budget: 20 captures ≈ 12 s/burst at the measured 0.5 s/grab cadence.
+50% duty at 1600 px ≈ 1.2 A/lane (safe); **cap master/plane brightness at
+b≤150 (1.77 A)** per the polyfuse ladder; detection is
+brightness-insensitive (S13: 150/150 at b=120/160/200/255).
 
-Oliver's step, done offline on existing pulls (no phone/box):
-`tools/delta_sweep.py` + `tools/delta_sweep_reg.py`. Master synthesised as
-pixelwise max over each run's 16 pulled pair frames (ring keeps only pairs;
-real master cross-check pending a pull that still holds one). Fast detector
-(`detect_holes_fast`, cv2 CC + array merge) asserted 16/16-identical to the
-page-mirror detector (`offline_hole_verify.detect_holes`) at offset 0.
+## 3. Bench-verified movement/registration facts (r1–r6 evidence)
 
-**Unregistered (pair shifted vs master, diff as-is)**:
+- **Registration is mandatory and master-anchored.** Unregistered diffs
+  die at 2 px of shift (wrong-blob capture, not silence);
+  registered (phaseCorrelate per frame) hold 100% to ≥6 px, 75–79% at
+  8–10 px on integer residual. Median residual 0 px, 40/40 exact on
+  random offsets ±10. Plane-vs-MASTER stays accurate at raw shifts far
+  past half-pitch (40–80 px synthetic: residual ≤0.65 px) — raw shift
+  does NOT degrade the estimate; plane-vs-plane chaining DOES bias
+  (~0.5–1.5 px, one 86 px blow-up at conf 0.31). Hence: register every
+  plane against the master, seeded by the previous composed transform
+  (T_k = Δ_k ∘ T_{k−1}; Δ_k measured vs master — no chain accumulation,
+  NO prediction, seed is always the last MEASURED transform).
+- **Residual budget, not a shift limit**: ~5 px residual keeps the bit
+  read clean while under the blob core radius; 10–12 px (½ pitch) risks
+  neighbour bloom → wrong bit (d_min 4 still corrects one); 45 px = the
+  serpentine gate's catch radius. Phase correlation is global — large
+  raw shifts are fine while confidence holds.
+- **Handheld measured (26 Sep, real phone)**: per-frame drift 1–2 px
+  median (max 2.2) at 3.3 fps unpaced; net whole-burst drift 7–14 px
+  over ~6 s; one failed NCC lock in 38 pairs. Single-burst handheld
+  VIABLE at 3.3 fps; 5 fps would shrink the budget further but is not
+  required (phone serves 6.5–6.9 fps unpaced; gap-200 pacing measured
+  2.3–2.7 fps — pace rVFC-to-rVFC if 5 fps is ever wanted).
+- **AE is the hazard, not motion** (r6): one-time ~0.5 s re-meter after
+  the master→plane field change (+17–20 luma, invisible to getSettings),
+  then HOLDS (±1.9 luma p03–p17); p00 caught mid-transition (−10).
+  All-on tripod bursts still pop ~3/20 frames >15%. Mitigation is
+  sequence-level: S14N primer + console-side master×gain read. Android
+  manual exposure lock is a second-stage lever (iOS: not exposed).
+- **Tripod AE-freeze across long bursts**: exposure readback pinned
+  (exp=500.05 aem=continuous) across 16 frames / 7.9 s.
+- **Comp machinery proven in-page** (S14J harness, headless Chromium +
+  mock box): round trip identity conf 1.00, known shift recovered within
+  half a grid cell, warp-back reduces error 87→30; the S14B-5 grid-unit
+  fix (NCC ×W/128) is in. White-noise content is pathological for the
+  decimated NCC — quote quantization-aware gates; real content is smooth.
+- **Bit read (r6 verdict, supersedes the c2f6ecc 'blocked' note)**:
+  per-core reads against a LOCAL RING average fail (rings sit on
+  neighbour bloom); against the registered master × per-plane gain k
+  (median over non-LED pixels) reads go cleanly bimodal (ON ≈ 1.0, holes
+  ≈ 0.45–0.5) and 13 cores decoded STRICTLY. Remaining limit ~17%
+  per-bit error after top-9 normalisation — bulk decode needs that
+  roughly halved (target ≪ d_min−1 = 3).
 
-| offset | b=200 baseline | b=120 run |
-|---|---|---|
-| 0 px | 100% | 100% |
-| 2 px | 12.5% | 6.2% |
-| 4–10 px | ≤2% | ≤2% (misses grow: 208/640 at 10 px) |
+## 4. Single-LED toggle test (S14O/S14P — CURRENT WORK)
 
-Cliff at 2 px in both: a shifted pair's diff sprouts a positive crescent at
-every LED rim; the true hole loses to impostors (no misses, all wrong-capture).
+**Purpose**: validate the bit-read path end-to-end on one known LED
+(zero errors on tripod) before scaling to full 150-LED decode.
 
-**Registered (cv2.phaseCorrelate per frame, roll back, then diff)**:
+- **Sequence** (CFG `cwcTestMode=1`, `cwcTestLed=0`): P00 (1 s hold) →
+  P01..P17 (70 ms settle clamp) → master all-on grabbed ASAP (<100 ms
+  after P17). Backwards registration console-side: each plane → master
+  (P17 seeded from master, then P16 seeded from P17 …).
+- **Analysis** `tools/cwc_analyse.py --test-led 0`: reads `cwc_stats.json`
+  (testMode/testLed/testBits), finds the LED's hole in the pile-up,
+  reads per-plane luma at the LED (master×gain, r6 recipe, top-9
+  normalised), gates ON/OFF at 0.5, prints per-plane reads + verdict.
+  Validated on synthetic runs (clean = 18/18 PASS; one corrupted bit =
+  FAIL with exactly that plane flagged).
+- **Tripod gate**: 18/18 bits correct, registration residual < 1 px on
+  all planes, bimodal ON/OFF ratio > 1.5×. Handheld: same protocol,
+  residual budget ~5 px, zero decode errors still the target.
+- **Page build**: **S14P-1901**; firmware `PAGE_BUILD`: **S14P-1901**
+  (1900→1901: the test branch no longer calls benchPull itself — the
+  shared S14L auto-ship ships the store exactly once; double-ship found
+  by the mock+CDP harness 29 Sep).
+- **Status (29 Sep)**: S14P-1901 flashed. Test mode captures 18 planes
+  + master; the ship path is HARNESS-PASSED (mock box + headless
+  Chromium: CWCSTATS=1, FRAME=19, FEND=19, labels run-tagged). The 28
+  Sep 'frames don't ship' failure was CONSOLE-side, not the page: the
+  pull reader broke on the FIRST `[PHONE-LOG] end` (the LOGP ring
+  pull's own logend precedes the frame stream) + the directive-slot
+  race; both fixed in `s14_bench.py`. The analyser's label mismatch +
+  stub bit read also fixed (synthetic-validated: clean = 18/18 PASS,
+  one corrupted bit = FAIL on that plane). Phone page down at 29 Sep am
+  (STAT GONE) — reload + run the tripod round (forensics:
+  `S14-BENCH-SESSION.md` §S14O/S14P).
 
-| offset | b=200 baseline | b=120 run |
-|---|---|---|
-| 0–6 px | 100% | 100% |
-| 8 px | 78.9% | 100% |
-| 10 px | 75.6% | 100% |
+## 5. Failure handling (per-layer retakes; interpolation is first-class)
 
-Registration itself: median residual 0 px, worst 0 px, 40/40 exact on random
-offsets up to ±10 (sqrt-compressed luma, Hanning window). The b=200 dip at
-8–10 px is pre-registration residual (integer-pixel roll-back leaves ≤1 px
-error → 75–79% survive the 6 px tolerance); b=120's tighter holes tolerate it
-fully. Next: sub-pixel refinement (parabolic peak on the correlation surface)
-should close the 8–10 px band to ~100% everywhere.
+- **Per-plane ON count** — exactly 800/1600 (75/150 in the bench burst);
+  corrupted plane → retake that plane (~1–2 s).
+- **Per-LED weight** — 9 of 18; d_min 4 silently corrects one bad frame;
+  decode distance >1 → re-read that LED from the affected planes.
+- **Registration confidence + health triggers** — confidence gates each
+  frame; path-length/confidence threshold → re-anchor to a fresh master
+  and resume. Knock/jump detector: |T_k − T_{k−1}| vs running median.
+  Mid-burst 90° flip = burst abort + redo (not a similarity).
+- **Serpentine continuity** — decoded IDs must trace the string's path
+  (S13 impostor guard); locally broken path → targeted re-read.
+- **Burst sanity** — frame count/timing checksums catch gross events →
+  full retake (cheap at ~12 s).
+- **Dead/hidden/stuck-ON** — weight 0 (or 18) ≠ 9 → flagged, position
+  interpolated from serpentine neighbours (S13 px95 path; never a
+  threshold change).
+- **Collocated LEDs** (two LEDs, one point): reads = OR of two codewords
+  (weight 11–18) → detected by weight alone, but pair identity is NOT
+  recoverable from one burst (brute force: unique in 2/300 random ORs).
+  Resolution: serpentine inference → disambiguation burst (fresh sub-
+  code, same 19-frame protocol) → manual pin. Stored once, both IDs.
 
-**Conclusion: every plane frame must be registered to the master before its
-diff.** Integer-pixel registration makes the scheme robust to ≥6 px of
-movement per frame — far beyond real inter-frame drift (worst observed real
-cross-run shift: 4 px). Hand-held capture becomes viable.
+## 6. Config: selectable strings × LEDs (100–1600)
 
-## 2b. Beyond-tolerance movement: detect + retake (Oliver's question)
+`nStr × nPerStr` (or single `nLeds`); the codeword prefix property makes
+smaller strings FREE (index count only). Box carries the knob (NPX=,
+hello ships it); CFG gains nStr/nPerStr so the map editor + decode gate
+know the string structure (string s owns IDs [s·nPerStr, (s+1)·nPerStr),
+folds inside a string, transitions are known breaks). Same camera
+framing at smaller N = larger pitch = EASIER reads.
 
-The failure signature at large offsets is wrong-blob capture, not silence —
-and the CWC structure turns most of it into *visible* decode errors. Layered
-checks, each with its own retake granularity:
+## 7. Orientation
 
-1. **Per-plane ON count** — every plane must show exactly 800/1600 LEDs ON
-   (75/150 in the 150-px burst). A corrupted plane read shifts the count →
-   retake that plane (~1–2 s).
-2. **Per-LED weight** — each LED must read 9 of 18 planes ON. d_min 4
-   corrects a single bad frame silently; a decode distance > 1 → re-read
-   that LED from the affected planes.
-3. **Registration confidence + master re-anchors** — phase-correlation
-   confidence gates each frame; a master re-grab every ~6 planes measures
-   real drift master-to-master. Beyond threshold → roll back to the last
-   good master and resume from there.
-4. **Serpentine continuity** — decoded IDs must trace the string's physical
-   path (the S13 impostor guard); a locally broken path → targeted re-read.
-5. **Burst sanity** — frame count/timing checksums catch gross events
-   (knock, AE jump) → full retake, cheap at ~12 s per burst.
-
-Limits, stated honestly: retake cannot fix a physically hidden LED (px95
-class — hidden flag + interpolation stays), and mid-burst scene changes
-(passer-by) show up as plane inconsistency → detected, then re-run.
-
-## 3. Capture protocol (Oliver's spec, implemented as the box sequence)
-
-1. All ON 1 s — AE settles (phone AE adaptation measured in the ~0.2–0.5 s
-   class; 1 s is generous).
-2. Grab master frame (registered positions + per-plane reference).
-3. All OFF → grab reference as fast as possible (before AE climbs).
-4. All ON 1 s — AE returns to the master's exposure.
-5. 18 plane frames at 50% duty, b≤150: plane p paints LED i iff bit p of
-   LED i's codeword is 1. Constant per-frame load keeps AE frozen.
-   Codewords: codewords_9of18.json — 1600 codes, weight 9 of 18 planes,
-   d_min 4, columns balanced exactly 800/plane (verified); the first N
-   are prefix-valid for any N (100–1600), first 150 balanced 75/plane.
-6. Per plane: register to master (phase-correlate) → diff vs off-reference →
-   detect → per-LED bit read at expected (x, y) ± tolerance.
-7. Decode: nearest codeword within d 4 (syndrome-free popcount table);
-   serpentine-continuity gate on the decoded ID path (impostor guard from
-   S13); LEDs failing confidence → interpolated (§6); hidden/dead flagged.
-8. Master+off grabbed once per burst; mid-burst re-anchor only on health
-   triggers (§6); CFG knob can force an extra anchor.
-
-## 4. Dead, hidden, and collocated LEDs
-
-**Dead or physically hidden LED** — its hole never appears (dead: never
-painted; hidden: painted but occluded, e.g. px95 whose accepted blob was
-proven to be an off-path scene feature). The read for that LED is 0-of-18
-(weight 0 ≠ 9) → flagged, and the map position interpolates from its
-serpentine neighbours (h−1, h+1 anchor the point; h−2/h+2 check). Same path
-as the S13 px95 handling; never a threshold change. A *stuck-ON* LED (reads
-18-of-18) is the mirror signature — flag + interpolate.
-
-**Collocated LEDs (two LEDs, one camera point)** — both paint the same
-(x, y). Their reads are the OR of two codewords (weight 11–18 measured over
-random pairs; single LED = 9), so collocation is *detected* by weight alone.
-However the pair is NOT uniquely recoverable from one burst: brute-force
-all-pairs decode of random OR-reads gave 1 unique solution in only 2 of 300
-cases (median ~70 candidates, worst 848) — a 9-of-18 OR collapses pair
-identity. Designed resolution, cheapest first:
-1. **Serpentine inference** — on a string, consecutive IDs are adjacent in
-   3-D; a gap between decoded IDs i and i+2 at one point strongly implies
-   the missing ID i+1. Decodes both IDs at that point in most cases.
-2. **Disambiguation burst** — when inference can't resolve (several IDs at
-   one point), re-shoot ONLY those LEDs with a fresh code assignment
-   (different sub-code), same 20-frame protocol at the affected points.
-3. **Manual pin** — the app's map editor (S13's manual workflow) as fallback.
-Collocated points are stored once in the point cloud with both IDs attached.
-
-## 4b. Selectable strings × LEDs-per-string (100–1600)
-
-Config is `nStr × nPerStr` (or a single `nLeds`); total N selects the map
-size. The codeword design makes this FREE — verified on the bank:
-
-- **Prefix property (measured):** the first N codewords of the 9-of-18 bank
-  keep d_min 4 (hereditary) AND perfect column balance — every N tested
-  (100/150/200/400/800/1200/1600) lights exactly N/2 LEDs per plane, spread
-  0. The greedy's balance scoring made every prefix self-balanced, so N is
-  just an index count: no re-selection, no regeneration.
-- **Frame budget is N-independent:** 18 planes + master + off = 20 frames
-  whether N=100 or N=1600 (the scheme's core win over per-LED pairs).
-- Plane sanity check becomes "exactly N/2 ON" (was 800); per-LED weight
-  check unchanged (9 of 18); serpentine gate gets the topology from config:
-  string s owns global IDs [s·nPerStr, (s+1)·nPerStr), folds inside a string,
-  and string transitions are known breaks in the ID path.
-- Box already carries the knob (NPX= sets nPx; hello ships it to the page);
-  CFG gains nStr/nPerStr so the map editor and the decode gate know the
-  string structure. Smaller N at the same camera framing = larger pitch =
-  EASIER detection (bigger blobs, more residual headroom).
-
-## 4c. Portrait vs landscape — yes, with one rule and one gap
-
-The page is already orientation-agnostic where it matters: processing
-dimensions come from the TRACK's real aspect (`sizeForVideo` scales the long
-side to 720 and the short side to match — "nothing is ever squashed"), every
-detector uses W and H from that geometry (windows are fractions of the frame
-DIAGONAL — `holeWinFrac` × hypot(W,H)), and no S13/S14 code assumes
-taller-than-wide. The point cloud is stored in whatever frame the capture
-used, so a landscape capture just yields a landscape map. Both orientations
-work TODAY for the S13 flow.
-
-S14-specific rules to hold:
-1. **One burst = one orientation, locked.** Handheld rotation BETWEEN frames
-   is absorbed by the similarity registration (rotation is part of the ECC
-   model); a MID-BURST 90° flip is not a similarity — it's the
-   health-triggered re-anchor case (confidence collapses, burst aborts, redo
-   in the new orientation). The map is tied to the orientation it was shot
-   in; a later burst in the other orientation needs its own master (master-
-   to-master correlation is the drift alarm AND the orientation check —
-   90° shows up as near-zero correlation, unambiguous).
-2. **Resolution asymmetry is the real cost.** Today the long side is capped
-   at 720 px: portrait proc = 406×720, landscape proc = 720×406. For a
-   wide facade (the landscape case), the short side only gets 406 px of
-   horizontal detail — at distance that's the pitch squeeze multiplied. If
-   wide installations need it, request landscape-native capture (ideal:
-   1280×720 track in landscape = full 1280 across) — a getUserMedia/
-   screen-orientation change, not an algorithm change.
-
-## 5. Frame cadence (measured, not guessed)
-
-Survey-mode pulls show median 0.50 s between frame grabs (min 0.40 s) —
-phone-side JPEG acquisition is the floor today, not the box. Exposure was
-pinned across 16 frames spanning 7.9 s (`exp=500.05 aem=continuous` in every
-header), so the AE-freeze assumption holds over bursts far longer than ours.
-
-**5 fps (200 ms/grab) is not yet proven** — the gap is phone-side JPEG
-capture+upload. It is plausible (12–16 KB frames) but needs a measured test:
-the burst paints are trivially fast (1600 px ≈ 48 ms + reset), so 5 fps
-reduces to "can the phone grab+ship a frame in 200 ms". Bench it before
-promising; 2–3 fps is the safe fallback. Cadence is NOT tied to AE: at 50%
-duty every frame loads the field identically, and S13 evidence shows
-exposure stays pinned for 8 s — so grabs can be as fast as the camera
-allows, with the all-on → off → all-on bracket protecting the master/off
-pair only.
-
-## 6. Handheld reality — chained registration, single-burst target
-
-*Oliver's corrections (25 Sep), both accepted:* all drift numbers above are
-TRIPOD-bound — "worst 4 px cross-run" says nothing about handheld, where
-whole-burst displacement can be tens of px and slow rotation is likely.
-Design target changed to match: **one burst = the whole calibration**; LEDs
-not confidently revealed by that burst get interpolated positions (flagged),
-not retake bursts. Retakes (§2b) remain only for gross failures (knock, AE
-jump, burst checksum).
-
-Why the per-frame strategy must change for handheld: registering every frame
-to the burst-start master (translation-only) absorbs global translation but
-NOT rotation/scale — a 2° hand rotation displaces points 200 px off-centre by
-~7 px, past the 6 px read window, and phase correlation itself degrades at
-large direct displacements. Handheld design:
-
-1. **Seeded registration (Oliver's refinement, 25 Sep)** — maintain the
-   composed transform T_k; before estimating frame k's motion, pre-shift it
-   by T_{k−1} (warpAffine, bilinear — sub-pixel capable), then register the
-   pre-shifted frame against the MASTER. The estimator always works in the
-   small-signal regime (it only sees one frame's worth of new motion plus
-   residual), while every estimate stays anchored to the master — small
-   search AND independent per-frame errors (no chain accumulation: T_k =
-   Δ_k ∘ T_{k−1} composes, but Δ_k is measured against the master directly).
-   NO prediction: never extrapolate from previous deltas (Oliver's explicit
-   rule — predictions can go wrong); the seed is always the last MEASURED
-   composed transform, and the estimator re-measures frame k's true drift
-   from that starting point. JUMP/knock detector unchanged: the inter-frame
-   increment |T_k − T_{k−1}| jumping well above its running median.
-   (Synthetic A/B 25 Sep: seeded == unseeded accuracy on clean content even
-   at 28 px total drift — seeding is kept for the confidence/search regime
-   and the knock detector, not for raw accuracy.)
-   **Point-2 revisited (Oliver, 25 Sep): the half-pitch read-limit is about
-   RESIDUAL, not raw shift — and content toggle is the real hazard.** Measured
-   on 150-LED synthetic planes (JPEG q80): plane-vs-MASTER estimates stayed
-   accurate at raw shifts far past half-pitch (40, 80 px: residual ≤0.65 px;
-   confidence holds ~0.44–0.6 even with only 50% of LEDs lit). Raw shift does
-   NOT degrade the estimate — but random plane-to-plane content does: chained
-   plane-vs-plane correlation was *biased* (~0.5–1.5 px err, conf 0.33, one
-   synthetic sparse-content case blew up to 86 px est at conf 0.31). This is
-   exactly why the scheme registers every plane against the MASTER (the
-   seeded design): the master's stable full blob-set locks correlation, while
-   half the plane's content toggles underneath. Residual budget after
-   registration: ~1.5 px worst synthetic, well under the 5 px read budget —
-   but REAL handheld + real scene must confirm (tripod real-scene conf was
-   0.98; synthetic black-background conf is far lower, i.e. the real scene's
-   bright content HELPS the correlator).
-2. **Similarity (rotation+scale+translation), not translation-only** —
-   cv2.findTransformECC (EUCLIDEAN/AFFINE) per frame; still cheap at 406×720.
-3. **Mid-burst re-anchor becomes a health-triggered fallback, not a
-   cadence**: if the composed-transform path length or per-frame confidence
-   crosses thresholds (fast rotation, knock), re-grab master+off mid-burst
-   and re-anchor there. Normal bursts never pay for it.
-4. **Motion blur is a non-issue at the measured 500 µs exposure** (hand
-   moves µm-scale in 0.5 ms); displacement between frames is the enemy, and
-   shorter frame period shrinks it — 5 fps is now motivated twice (cadence
-   AND drift), strengthening the case for the phone grab-rate bench.
-
-Single-burst confidence model: a LED is CONFIRMED iff weight 9-of-18, decode
-distance ≤ 1, and serpentine-consistent; otherwise INTERPOLATED from its
-confirmed serpentine neighbours (hidden/dead LEDs land here naturally). The
-map records which class every LED is in — interpolation is a first-class
-output, not an error path. An optional second burst later refines
-interpolated LEDs only (a CFG knob, not the design).
-
-**What the "6 px" actually is (Oliver's question, 25 Sep) — a layered
-residual budget, not a shift limit.** Raw inter-frame shift is absorbed by
-registration; what matters is the RESIDUAL after correction:
-
-- ~5 px: bit-read stays clean while the RESIDUAL — the registration
-  estimate's error, not the raw shift — stays under the blob core radius
-  (~2–5 px). A 40 px shift with a perfect estimate leaves 0 px residual;
-  the residual budget is what the bench measures. Not applicable: with
-  master-anchored registration each frame's estimate error is independent;
-  with chained registration the estimate errors compose down the chain
-  (~√N). (Oliver's circle picture is the right model — the old "raw shift
-  degrades the read" claim was wrong and was removed.)
-  exactly right for exact estimates — "correctly detected and shifted back"
-  is the entire difficulty, and the estimator's accuracy, not the shift
-  size, is what lands in the read window.)
-- ~10–12 px (½ pitch): beyond this a read can grab a neighbour's bloom →
-  wrong bit. d_min 4 still corrects a single corrupted frame per LED.
-- ~45 px: S13's serpentine gate (holeGateK=4 × pitch) catches gross
-  mis-assignment; weight/plane-count checks catch systematic failures.
-- Raw shift size itself: phase correlation is global — the Δ-sweep held
-  100% at 6–10 px offsets with integer roll-back (the 8–10 px dips were the
-  ≤1 px integer residual, sub-pixel refinement's job), and would hold at
-  much larger shifts *provided the correlation stays confident*.
-- What erodes correlation confidence (the true limit): 50% of LEDs toggle
-  between consecutive frames (content change on top of motion), JPEG noise,
-  rotation (needs the ECC similarity model, not translation-only), and
-  scene content leaving the frame — unrecoverable by any transform.
-- Chained small steps keep each estimate small and confident (error grows
-  ~√N over the chain) — why the handheld design optimises for small
-  per-frame motion rather than tolerating big jumps. If real handheld
-  residuals exceed the budget, the upgrade path is blob-landmark
-  registration (detected LED centroids as features — a rich landmark set
-  at 1600 px) instead of image correlation.
-
-## 7. Open items for the first box burst (150-px string)
-
-- **Bench kit built (25 Sep, awaiting Oliver's return):** page `S14A-1900`
-  adds box-driven BURST (all-on N-frame burst, full-res frames in a
-  dedicated ring, CFG `bBurst{N,Gap,Hold,B}`) + BRAMP pull; console driver
-  `tools/s14_bench.py` (burst/pull/analyse) + runbook
-  `S14-BENCH-SESSION.md`. Measures phone cadence (5 fps question) and
-  handheld per-frame motion (chained-registration budget). Firmware
-  directive parser extended (BURST/BRAMP); compiled 66% min_spiffs; flash
-  + phone reload pending (box unplugged — Oliver out).
-
-- Map first 150 of the 1600 codewords onto px0–149 (column balance only
-  matters at 1600; note per-plane counts on 150 for the burst log).
-- New firmware sequence cmd (burst mode): master/off/planes + per-frame
-  phone capture triggers over WS, no per-LED dwell (frames, not pairs).
-- Page build stamp bump S13x → S14 series; repack page BEFORE compiling.
-- Cross-check a real pulled master vs the synthetic max once a pull with a
-  master exists.
-- Sub-pixel registration refinement (close the 8–10 px residual).
-- Evid/log per-frame pulls: ring keeps only the last 16 frames — pull each
-  frame (or shrink payload) so a burst survives the ring.
+One burst = one orientation, locked; the map is tied to the orientation
+it was shot in. Between-frame rotation is absorbed by the similarity
+registration; a mid-burst 90° flip is the health-triggered burst-abort
+case (master-to-master correlation ≈ 0 is the unambiguous signature).
+Processing geometry is aspect-agnostic (long side 720, windows × frame
+diagonal, nothing squashed). Resolution asymmetry is the real cost:
+landscape capture gives the short side only ~406 px — if wide installs
+need it, request landscape-native capture (getUserMedia/screen-
+orientation change, not an algorithm change).
 
 ## 8. Point cloud format — `ledcloud/2` (AGREED SPEC, 27 Sep)
 
-The point cloud is a self-contained JSON file; array order IS the LED id.
-Designed against its worst consumer: pattern/text display code must be
-trivial — "canvas = k × (box.aspect, 1), sample points[id]".
+Self-contained JSON; array order IS the LED id. Consumers are trivial
+('canvas = k × (box.aspect, 1), sample points[id]').
 
 ```json
 {
@@ -369,52 +187,64 @@ trivial — "canvas = k × (box.aspect, 1), sample points[id]".
 }
 ```
 
-- **Coordinates**: x/y floats in [0,1] of the CLOUD'S OWN BOUNDING BOX —
-  NOT camera-frame pixels (operator decision, 27 Sep: the camera session
-  is scaffolding; once decoded, the camera frame is no longer part of the
-  data, and survey-to-survey pixel similarity is NOT a requirement). The
-  box is declared data in the header (`aspect` = width/height; `rot`
-  reserved for a future cloud-axes-to-install alignment step; today the
-  cloud inherits the master frame's orientation). Consumers never rescale:
-  the player makes its canvas `k x (aspect, 1)` and uses points raw.
-- **Box rule (operator decision)**: computed over ALL points — every LED
-  has an XY so every LED can be included in an image, even one never
-  detected during the survey. Collocated points included. Outliers cannot
-  inflate the box because rejection is structural (below), not box-based.
-- **Every LED present, indexed by id** (operator decision): points[id] =
-  [x, y, class] with class letters C / I / X —
-  C = confirmed (weight 9-of-18, decode distance <=1, serpentine-consistent);
-  I = interpolated (folds hidden, dead, never-revealed, and gate-rejected
-  into one class; the per-LED REASON lives in the burst log, the cloud
-  carries the class);
-  X = collocated (one XY shared by both IDs — emit both IDs' entries with
-  the same XY; detection is weight < 9 in the ON-mode read, resolution
-  serpentine inference -> disambiguation burst -> manual pin).
-- **Outlier rejection at decode time** (operator confirmation, 27 Sep): a
-  detection unreasonably far from its expected position is rejected and
-  interpolated — the gates are (1) the serpentine continuity gate
-  (<= holeGateK 4 x measured median pitch from the ID neighbours'
-  midpoint), (2) decode distance <= 1, (3) per-LED weight 9-of-18 and
-  per-plane count exactly N/2. Rejection is structural; the cloud layer
-  never thresholds.
-- **Floats** (operator decision): human-readable during decoder bring-up;
-  integer 0-4095 grid is the pre-agreed downgrade if a firmware consumer
-  materialises.
-- Provenance (created/build) rides along; consumers ignore unknown fields.
-- `mm` (physical width/height) null until a scale reference is shot; the
-  extension is additive, the format unchanged.
-- Export is ONE conversion at generation: decode-space (capture px) ->
-  cloud box coordinates, producer-side; every consumer downstream is
-  conversion-free.
+- **Coordinates**: x/y floats in [0,1] of the CLOUD'S OWN bounding box —
+  NOT camera pixels (camera frame is scaffolding; decoded, it leaves the
+  data). Box declared in the header (aspect = width/height; rot reserved
+  for a future cloud-axes alignment; today the cloud inherits the master
+  frame's orientation). Consumers never rescale.
+- **Box rule**: computed over ALL points — every LED gets an XY, even a
+  never-detected one. Outliers can't inflate it: rejection is structural
+  (below), not box-based.
+- **Every LED present**: points[id] = [x, y, class], class C = confirmed
+  (weight 9-of-18, distance ≤1, serpentine-consistent), I = interpolated
+  (folds hidden/dead/never-revealed/gate-rejected; per-LED REASON lives
+  in the burst log), X = collocated (one XY, both IDs).
+- **Rejection at decode time** (operator-confirmed): serpentine gate
+  (≤ holeGateK 4 × median pitch from ID neighbours' midpoint), decode
+  distance ≤1, weight 9-of-18, per-plane count exactly N/2. The cloud
+  layer never thresholds.
+- **Floats** now; integer 0-4095 grid is the pre-agreed downgrade if a
+  firmware consumer appears. Provenance (created/build) rides along;
+  unknown fields ignored. `mm` null until a scale reference is shot.
+- Export = ONE conversion at generation (capture px → cloud box), so
+  every consumer downstream is conversion-free.
 
+## 9. Open items (29 Sep)
 
-- S13 hole survey: 149/150 at b=200, 150/150 at b=120/160; px95 proven
-  physically hidden (impostor accept at (154,628) = static scene feature,
-  25 px off-path; lower-b "detects" = h94 bloom fragments). Serpentine gate
-  + hidden-flag carried into S14 decode.
-- S13A page bug fixed (cfg-before-directives, bUsed painted-value capture).
-- Tooling added this session: `delta_sweep.py`, `delta_sweep_reg.py`,
-  `cwc_feas2.py`, `select_codewords.py` (7-of-14, kept as the impossibility
-  record), `codewords_9of18.json`, `detect_holes_fast` (cv2, 16/16-equal).
-- Offline verify fix: dominance d10 hoisted out of the per-blob loop
-  (loop-invariant; 3.5 s → 10 ms/frame on noisy diffs, identical numbers).
+1. **S14P tripod round** (§4): phone page reload → test-mode burst →
+   pull → `--test-led 0` PASS (18/18, residual <1 px, ratio >1.5x),
+   then handheld repeat.
+2. **Bulk decode** of the 150-px string: per-bit error must fall ≪ 3
+   (from ~17% at r6) — primer + master×gain reads + top-9 norm.
+3. **Point cloud export** (§8) + in-page decoder once decode is solid.
+4. Deferred levers (only if evidence demands): Android manual exposure
+   lock (iOS-safe fallback impossible), 12-of-18 higher-duty codewords
+   (re-run feasibility only for a distant large install), sub-pixel
+   registration refinement (parabolic peak) if real residuals near 1 px,
+   blob-landmark registration if correlation conf breaks on real scenes.
+
+## 10. 29 Sep evening — first full position round (S14P-1903, clean master)
+
+One burst (`tools/run_round.py runs/s14p-1903-pos1 --cwc-test-mode 0
+--cwc-n 150 --b 150 --comp 0`): LOGA arm + CFG/BURST + auto-ship pull in
+ONE serial session. 19/19 frames, master dip-test CLEAN (ratio 0.96 =>
+master IS all-on; the 1903 master-grab 500 ms flush did its job),
+registration residual 0.03 px median, conf 0.83–0.89.
+
+Position result: 177 distinct LED sites (union of per-codeword multi-site
+matches, amp ≥ 60/plane, d6 margin ≥ 25) — boxes `runs/s14p-1903-pos1/
+sites_union.png`, `led_1to1.png` (94-site strongest-claim subset). The
+site-per-codeword multiplicity (80 LEDs with exactly 2 sites) is the
+MIRRORED-STRING structure: lane1's paint is mirrored to all 8 lanes, and
+2 physical strings sit in frame — one codeword legitimately has 2-3
+sites. Serpentine path tracing separates strings LATER; identity decode
+must NOT force one-site-per-code (1:1/argmax attempts plateau at
+94–111/150 with mis-assignments — the twin sites ARE the data).
+
+Next steps (in order):
+1. Re-run the single-LED toggle test on the 1903 build (§4): the clean
+   master should finally give the 18/18 tripod gate.
+2. Positions-only point set: take the site union, keep amp/margin gates,
+   output ledcloud/2 with class from the site multiplicity + strength.
+3. Serpentine string tracing over the union (positions only, no ids).
+4. THEN per-LED bit read + identity decode (needs the strings separated).
