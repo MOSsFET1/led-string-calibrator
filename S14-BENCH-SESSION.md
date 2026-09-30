@@ -184,6 +184,26 @@ target: TEST MODE VERDICT PASS — 18/18 + residual < 1 px + ratio > 1.5x.
   authoritative, page mask divergence → cwc_decode_sim gate list;
   other 193 shared IDs median 0.00 px. NEXT: handheld toggle repeat
   (§4), then ledcloud/2 export (§8).
+- **OPERATOR CONFIRMED (30 Sep pm): 46/90/91 HIDDEN** — physically not
+  visible; the margin-0 trio was never a decoder defect and the honest
+  unclaim was CORRECT. The §10c 1:1-assignment queue is DROPPED.
+  Data agreement (the probe DID complete its work before the 429 credit
+  wall; runs/s14p-1906-phone-pos1/assign_probe.json +
+  tools/cwc_assign_probe.py kept): 1:1 assignment is INFEASIBLE for
+  46/90/91 (0 feasible sites each under the standing gates; total 197 —
+  identical vs baseline); relaxed-gates census: 46's only candidate is a
+  DARK pixel (blur 84.6, amp 82.1 at 7.6 px off-mid — a ghost shape),
+  90/91 relax to NEGATIVE margins (−122.3, −142.5 — owners dominate).
+  Calibration lesson: a neighbour-midpoint guard at 1.5× pitch would
+  FALSE-REJECT 4 real claims (29 32 px, 30 70.5 px, 31 35.5 px,
+  181 40.5 px off-midpoint) — the string curves; pitch guards must be
+  section-aware, never flat off-midpoint. Trio ships class I in the §8
+  export. Crop evidence: master around 90's expected site shows the
+  strand passing BEHIND a glass bottle (LEDs 88/89 lit on the flanks,
+  no core at 90) — runs/s14p-1906-phone-pos1/crops/.
+- **1908 (page-only)**: result-view label chips −30% (font 14→10,
+  chip 15→11 h) + site-box stroke alpha 0.55 (see-through); labels
+  validated by cdp_1904_check on 1907. Roadmap: §4 handheld → §8.
 
 ## 29 Sep session (continued): WS-heap + the pull recipe + POWER
 

@@ -360,7 +360,10 @@ strongest-site dedup) re-decodes pos1 at 196/200 and pos3 (dim) at
 197/200, zero dups — the miss list collapses to [16,46,90,91] (pos1) /
 [46,90,91] (pos3): margin-0.0-everywhere cases whose argmax pixels are
 owned by other codewords' cores → per-codebook nearest-site 1:1
-assignment (ALGORITHM-CHANGE QUEUE, not gate tuning). Supersession
+assignment (ALGORITHM-CHANGE QUEUE, not gate tuning) — **QUEUE DROPPED
+30 Sep pm: operator confirmed 46/90/91 are physically HIDDEN**; the
+console's honest unclaim was correct behaviour — ship the trio class I
+per §8, no algorithm work needed. Supersession
 note: the earlier occlusion theory in this section's first version and
 the parallel-session 'string 2 still connected' call are both corrected
 by 10b's ghost anatomy (drawer glints).
