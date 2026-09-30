@@ -365,6 +365,31 @@ note: the earlier occlusion theory in this section's first version and
 the parallel-session 'string 2 still connected' call are both corrected
 by 10b's ghost anatomy (drawer glints).
 
+**PHONE-SIDE VALIDATION (30 Sep 14:58, S14P-1906, runs/
+s14p-1906-phone-pos1)** — first 1906 phone camera round; the
+phone-side evidence §10b awaited. run_round 19/19 frames, labels
+unique; page decode 194 LEDs (gates 60/25, mask 175) → cwc_dec.json;
+console re-decode **197/200**, zero duplicate codeword claims on BOTH
+sides; missing [46,90,91] (margin-0-everywhere, argmax pixels owned by
+neighbours' cores). **LED 16 RECOVERED** phone-side (amp 137.1, margin
+77.2 — the mask fix bought it; it was gone at mask 200 this morning).
+All gate conditions met: 197 ≥ 195; amp max 250.8 / med 173.2 (no 255
+clip — overshoot in the seen skirt); mask candidates 19,865; every of
+20–25 + 150–156 present (amp 117–207, margins 76.7–134.5); lowest
+margin of the round 58.2 vs gate 25. **LED 25 VERIFIED** (167,424),
+amp 136.9, margin 83.9 — its toggle 16/18 honest-fail is bloom
+crosstalk, NOT a real defect. ONE page-vs-console divergence:
+codeword 120's PAGE argmax (253,301) sits 67 px right of the console
+verdict (186,303 — on-pitch between 119 and 121); it is a specular
+REFLECTION of LED 120 (operator saw the misplaced box on the glare):
+a mirror image carries codeword 120's EXACT 9-of-18 pattern, so the
+code scores high at the glint, and this shot the page's blurred-luma
+mask let the glint through while the console mask (rounding at the
+175 boundary) did not. 1 site of 194; the other 193 shared IDs agree
+median 0.00 px, max 10.0. Rule: console verdicts stay authoritative
+for cloud export; the page-side mask divergence joins the
+cwc_decode_sim gate list (§11.5 item 3).
+
 [SUPERSEDED FORENSICS — kept for the record. The occlusion call below was
 WRONG (operator-corrected: 21–25 not occluded); the real root cause is the
 candidate mask, see 10b/10c above. The corridor observation itself was real
