@@ -131,6 +131,44 @@ cd "/home/nellie/projects/led-display/POC LED survey"
 
 target: TEST MODE VERDICT PASS — 18/18 + residual < 1 px + ratio > 1.5x.
 
+## 30 Sep — the toggle gate PASSES, then the 200-LED rounds (S14P-1904/1905)
+
+- **Builds 1904/1905** (details in S14-CWC-PLAN §4/§10b): canvas-ownership
+  fix (benchCapture snapshots procCx; the 1903 test-mode path shipped
+  IDLE-OVERLAY pixels — the display canvas gets redrawn between grabs),
+  `scanning` flag actually live now (idle overlay frozen + manual paint
+  buttons locked mid-burst), backwards registration chain IN-PAGE per the
+  operator spec (P17→master direct; each lower plane pre-shifted by the
+  previous TOTAL), in-page position decode + ON-PHONE result view
+  (static master, green/amber site boxes), drv? retry, non-blocking STAT,
+  default string length 200.
+- **Toggle gate (blocked since 28 Sep) PASSED**: LED 0 18/18 at THREE
+  sites (twin-site note prints — mirrored-string structure is the
+  expected shape), LED 1 18/18. LED 25 honest-FAIL 16/18 at its true
+  pixel, failing EXACTLY the 3 planes where LED 24 (site 3 px away) is
+  ON and LED 25 OFF → bloom crosstalk from the lit neighbour; d_min 6
+  kept it an honest reject (no false claim).
+- **Analyser lessons now encoded**: (1) candidate sites = threshold
+  LADDER on the blurred master (254/250 any-area + 224≤60 + 200≤40 px
+  comps); a single 200 threshold merges SKIRTS into giant blobs and the
+  'best site' lands mid-skirt at master luma 21; a flat 254 misses cores
+  in near-saturated zones (18/18 sites with blurred luma only 231/236).
+  (2) The pile-up normalisation must CLIP, not shift by min(): one
+  negative outlier lifted a whole synthetic background over threshold.
+  (3) run_round.py must WRITE cwc_stats.json + reassemble CWCDEC chunks
+  (the gate analyser keys testMode off that file; only s14_bench used to
+  write it). (4) Mock-box parity: LOGA semantics + the 1905 sites-list
+  ship shape are in cdp_1904_check.py's hard checks.
+- **200-LED rounds** (1905-pos1 etc., nPx/cwcN 200): phone decode 209
+  sites / 170 LEDs (amp 62–226 med 133); console cross-check same-id
+  205/209; console-only 91 (skirt/ball = string 2's jumble; string 2
+  unplugged per operator for focus). Misdetected group = leds ~20–24:
+  physically at the multimeter/PSU occlusion + near-saturation zone of
+  the desk loop (master crop shows the strand clearly but its plane
+  pixels read coin-flips → the segment is OCCLUDED/defocused, not
+  unlit). Handling per §5: honest reject → class I interpolate from
+  serpentine neighbours.
+
 ## 29 Sep session (continued): WS-heap + the pull recipe + POWER
 
 - **WS won't open (S14P-1901 loaded)**: the box's TLS accepts failed with

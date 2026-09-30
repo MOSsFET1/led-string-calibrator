@@ -29,7 +29,7 @@ def main():
     ap.add_argument('run_dir')
     ap.add_argument('--cwc-test-mode', type=int, default=0)
     ap.add_argument('--cwc-test-led', type=int, default=0)
-    ap.add_argument('--cwc-n', type=int, default=150)
+    ap.add_argument('--cwc-n', type=int, default=200)
     ap.add_argument('--b', type=int, default=150)
     ap.add_argument('--comp', type=int, default=0)
     ap.add_argument('--max-capture-s', type=int, default=30)
@@ -63,6 +63,9 @@ def main():
     # 3. patient read: burst runs ~12 s (capture), auto-ship ~20 s (~1.4 MB)
     frames = fends = 0
     meta, b64, labels = None, [], []
+    cwcdec_parts = []      # CWCDEC chunks (in-page decode SITES, S14P-1905)
+    cwcdec_summary = None  # CWCDECS summary (gates + counts + k gains)
+    cwcstats_ln = None     # CWCSTATS line (chain + decode summary)
     t_start = time.time()
     t_arm_for = None   # extend the deadline when a new FRAME arrives
     with fp.open('w') as f:
@@ -85,7 +88,6 @@ def main():
                     meta = {'label': '?'}
                 b64 = []
                 frames += 1
-                fends_x = fends
                 print(f'\rframe {frames} (fends {fends})', end='', flush=True)
                 t_arm_for = time.time() + args.max_capture_s   # inter-frame gap cap
             elif s.startswith('[PHONE] FJPEG ') and meta:
@@ -100,22 +102,57 @@ def main():
                     except Exception as e:
                         print(f'\ndecode fail {meta.get("label")}: {e}', flush=True)
                 meta, b64 = None, []
-            elif '[PHONE] CWCSTATS' in s:
+            elif '[PHONE] CWCSTATS ' in s:
+                cwcstats_ln = s.split('CWCSTATS ', 1)[1].strip()
                 print('\nCWCSTATS seen', flush=True)
+            elif '[PHONE] CWCDEC ' in s:
+                # chunked in-page decode SITES list: reassemble in order
+                cwcdec_parts.append(s.split('CWCDEC ', 1)[1].strip())
+            elif '[PHONE] CWCDECS ' in s:
+                try:
+                    cwcdec_summary = json.loads(s.split('CWCDECS ', 1)[1].strip())
+                except Exception as e:
+                    print(f'WARN: CWCDECS parse failed: {e}')
             elif '[PHONE] BSTATS' in s:
                 print('\nBSTATS seen', flush=True)
             elif '[PHONE-LOG] end' in s and fends >= 5:
                 print('\nship logend — stream done', flush=True)
                 break
     ser.close()
+    # the gate analyser keys its TEST-MODE branch off cwc_stats.json
+    # (testMode/testBits); run_round is the pull for the gate sequence, so
+    # it owns writing this file (S14P-1904 fix: it was printed + discarded).
+    if cwcstats_ln:
+        try:
+            (run_dir / 'cwc_stats.json').write_text(
+                json.dumps(json.loads(cwcstats_ln), indent=1))
+            print('cwc_stats.json written')
+        except Exception as e:
+            print(f'WARN: cwc_stats parse failed: {e}')
+    else:
+        print('WARN: no CWCSTATS in stream (page < 1904?)')
+    if cwcdec_parts or cwcdec_summary:
+        # S14P-1905 shape: CWCDEC chunks = the SITES list; CWCDECS = summary.
+        dec_out = {}
+        if cwcdec_parts:
+            try:
+                dec_out['sites'] = json.loads(''.join(cwcdec_parts))
+            except Exception as e:
+                print(f'WARN: CWCDEC reassembly failed: {e}')
+        if cwcdec_summary:
+            dec_out.update(cwcdec_summary)
+        if dec_out:
+            (run_dir / 'cwc_dec.json').write_text(json.dumps(dec_out, indent=1))
+            sites = dec_out.get('sites', [])
+            print(f'in-page decode: {len(sites)} sites '
+                  f'(amp>={dec_out.get("ampGate")}, margin>={dec_out.get("marginGate")}) '
+                  f'-> cwc_dec.json')
     ok = [l for l, _ in labels]
     print(f'DONE frames={frames} fends={fends} decoded={len(ok)} -> {fp}')
-    want = sorted(range(18)) + [19]
     have = sorted(int(l.split(':p')[1]) for l in ok if ':p' in l)
-    have += [99] * len([l for l in ok if l.endswith('master')])
     missing = [p for p in range(18) if p not in have]
     nmaster = len([l for l in ok if l.endswith('master')])
-    print(f'planes {have.count(0) if False else len([p for p in have if p != 99])}/18, '
+    print(f'planes {len([p for p in have if 0 <= p < 18])}/18, '
           f'master {nmaster}/1'
           + (f'  MISSING: {missing}' if missing or nmaster == 0 else ''))
     if len(ok) < WANT_FENDS:

@@ -92,39 +92,62 @@ brightness-insensitive (S13: 150/150 at b=120/160/200/255).
   per-bit error after top-9 normalisation — bulk decode needs that
   roughly halved (target ≪ d_min−1 = 3).
 
-## 4. Single-LED toggle test (S14O/S14P — CURRENT WORK)
+## 4. Single-LED toggle test (S14O/S14P — GATE PASSED 30 Sep)
 
 **Purpose**: validate the bit-read path end-to-end on one known LED
-(zero errors on tripod) before scaling to full 150-LED decode.
+(zero errors on tripod) before scaling to the full 200-LED decode.
 
-- **Sequence** (CFG `cwcTestMode=1`, `cwcTestLed=0`): P00 (1 s hold) →
-  P01..P17 (70 ms settle clamp) → master all-on grabbed ASAP (<100 ms
-  after P17). Backwards registration console-side: each plane → master
-  (P17 seeded from master, then P16 seeded from P17 …).
-- **Analysis** `tools/cwc_analyse.py --test-led 0`: reads `cwc_stats.json`
-  (testMode/testLed/testBits), finds the LED's hole in the pile-up,
-  reads per-plane luma at the LED (master×gain, r6 recipe, top-9
-  normalised), gates ON/OFF at 0.5, prints per-plane reads + verdict.
-  Validated on synthetic runs (clean = 18/18 PASS; one corrupted bit =
-  FAIL with exactly that plane flagged).
-- **Tripod gate**: 18/18 bits correct, registration residual < 1 px on
-  all planes, bimodal ON/OFF ratio > 1.5×. Handheld: same protocol,
-  residual budget ~5 px, zero decode errors still the target.
-- **Page build**: **S14P-1901**; firmware `PAGE_BUILD`: **S14P-1901**
-  (1900→1901: the test branch no longer calls benchPull itself — the
-  shared S14L auto-ship ships the store exactly once; double-ship found
-  by the mock+CDP harness 29 Sep).
-- **Status (29 Sep)**: S14P-1901 flashed. Test mode captures 18 planes
-  + master; the ship path is HARNESS-PASSED (mock box + headless
-  Chromium: CWCSTATS=1, FRAME=19, FEND=19, labels run-tagged). The 28
-  Sep 'frames don't ship' failure was CONSOLE-side, not the page: the
-  pull reader broke on the FIRST `[PHONE-LOG] end` (the LOGP ring
-  pull's own logend precedes the frame stream) + the directive-slot
-  race; both fixed in `s14_bench.py`. The analyser's label mismatch +
-  stub bit read also fixed (synthetic-validated: clean = 18/18 PASS,
-  one corrupted bit = FAIL on that plane). Phone page down at 29 Sep am
-  (STAT GONE) — reload + run the tripod round (forensics:
-  `S14-BENCH-SESSION.md` §S14O/S14P).
+- **Sequence** (CFG `cwcTestMode=1`, `cwcTestLed=0`): P00 (1 s hold)
+  → P01..P17 (70 ms settle clamp) → master all-on grabbed after a
+  500 ms pipeline flush (the S14P-1902 fix: an immediate master grab
+  delivers the PREVIOUS plane's content).
+- **Backwards registration chain (operator spec, 30 Sep, IN-PAGE now)**:
+  P17 registers direct to master; P16 is pre-shifted by P17's TOTAL
+  then registered against master for its remainder; that accumulated
+  TOTAL seeds P15, ... down to P00. Integer NCC on the 128-wide
+  decimated grid, sample-at convention. The page runs cwcChain for
+  EVERY burst (test + full); totals ship in CWCSTATS `chain`.
+- **In-page position decode (S14P-1904/1905)**: after the master grab
+  the page scores every codeword against every masked site —
+  stacksig = master − k_p·plane (k_p = per-plane median gain),
+  greedy accept best-score-first, amp gate `cwcAmpGate` 60, d6
+  margin gate `cwcMarginGate` 25, ±3 px local-max + suppression,
+  MULTI-SITE per codeword legal (mirrored strings). The result shows
+  ON THE PHONE: a static master image with a box per detected LED
+  (green = single-site claim, amber = multi-site codeword twin) —
+  the operator's view of decode quality. Sites ALSO ship (CWCDEC
+  chunks + CWCDECS summary → `<run>/cwc_dec.json`) for the console
+  cross-check: 205/209 page sites carried the same LED id as the
+  independent console decoder on the 30 Sep full round.
+- **Analysis** `tools/cwc_analyse.py --test-led N`: scores EVERY
+  candidate site against the test LED's codeword and takes the best
+  read (A2 fix: 'deepest pile-up hole' picked an arbitrary LED on a
+  live string where every LED has a hole). Registration = the page's
+  chained totals when shipped, else per-plane direct phase correlate.
+  Site candidates = threshold LADDER on the blurred master (254/250
+  any-area + 224≤60 px + 200≤40 px comps): a single 200 threshold
+  merged bloom SKIRTS into giant components (the 30 Sep gate-run
+  lesson — 'best site' landed mid-skirt at master luma 21 and read a
+  coin-flip codeword), while a flat 254 misses cores that sit in a
+  near-saturated zone (good sites read 18/18 with blurred luma only
+  231/236). Synthetic-validated BOTH ways after the fixes: clean =
+  18/18 PASS naming the right site; one corrupted bit = FAIL with
+  exactly that plane flagged.
+- **Tripod gate**: 18/18 bits, residual < 1 px, ON/OFF ratio > 1.5×.
+- **Page builds**: **S14P-1904** (canvas-ownership fix — captures
+  snapshot procCx, not the display canvas; scanning flag live:
+  idle overlay frozen + manual paint buttons locked + status LED dark
+  during bursts; chain + in-page decode + result view + drv? retry),
+  **S14P-1905** (default nPx/cwcN 200 everywhere; decode ships the
+  full sites list, 1904 shipped a summary only).
+- **Status (30 Sep)**: GATE PASSED on S14P-1904. LED 0: 18/18 PASS at
+  THREE sites (twin-site PASS = mirrored-string expectation, printed
+  automatically); LED 1: 18/18 PASS (different codeword); LED 25:
+  honest FAIL 16/18 at its true pixel, failing EXACTLY the 3 planes
+  where LED 24 (site 3 px away) is ON and LED 25 OFF = bloom crosstalk
+  from the lit neighbour (§5 item 6). No false claims (d_min 6 gate
+  held). Full round on 1905: 209 sites / 170 LEDs of 200 claimed,
+  phone-vs-console same-id 205/209 (§10).
 
 ## 5. Failure handling (per-layer retakes; interpolation is first-class)
 
@@ -143,6 +166,17 @@ brightness-insensitive (S13: 150/150 at b=120/160/200/255).
 - **Dead/hidden/stuck-ON** — weight 0 (or 18) ≠ 9 → flagged, position
   interpolated from serpentine neighbours (S13 px95 path; never a
   threshold change).
+- **Bloom crosstalk between adjacent codeword blocks (measured 30 Sep)**:
+  a neighbouring LED 3 px away that is ON in a plane where the target LED
+  is OFF contaminates the target's core read (LED 25 vs LED 24: fails
+  exactly the 3 planes of their codeword difference; the site reads
+  16/18 and is honestly REJECTED — no false claim, d_min 6 held).
+  Handling: accept the honest reject (weight < 9 → weight-0 class
+  I = interpolated per §8), or increase the margin gate locally; the
+  1904+ decode's ±3 px local-max + suppression already prevents BOTH
+  LEDs claiming one pixel. Physical separations fix the cause: string
+  2 unplugged while debugging (operator, 30 Sep), per-string code
+  blocks + per-lane paint for the multi-string installs (§11.4).
 - **Collocated LEDs** (two LEDs, one point): reads = OR of two codewords
   (weight 11–18) → detected by weight alone, but pair identity is NOT
   recoverable from one burst (brute force: unique in 2/300 random ORs).
@@ -241,13 +275,70 @@ sites. Serpentine path tracing separates strings LATER; identity decode
 must NOT force one-site-per-code (1:1/argmax attempts plateau at
 94–111/150 with mis-assignments — the twin sites ARE the data).
 
+## 10b. 30 Sep — the gate + the 200-LED round (S14P-1904/1905)
+
+Builds (page embedded → one flash each): **1904** carried the session's
+code-review bundle (§4 list) + the operator's backwards registration
+chain + the IN-PAGE position decode + the on-phone boxed-master result
+view + drv? poll retry + non-blocking STAT. **1905** raised the default
+string length to 200 (firmware nPx + page cwcN/npxin + tool defaults)
+and fixed the decode ship (full sites list now reaches
+`<run>/cwc_dec.json`; 1904 shipped a summary only).
+
+- **Toggle-test GATE PASSED (§4)** on 1904: LED 0 18/18 PASS ×3 sites
+  (twin-site note fires — the mirrored-string expectation), LED 1 18/18
+  PASS, LED 25 honest-reject at 16/18 with the exact bloom-crosstalk
+  plane set (§5). Console registration residual 0.04 px median;
+  page chain totals all (0.0, 0.0) conf 0.955–0.967 — tripod, correct.
+- **Console-side validation harness** `tools/cwc_page_decode_sim.py`:
+  the page's chain+decode recipe mirrored in numpy (phaseCorrJS
+  semantics: 128-wide decimation, integer NCC ±12, sample-at). Run on
+  the 29 Sep 1903 capture FIRST: chain (0,0) conf 0.94 (correct on a
+  still rig), 188 sites/115 LEDs, 126 within 2 px of the independent
+  177-site union, multiplicity {1:63, 2:34, 3:16} — the mirrored-string
+  mode, tail trimmed by the ±3 px local-max filter (269 → 188).
+- **Full round on 1905** (`run_round.py runs/s14p-1905-pos1`, defaults
+  now 200/150/comp0): 19/19, chain (0,0) conf 0.955–0.967. In-page
+  decode: 209 sites / 170 distinct LEDs of 200 (multiplicity {1:141,
+  2:22, 3:4, 4:3}; amp 62–226 med 133). Console cross-check
+  (`cwc_pos_decode.py --n 200 --save-json`, same gates): 316 sites,
+  205/209 page sites carrying the SAME LED id, only 2 page-only sites,
+  91 console-only sites (skirt/ball claims the page's local-max +
+  gates reject — the string-2 jumble, matching the operator's screen
+  view). Overlay: claims trace the string route in id order; the jumble
+  cluster sits at string 2's ball. String 2 unplugged for the next
+  rounds (operator decision, crosstalk §5).
+- Harness `tools/cdp_1904_check.py` (mock box + headless Chromium + fake
+  camera) validates the real page pre-flash: stamp ALIVE, CFG+BURST via
+  drv? directives, 19/19 frames, chain + decode logged, result canvas
+  non-blank + saved, CWCDEC sites list + CWCDECS summary + CWCSTATS
+  < 4096 B, zero page errors — both burst modes (test mode: 2nd burst).
+
 Next steps (in order):
-1. Re-run the single-LED toggle test on the 1903 build (§4): the clean
-   master should finally give the 18/18 tripod gate.
-2. Positions-only point set: take the site union, keep amp/margin gates,
-   output ledcloud/2 with class from the site multiplicity + strength.
-3. Serpentine string tracing over the union (positions only, no ids).
-4. THEN per-LED bit read + identity decode (needs the strings separated).
+1. Unplug string 2 → re-shoot the 200-LED round: every codeword should
+   claim exactly ONE site; tune gates from measured amps/margins.
+2. Handheld repeat of the toggle test (§4 budget ~5 px residual).
+3. ledcloud/2 export from the single-string site set (§8 classes).
+4. THEN §11 (S14Q build): WS async-send spike → box-driven capture.
+
+### 10c. 1905-pos1 miss list (operator-screen-confirmed, 30 Sep)
+
+209 sites / 170 LEDs — 30 LEDs unclaimed: [6, 20, 21, 22, 23, 24, 29,
+44, 46, 47, 50, 60, 70, 71, 74, 75, 76, 83, 90, 91, 94, 97, 100, 101,
+109, 110, 111, 122, 150, 156]. Forensics on the 21–24 group (the
+operator's flagged cluster): the route between decoded neighbours
+19 (171,538) and 25 (167,421) passes the multimeter/PSU occlusion +
+the desk-loop near-saturation zone; the corridor masks to only ~12 px
+at 255 and the segment's plane pixels read coin-flips (9–11/18)
+against EVERY candidate — the segment is occluded/defocused there,
+not unlit (the strand IS visible in the master crop). The console
+decoder misses the same LEDs — physical, not a decode-gate bug.
+Handling: honest reject → class I interpolated from serpentine
+neighbours (§5/§8). The amber (multi-site) codewords are the
+mirrored-paint twin claims (29 codes this round, mostly string 2's
+ball + skirt pairs — the suppression keeps them OFF string-1 pixels).
+After the string-2 unplug + re-shoot, re-read this list from the
+fresher run before touching gates.
 
 ## 11. AGREED ARCHITECTURE — box-driven capture (S14Q design, 29 Sep night)
 
