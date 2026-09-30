@@ -36,7 +36,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('run_dir')
     ap.add_argument('--tag', default='cwc')
-    ap.add_argument('--n', type=int, default=150)
+    ap.add_argument('--n', type=int, default=200)
     ap.add_argument('--amp-gate', type=float, default=AMP_GATE)
     ap.add_argument('--margin-gate', type=float, default=MARGIN_GATE)
     ap.add_argument('--save-overlay', action='store_true')

@@ -121,7 +121,10 @@ def main():
     if (worst[1] ** 2 + worst[2] ** 2) ** 0.5 > 8:
         print(f"  <-- JUMP at plane p{worst[0]:02d} ({worst[1]:+.1f},{worst[2]:+.1f}) conf {worst[3]:.2f}")
 
-    pile_norm = pile - pile.min()
+    pile_norm = np.clip(pile, 0, None)   # NOT (pile - pile.min()): one negative
+                                         # outlier lifted the whole background
+                                         # over thr -> full-frame mask -> a
+                                         # giant junk blob (synth-caught 30 Sep)
     np.clip(pile_norm, 0, None, out=pile_norm)
     if args.save_pileup:
         out = (255 * pile_norm / max(pile_norm.max(), 1)).astype(np.uint8)
@@ -190,60 +193,95 @@ def main():
         except TypeError:
             acc2, allblobs2 = acc, allblobs
         if not acc2 and not allblobs2:
-            print('bit read BLOCKED: no pile-up blobs — cannot locate LED')
+            pass  # candidate selection no longer uses pile-up blobs (below)
+        # A2 FIX (30 Sep): the test LED is identified by its READ, not by
+        # blob depth. On a live string EVERY LED makes a pile-up hole (all
+        # LEDs toggle in the plan), so 'deepest hole' picked an arbitrary
+        # LED and read some other codeword. Every candidate site is scored
+        # against the test LED's codeword; the best site's read is the
+        # verdict, and on the mirrored-strings rig BOTH twin sites of the
+        # test LED reading it exactly (18/18) is the expected PASS shape.
+        # Registration per plane: the 1904 page's chained totals when
+        # shipped (backwards seed chain), else the direct per-plane
+        # phase correlate (rows[]) — pre-1904 captures stay analysable.
+        chain = stats.get('chain') or []
+        if len(chain) == 18:
+            print('registration: page chained totals (S14P-1904 backwards chain)')
+            rowmap = {int(s['k']): (s['dx'], s['dy'], s['conf']) for s in chain
+                      if isinstance(s, dict)}
+        else:
+            print('registration: per-plane direct phase correlate (pre-1904 shape)')
+            rowmap = {r[0]: (r[1], r[2], r[3]) for r in rows}
+        # Site candidates: threshold ladder on the blurred master (bloom-
+        # robust): cores at 254/250 + bounded mid-blobs at 224/200. GATE-RUN
+        # LESSON (30 Sep): a single 200 threshold merged SKIRTS into giant
+        # components — "best site" sat mid-skirt at master luma 21 and read
+        # a coin-flip 9/18; but a flat 254 misses LED cores that sit in a
+        # near-saturated zone (good sites read 18/18 with blurred luma only
+        # 231/236). Ladder = both: big comps only from the top thresholds,
+        # small comps (bounded area) also from the low thresholds.
+        mlum_img = luma(mimg).astype(np.float32)
+        mbA = cv2.blur(cv2.blur(mlum_img, (3, 3)), (3, 3))
+        cand = set()
+        for thr, amax in ((254, 10**9), (250, 10**9), (224, 60), (200, 40)):
+            cmask = (mbA >= thr).astype(np.uint8)
+            ncc_, lab_, stats_, cents_ = cv2.connectedComponentsWithStats(
+                cmask, connectivity=4)
+            for i in range(1, ncc_):
+                a = int(stats_[i, cv2.CC_STAT_AREA])
+                if 2 <= a <= amax:
+                    cand.add((int(round(float(cents_[i][0]))),
+                              int(round(float(cents_[i][1])))))
+        cand = sorted(cand)
+        if not cand:
+            print('bit read BLOCKED: no site candidates on the master (paint too dim?)')
             return 1
-        # The test LED's pile-up hole is the blob with the deepest pile-up
-        # deficit (9 dark samples vs impostors' <9); pick the peak hole.
-        cand = acc2 or allblobs2
-        hole = max(cand, key=lambda b: b['peak'])
-        hole_r = max(2.0, (hole['n'] / 3.14159) ** 0.5)
-        led_xy = (hole['cx'], hole['cy'])
-        print(f"LED hole: ({led_xy[0]:.0f},{led_xy[1]:.0f}) peak {hole['peak']:.0f} n={hole['n']}")
-
-        # Backwards registration is ALREADY DONE: rows[] holds per-plane
-        # (dx, dy) plane->master shifts (console-side ground truth). Sample
-        # bit = plane_luma(led + shift) / (master_luma(led) x k_p)
-        mlum_at_led = luma(mimg).astype(np.float32)[int(round(led_xy[1])), int(round(led_xy[0]))]
-        print(f'master luma at LED: {mlum_at_led:.0f}')
-        results = []
-        for p in sorted(planes):
-            dx, dy, conf = next(((r[1], r[2], r[3]) for r in rows if r[0] == p), (0.0, 0.0, 1.0))
-            plum = luma(planes[p]['img']).astype(np.float32)
-            # plane->master: sample the plane at (led + shift). An OFF plane's
-            # hole is the ONLY structure in the frame — phase correlation
-            # finds nothing (conf ~ 0, junk shift) — so read the raw position
-            # when conf is low and say so (the s14n r6 lesson: reads against
-            # junk registrations were the original failure).
-            low_conf = conf < 0.3
-            sx, sy = led_xy if low_conf else (led_xy[0] + dx, led_xy[1] + dy)
-            sx = max(0, min(plum.shape[1]-1, sx)); sy = max(0, min(plum.shape[0]-1, sy))
-            plane_lum_at_led = plum[int(round(sy)), int(round(sx))]
-            # k_p: per-plane gain = median(non-LED pixels in plane / master) —
-            # non-LED = pixels far from every pile-up hole; approximate with
-            # the frame's median luma ratio (test string: one LED hole is
-            # tiny; the median sees ~all non-LED pixels)
-            k_p = float(np.median(plum)) / max(float(np.median(mlum)), 1.0)
-            if k_p <= 0.05 or k_p > 20:
-                print(f'  p{p:02d}: WARNING bogus gain k={k_p:.2f} (flat/black frame?) — clamped to 1.0')
-                k_p = 1.0
-            read = plane_lum_at_led / max(mlum_at_led * k_p, 1.0)
-            exp = 'ON ' if p in expected_on_planes else 'OFF'
-            results.append((p, exp, read, conf))
-            reg = 'raw (conf %.2f)' % conf if low_conf else 'reg (%+.1f,%+.1f conf %.2f)' % (dx, dy, conf)
-            print(f'  p{p:02d}: read={read:.2f} expected={exp} ({reg}, k={k_p:.2f})')
-        # r6 normalisation: divide each read by its own top-9 mean (the 9
-        # highest of the 18) — residual bloom/limb darkening divides out and
-        # ON lands ~1.0, OFF ~0.3-0.5. Then gate ON/OFF at the 0.5 boundary.
-        reads = np.array([r for _, _, r, _ in results])
-        top9 = np.mean(np.sort(reads)[-9:]) if len(reads) >= 9 else max(reads.max(), 1e-6)
-        errs = 0
-        for (p, e, r, c), rnorm in zip(results, reads / max(top9, 1e-6)):
-            got = 'ON ' if rnorm > 0.5 else 'OFF'
-            if got.strip() != e.strip():
-                errs += 1
-                print(f'  BIT ERROR p{p:02d}: norm read {rnorm:.2f} -> {got}, expected {e}')
-        on_n = [rn for rn, (_, e, _, _) in zip(reads / max(top9, 1e-6), results) if e.strip() == 'ON']
-        off_n = [rn for rn, (_, e, _, _) in zip(reads / max(top9, 1e-6), results) if e.strip() == 'OFF']
+        mmed = max(float(np.median(mlum_img)), 1.0)
+        plist = sorted(planes)
+        expv = [p in expected_on_planes for p in plist]
+        scored = []
+        for b in cand:
+            led_xy = b
+            mlum_at = float(mlum_img[int(round(led_xy[1])), int(round(led_xy[0]))])
+            rr = []
+            for p in plist:
+                dx, dy, conf = rowmap.get(p, (0.0, 0.0, 1.0))
+                plum = luma(planes[p]['img']).astype(np.float32)
+                # plane->master: sample the plane at (led + shift). An OFF plane's
+                # hole is the ONLY structure in the frame — phase correlation
+                # finds nothing (conf ~ 0, junk shift) — so read the raw position
+                # when conf is low (the s14n r6 lesson: reads against junk
+                # registrations were the original failure).
+                low_conf = conf < 0.3
+                sx, sy = led_xy if low_conf else (led_xy[0] + dx, led_xy[1] + dy)
+                sx = max(0, min(plum.shape[1] - 1, int(round(sx))))
+                sy = max(0, min(plum.shape[0] - 1, int(round(sy))))
+                k_p = float(np.median(plum)) / mmed     # per-plane median gain
+                if k_p <= 0.05 or k_p > 20:
+                    k_p = 1.0
+                rr.append(float(plum[sy, sx]) / max(mlum_at * k_p, 1.0))
+            rr = np.array(rr)
+            top9 = np.mean(np.sort(rr)[-9:]) if len(rr) >= 9 else max(rr.max(), 1e-6)
+            rn = rr / max(top9, 1e-6)                   # r6 normalisation
+            got = rn > 0.5
+            errs_n = int(sum(1 for g, e in zip(got, expv) if bool(g) != e))
+            scored.append((errs_n, led_xy, rn))
+        scored.sort(key=lambda t: t[0])
+        print(f'sites scored with LED {test_led} codeword: {len(scored)}')
+        for e_n, xy, _ in scored[:4]:
+            print(f'  site ({xy[0]:.0f},{xy[1]:.0f}): {18-e_n}/18')
+        errs, led_xy, rn = scored[0]
+        print(f'best site ({led_xy[0]:.0f},{led_xy[1]:.0f}); '
+              f'master luma there {mlum_img[int(round(led_xy[1])), int(round(led_xy[0]))]:.0f}')
+        for p, e, v in zip(plist, expv, rn):
+            dx, dy, conf = rowmap.get(p, (0.0, 0.0, 1.0))
+            reg = ('raw (conf %.2f)' % conf) if conf < 0.3 else \
+                  ('reg (%+.1f,%+.1f conf %.2f)' % (dx, dy, conf))
+            flag = '' if (v > 0.5) == e else '  <-- MISMATCH'
+            print(f'  p{p:02d}: norm={v:.2f} -> {"ON " if v > 0.5 else "OFF"} '
+                  f'expected={"ON " if e else "OFF"} ({reg}){flag}')
+        on_n = [v for v, e in zip(rn, expv) if e]
+        off_n = [v for v, e in zip(rn, expv) if not e]
         if on_n and off_n:
             print(f'normalised reads: ON {min(on_n):.2f}-{max(on_n):.2f}, '
                   f'OFF {min(off_n):.2f}-{max(off_n):.2f} '
@@ -252,6 +290,10 @@ def main():
             print('WARNING: empty ON or OFF set — bimodal check vacuous')
         verdict = 'PASS' if errs == 0 else f'FAIL ({errs} bit errors)'
         print(f'\nTEST MODE VERDICT: {verdict} — {18-errs}/18 bits correct')
+        twins = [(xy, e_n) for e_n, xy, _ in scored if e_n == 0]
+        if errs == 0 and len(twins) > 1:
+            print(f'  twin-site PASS: {len(twins)} sites read LED {test_led} exactly '
+                  f'(mirrored-string expectation)')
 
     return 0
 

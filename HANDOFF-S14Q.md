@@ -1,9 +1,5 @@
 # Handoff prompt — S14 continuation (30 Sep)
 
-Copy everything below the line into a fresh session with the same agent.
-
----
-
 Get up to speed FIRST by reading, in this order:
 
 1. `/home/nellie/projects/led-display/POC LED survey/S14-CWC-PLAN.md` —
