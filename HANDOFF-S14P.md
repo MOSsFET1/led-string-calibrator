@@ -1,14 +1,15 @@
-# Handover — S14P-1917 (01 Oct)
+# Handover — S14P-1918 (01 Oct)
 
 > Former `HANDOFF-S14Q.md` retired 30 Sep night; old content lives in git
 > (commit `21c5c56`) if needed. This file reflects the 30 Sep → 01 Oct
-> live round sequence ending at **S14P-1917**.
+> live round sequence ending at **S14P-1918**.
 
 ## Current build
 
-- Firmware on box: **S14P-1917**
-- Page BUILD string: **S14P-1917**
-- `tools/cdp_1904_check.py` expects: **S14P-1917**
+- Firmware on box: **S14P-1918**
+- Page BUILD string: **S14P-1918**
+- `tools/cdp_1904_check.py` expects: **S14P-1918**
+- Box is flashed with S14P-1918 and waiting for phone.
 
 Always confirm the page header and a `STAT` log line match before running.
 
@@ -39,27 +40,34 @@ Always confirm the page header and a `STAT` log line match before running.
    at the dark P00 value, collapsing phone confirms from ~190 to ~95. With
    the default off, exposure stays `aem=continuous` and detection returns to
    the pre-lock level.
+7. **S14P-1918** — replaced the page's double box-blur mask with a separable
+   5-tap Gaussian (`sigma ≈ 1.2`) to match console `cv2.GaussianBlur((5,5), 1.2)`.
+   Goal is blur parity between phone and Python decoder. Baseline from the
+   S14P-1917 handheld run: phone confirmed 190 LEDs, console confirmed
+   **195/200**; gaps were phone-only `[16, 27, 91]` with marginal phone margins
+   `(14.6, 15.6, 10.4)`, and console-only `[4, 22, 25, 46, 99, 100, 122, 143]`.
+   `cwcAeLock` remains default-off (`0`). QA passes for 1918 with venv Python.
 
 ## Files of record
 
-- `page/survey.html` — S14P-1917, bilinear stacksig, AE lock default OFF,
-  re-themed guard, build-tied localStorage.
-- `firmware/poc_survey/poc_survey.ino` — S14P-1917 banner + PAGE_BUILD.
+- `page/survey.html` — S14P-1918, separable 5-tap Gaussian mask, AE lock default
+  OFF, bilinear stacksig, build-tied localStorage.
+- `firmware/poc_survey/poc_survey.ino` — S14P-1918 banner + PAGE_BUILD.
 - `tools/cwc_pos_decode.py` — bilinear stacksig, full-res refine.
-- `tools/cdp_1904_check.py` — S14P-1917 pre-flash QA.
+- `tools/cdp_1904_check.py` — S14P-1918 pre-flash QA.
 - `tools/codewords_9of18.json` — source codeword bank, valid for 1600 LEDs.
 - `reports/phone-vs-console-cwc-gap.md` — subagent report on phone-vs-console
   differences (mask-threshold bug, local-max filter, parabolic guard).
-- `runs/s14p-1917-handheld/cwc_frames.txt` — capture reader target for the
-  latest run.
+- `runs/s14p-1918-handheld/cwc_frames.txt` — next capture target for the
+  current run.
 
 ## Known open work (verify before claiming success)
 
-1. **Handheld S14P-1917** is captured at `runs/s14p-1917-handheld/cwc_frames.txt`.
-   Page confirmed 190 LEDs; console `cwc_pos_decode.py` confirmed **195/200**
-   with `aem=continuous` and 44,293 masked sites. Missing: `[5, 16, 27, 90,
-   91]`. If repeatability is needed, run another handheld and compare the
-   missing list.
+1. **Handheld S14P-1918** needs a real run to `runs/s14p-1918-handheld/cwc_frames.txt`.
+   The Gaussian blur parity fix is in place; verify whether it closes the 5-LED
+   gap seen in 1917 (phone 190 vs console 195/200). 1917 baselines: phone-only
+   `[16, 27, 91]` with margins `(14.6, 15.6, 10.4)`; console-only
+   `[4, 22, 25, 46, 99, 100, 122, 143]`.
 2. **Motion robustness target**: the 1916 guard (24 px absolute, 10 px step)
    accepted the 1917 handheld run without a motion flag; it appears good.
 3. **AE lock is now default-OFF**. If you ever want to re-test it, send
@@ -72,15 +80,15 @@ Always confirm the page header and a `STAT` log line match before running.
 
 ## How to continue this session
 
-1. Confirm page shows `S14P-1917` and WS open.
-2. Capture reader should already be running for
-   `runs/s14p-1917-handheld/cwc_frames.txt`. If not, restart it with `LOGA`.
+1. Confirm page shows `S14P-1918` and WS open.
+2. Capture reader should already be armed for
+   `runs/s14p-1918-handheld/cwc_frames.txt`. If not, restart it with `LOGA`.
 3. After Oliver runs handheld, retrieve the phone log and decode both page
-   output and console frames. Compare missing lists, duplicates, and max shift.
-4. If 1917 handheld is good, push to GitHub: the last push was `00c929c`;
+   output and console frames. Compare missing lists against the 1917 baselines.
+4. If 1918 handheld is good, push to GitHub: the last push was `00c929c`;
    there are now local commits that need committing/merging first. Use the
    PAT at `~/LED_PAT.txt`.
-5. If 1917 is bad, inspect the log: dark image → check whether AE lock was
+5. If 1918 is bad, inspect the log: dark image → check whether AE lock was
    accidentally enabled (`AE locked to manual`); motion flagged → note which
    guard tripped (conf/rem/step) and adjust `cwcGuardConf`, `cwcGuardRem`,
    `cwcGuardStep` over serial.
