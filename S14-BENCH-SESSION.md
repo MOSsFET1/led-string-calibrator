@@ -383,3 +383,43 @@ target: TEST MODE VERDICT PASS — 18/18 + residual < 1 px + ratio > 1.5x.
   from pseudo-master bright blobs + blink classification — its output
   predates the clean-master fix; its r4/r5 lessons land in the skill +
   this doc), patched 1903, and was interrupted mid-skill-update.
+
+## 30 Sep evening: 1911 flash + bench, out-of-hours box reboot + TLS wedge
+
+- **S14P-1911 flashed and bench-verified** (HEAD cfbe445, unpushed).
+  Pre-flash QA harness PASS at 18:33 on the mock (that session's
+  uncommitted artifacts: runs/qa-1904/result.png +
+  tools/mock_directives.txt + tools/mock_log_pull.txt). The evening
+  handheld burst then ran and AUTO-SHIPPED 19 frames by 18:51 with
+  CWCSTATS conf 0.74–0.87 → the page's in-page MOTION FLAGGED caption
+  fired; the ship completed cleanly.
+- **~19:01 the box rebooted UNATTENDED** and every TLS accept after it
+  failed `mbedtls_ssl_setup returned -0x7F00`
+  (MBEDTLS_ERR_SSL_ALLOC_FAILED): post-reboot the heap cannot fund a
+  second TLS session alongside the page (pageGz is malloc'd in RAM per
+  poc_survey.ino L910-914, plus the second TLS session reserve). The
+  phone could not reconnect — zero phone traffic for ~150 s, Burst
+  greyed with 'WS: closed'. **Correct phone-side read: the greyed
+  button = wsOpen false (no connection), NOT an upload in progress.**
+- **CORRECTION (the 30 Sep OPERATOR PIPELINE FACT above)**: 'greyed a
+  few minutes — that is the upload' is WRONG. The auto-ship takes
+  ~40–60 s and cannot hang; a multi-minute grey is the WS being down
+  (this incident's exact shape). The auto-ship itself was fine tonight.
+- **Recovered ~19:4×**: operator power-cycled the box, reloaded the
+  phone page — WS healthy again.
+- **Handheld r4 DECODED (20:14–20:17, console cross-check)**: recovered
+  from the bench ring by a LOGA→BRAMP replay into
+  runs/s14p-1911-handheld-r4/ (19/19 frames, labels cwc:r1:p00..p17 +
+  master). LESSON: the LOGA persistent arm does NOT survive a box
+  power-cycle (RAM state) — the first two pulls read 0 bytes /
+  empty-ring until a fresh LOGA acked. Phone claimed 187 @ gates 60/**25**
+  — the phone's localStorage CFG kept marginGate 25; build 1911 ships 10.
+  Console: **191/200 @ 60/10**, 188/200 @ 60/25, zero duplicate claims
+  after strongest-site dedup (669 pre-dedup sites @10, max 14 for one
+  codeword). Missing @10: [5,16,22,46,67,90,91,109,114] — 46/90/91 = the
+  standing hidden trio; 5/16/22/67/109/114 unknown-class pending the
+  full-res-NCC re-score (r3 precedent: that class is dec-NCC
+  quantisation, not gate losses). Motion honest: median plane offset
+  (−8.4,−1.9), net vs median ≈ 6.1 px — inside budget. The 1909 guard
+  DID flag this run (every plane's direct-conf 0.767–0.885 < 0.90);
+  guard re-theme pending (CFG-only, skill v1.73/v1.75).
