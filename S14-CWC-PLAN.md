@@ -273,6 +273,11 @@ Self-contained JSON; array order IS the LED id. Consumers are trivial
    (re-run feasibility only for a distant large install), sub-pixel
    registration refinement (parabolic peak) if real residuals near 1 px,
    blob-landmark registration if correlation conf breaks on real scenes.
+   — 30 Sep update, PROMOTED: parabolic sub-peak (→1910, see §10d);
+     REJECTED: drift-velocity prediction (operator, 30 Sep: predicts an
+     oscillatory ~8-12 Hz tremor signal that reverses inside its own
+     estimate window, and a wrong predicted offset is fed into the warp
+     unobserved — worse-then-silent; never implement).
 
 ## 10. 29 Sep evening — first full position round (S14P-1903, clean master)
 
@@ -392,6 +397,28 @@ mask let the glint through while the console mask (rounding at the
 median 0.00 px, max 10.0. Rule: console verdicts stay authoritative
 for cloud export; the page-side mask divergence joins the
 cwc_decode_sim gate list (§11.5 item 3).
+
+### 10d. 1910 SPEC — parabolic sub-peak registration (SPECIFIED, not built)
+
+Forensics (30 Sep) showed the chain's K/2 = ±2.8 px quantisation is the
+dominant warp-residual term under motion: ncc() picks an INTEGER
+decimated step and scales by K = W/128 = 5.625, so a real 4 px
+remainder snaps to 0 or 5.625. 1910: capture the 25×25 NCC score
+surface (already computed at every step), then fit a 3-point parabola
+through the peak along each axis: Δ = (y₋−y₊)/(2(y₊+y₋−2y₀)) ∈
+(−0.5,+0.5); final shift = (dx*+Δ)·K, float totals, integer pre-shift
+unchanged for the next plane's seed. Guards: apply ONLY when the peak
+stands over its shoulders (margin ≥ ~0.05 conf units; else keep the
+integer pick — flat shoulders give garbage fits), clamp |Δ| ≤ 0.5,
+and keep the integer pick at ±12 boundary peaks. Limits: sharpens the
+CHOSEN peak only — a lattice side-lobe lock (~20 px) is not fixed by
+interpolation; that class belongs to blob-landmark registration (§9
+lever). Parity rule: the identical refinement lands in
+tools/cwc_pos_decode.py in the same build, so console/page agree
+line-for-line (cwc_decode_sim gate, §11.5). Then re-attempt the §4
+handheld gate with the discipline recipe (slow small pans, total
+drift ≤ ~15 px); drift-velocity prediction is REJECTED (see §9/§10
+deferred levers, 30 Sep).
 
 [SUPERSEDED FORENSICS — kept for the record. The occlusion call below was
 WRONG (operator-corrected: 21–25 not occluded); the real root cause is the
