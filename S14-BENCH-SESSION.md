@@ -238,6 +238,36 @@ target: TEST MODE VERDICT PASS — 18/18 + residual < 1 px + ratio > 1.5x.
   painting. If disciplined handheld still fails the 197/200 + zero-dup
   gate: escalate to plan §5 mid-burst re-anchor / §9 blob-landmark
   lever; the §11 ack-driven capture remains the structural fix.
+- **1911 (direct per-plane registration, both decoders)**: page
+  cwcChain → `pD.map(pd => ncc(mD, pd))` (accumulator + shiftAt
+  deleted); guard rem = per-plane own-shift magnitude; drift trail vs
+  median plane shift; CFG cwcMaskThr 150 / cwcMarginGate 10 / amp 60 /
+  cwcNccPeakMargin 0.05. Console mirrored (register_direct) +
+  revalidated offline (runs/s14p-1910-direct-parity.json): tripod
+  197/200 zero-dup [46,90,91] LED16/25 exact-preserved (pos deltas
+  med 0.0, max 10.2 = LED144-class sub-px argmax flips + LED120 flip
+  to the pitch-geometric site); r3 at final settings **194/200 zero
+  dups pitch 19.2** missing [43,46,68,69,90,91] — 3 short of parity
+  target, honest residual of the 128-wide dec-NCC K=5.625 quantisation
+  (full-res-raw-luma scoring of the SAME frames reaches exactly 197,
+  missing [46,90,91]); direct-vs-GT per-plane error r3 med 0.69/max
+  2.19 (was chained med 1.25/max 2.28 — bias collapsed as predicted);
+  degraded 1908 → 168 ≥ 122 ✓ (interpretability still poor on that
+  burst — over budget, as before). **PHANTOM VERDICT REVERSED**: the
+  old "(89,631) ghost" (codeword-103 pattern, 280 px from site) reads
+  REAL at mask 150 — raw per-plane samples 238–255 in exactly 103's ON
+  planes, 18–71 in OFF = a genuine pattern read, the LED-120 anatomy
+  (specular/secondary reflection faithfully reproducing the pattern),
+  NOT a decoder artifact; mask ladder 60/10: 150/155 admit it, 160+ do
+  not, all hold 197 — recommended default REMAINS mask 150 (r3 max),
+  the bottom-fold second claim joins the §8 fold-zone/label-authority
+  exclusion class. NOTE: the pre-1910 mask-175 lore ("never ≤160,
+  phantom survives even after dedup") is a description of PATTERN-
+  FAITHFUL reflections, not single-pixel glints — dedup cannot remove
+  a different SITE reading the same codeword; keep the claim, treat
+  as class-X collocated-or-reflection in the export. Phone-vs-console
+  count gap (177 vs 168 on r3 at 60/25) superseded by final-settings
+  agreement (194/194 same-id, r3).
 - **1910 (parabolic sub-peak, both decoders)**: page cwcChain ncc()
   stores its 25×25 NCC surface and fits the 3-point parabola per axis
   (Δ=(y₋−y₊)/2(y₊+y₋−2y₀), clamp ±0.5, interior + conditioning guard
@@ -264,6 +294,45 @@ target: TEST MODE VERDICT PASS — 18/18 + residual < 1 px + ratio > 1.5x.
   console authority for export now rests on the PITCH convention, not
   decoder identity; exclusion list for §8 export: [46,90,91 hidden,
   120 pitch-resolved].
+- **OPERATOR PIPELINE FACT (30 Sep)**: after each burst the phone
+  AUTO-SHIPS the 19 JPEGs to the box (~4 KB WS chunks; `benchUploading`
+  holds the Burst button greyed a few minutes — that is the upload).
+  Nothing is stranded on the phone; console LOGA/BRAMP replays the box
+  ring. Ship-once clear at each burst start = only the LAST run stays
+  in the ring (runs 1–2 overwritten by r3 — fine, r3 studied).
+- **1910 HANDHELD-3 FORENSICS (17:41–18:05, runs/s14p-1910-handheld-3/,
+  REVIEW.md/review.json/gt_shifts.json + lever probes)**: operator r3,
+  phone said 177 + MOTION FLAGGED; console parity decode (60/25) gave
+  168/200, zero dups, amp med 134.7, pitch med 21.1 — 29 true misses
+  beyond the hidden trio (phone 177 vs console 168 discrepancy noted,
+  unexplained). MOTION WAS NOT THE BINDER this run: net drift ~5.7 px,
+  per-plane GT steps med 1.22/max 2.19 px SMOOTH (no jerk — operator
+  discipline worked, ~5× tighter than 1908's 30 px pan); the ~5 px
+  budget was NEVER breached; the flag is over-conservative (shipped
+  thresholds flagged ZERO planes; tightened rem>3/conf<0.75 would flag
+  only p09/p14). The binder: chained totals carried a 1.25 med / 2.28
+  max px BIAS vs GT which corrupts stacked bit profiles at 20 px pitch
+  (systemic, not plane-visual — retakes would NOT have saved planes).
+  Miss census: LED27 genuine fold-crowding (d6 pair with 116, 6 px
+  apart, amp 99.2 vs 87.4); 50/155/179/47 mask-kills (edge-on tiny
+  cores blur 143–172 under 175); 46/90/91 hidden in this pose too;
+  the rest = chain-bias stack corruption + steal-suppress (magnets
+  82/197/164/145 with 48/17/16/13 pre-dedup sites at 40/10).
+  LEVERS RANKED (validated on this run's frames): (1) DIRECT per-plane
+  registration vs master (no chain accumulation) +26 LEDs, zero ghost
+  cost — GT tots 194 → mask 150 → 195 → margin 10 → 197 missing exactly
+  [46,90,91], ZERO dups, amp med 160.4/marg med 89.5 = the tripod gate
+  reproduced on the flagged run; plan §3 already proved plane-vs-master
+  never degrades with raw shift. (2) mask 150 +1 (LED50; codeword-103
+  phantom measured amp ~40 here — not a threat at these margins).
+  (3) margin 25→10 +1 (LED27 at 11.8). (4) mask 140 +1 (LED47) only if
+  the ≤160 phantom floor is re-tested. (5) gate sweeps on the shipped
+  chain: 153–177 across the whole 45–90×10–40 grid — noise-floor
+  insensitive, never the fix. (6) retake-guard: saves nothing (loss
+  systemic). (7) 2-segment mid-burst re-anchor REJECTED on data (only
+  55/170 cross-segment agreement; per-segment stacks halve codeword
+  dimension). VERDICT: §4 handheld gate CAN pass at this motion level;
+  expected robustness ~6–10 px net drift at 2× budget headroom.
 
 ## 29 Sep session (continued): WS-heap + the pull recipe + POWER
 
