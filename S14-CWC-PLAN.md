@@ -420,6 +420,31 @@ handheld gate with the discipline recipe (slow small pans, total
 drift ≤ ~15 px); drift-velocity prediction is REJECTED (see §9/§10
 deferred levers, 30 Sep).
 
+### 10e. 30 Sep evening — out-of-hours box reboot + pending handheld r4
+
+- **~19:01 box reboot (unattended) + TLS wedge**: after the reboot every
+  TLS accept failed `mbedtls_ssl_setup -0x7F00` (ALLOC_FAILED — the
+  rebooted box's heap cannot fund a second TLS session alongside the
+  RAM-malloc'd pageGz, poc_survey.ino L910-914). The phone page could
+  not reconnect; its Burst button stayed correctly greyed ('WS:
+  closed') for minutes with zero phone traffic. Operator power-cycled
+  ~19:4× and reloaded the phone: WS healthy. Operational read: a
+  multi-minute greyed Burst = WS down, not the auto-upload (ship is
+  ~40–60 s; the bench doc's 'greyed a few minutes = upload' note is
+  corrected in S14-BENCH-SESSION.md).
+- **New handheld r4 DECODED (console, 20:14–20:17)**: recovered from the
+  bench ring after the r4 ship (replay into runs/s14p-1911-handheld-r4/).
+  Phone claimed 187 @ gates 60/25 (page localStorage sticky; 1911 ships
+  marginGate 10). Console: **191/200 @ 60/10**, 188/200 @ 60/25, zero
+  duplicate claims. Missing @10: [5,16,22,46,67,90,91,109,114] —
+  46/90/91 = the standing hidden trio, the rest pending the full-res-NCC
+  re-score (r3 precedent: dec-NCC quantisation class). Motion was honest
+  (net vs median ≈ 6.1 px) but the 1909 guard still captioned it
+  'MOTION FLAGGED, unreliable' (every plane's direct-conf 0.767–0.885
+  < the 0.90 default themed on legacy chain conf) — so 187/191-class
+  passing handheld rounds are NOT no-data; the guard re-theme (CFG-only)
+  is now the standing blocker for §4 acceptance.
+
 [SUPERSEDED FORENSICS — kept for the record. The occlusion call below was
 WRONG (operator-corrected: 21–25 not occluded); the real root cause is the
 candidate mask, see 10b/10c above. The corridor observation itself was real
