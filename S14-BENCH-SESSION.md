@@ -204,6 +204,40 @@ target: TEST MODE VERDICT PASS — 18/18 + residual < 1 px + ratio > 1.5x.
 - **1908 (page-only)**: result-view label chips −30% (font 14→10,
   chip 15→11 h) + site-box stroke alpha 0.55 (see-through); labels
   validated by cdp_1904_check on 1907. Roadmap: §4 handheld → §8.
+- **HANDHELD 1908 FORENSICS (30 Sep, console-side)** — operator's first
+  §4 handheld attempt failed ('lots of missing LEDs'); late LOGA replay
+  recovered 19/19 frames → runs/s14p-1908-handheld/ (+FORENSICS.md,
+  led_overlay.png, page_decode_sim.json, review brief). Verdict:
+  **MOTION-DEGRADED burst, not a recipe/protocol/firmware defect.**
+  Burst mechanics healthy (exposure pinned exp=200.02 every frame, k
+  1.02–1.06, master clean post-500 ms flush). The phone panned ~30 px
+  across the 18 planes (dx 28.5 / dy 25.4; page chain + phaseCorrelate
+  agree within 1–3 px): per-plane remainders 3–9.5 px (med 4.5) = 3–5×
+  the 1–2 px/frame plan, at/over the ~5 px §4 budget. Registration
+  tracked coarsely (chain conf 0.57–0.81 vs 0.948–0.955 tripod) but
+  ±3–8 px slips at ~20 px pitch mix LED cores with neighbour blooms →
+  stacksig profiles lose bimodality (15/27 clean; some ON/OFF same
+  sign) → score field fills with common-mode energy, every codeword
+  finds amp 140–230 somewhere (argmax blur-luma can be 43!), gates
+  pass ghosts, and the count runs at NOISE-FLOOR sensitivity:
+  identical-recipe replicas give 22/100/142 LEDs on ±1–2 px rounding
+  alone. Console honest floor 39/200 (zero dups, pitch med 167.7 px =
+  NOT serpentine); phone claimed 118 — BOTH unreliable. Lessons:
+  (1) no gate/mask change can fix a motion-exceeded budget (same
+  shape as the mask-sweep law); (2) a flat neighbour-midpoint guard
+  false-rejects curved sections (29/30/31/181 up to 70.5 px off-mid);
+  (3) HEALTH GUARD is the missing visible signal.
+- **1909**: in-page handheld motion guard (page-only edit + banner):
+  CFG `cwcGuardConf` 0.90 / `cwcGuardRem` 5 (themed on tripod 0.95±0.00
+  vs degraded 0.57–0.81, and the 5 px §4 budget); any plane outside →
+  `E MOTION WARNING` log line (plane list) + result-view caption
+  '— MOTION FLAGGED, unreliable'. Mock-box QA PASS with NO false trip
+  on the static scene. Technique for the next handheld attempt: SLOW
+  small pans with brief pauses, keep total drift <~15 px and
+  per-plane remainder ≤5 px — cadence 0.24–0.32 s/plane ⇒ ~5 s of
+  painting. If disciplined handheld still fails the 197/200 + zero-dup
+  gate: escalate to plan §5 mid-burst re-anchor / §9 blob-landmark
+  lever; the §11 ack-driven capture remains the structural fix.
 
 ## 29 Sep session (continued): WS-heap + the pull recipe + POWER
 

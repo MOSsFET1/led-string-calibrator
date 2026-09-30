@@ -62,7 +62,7 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14P-1908";
+const BUILD = "S14P-1909";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -103,6 +103,14 @@ const CFG = {
   // --- Single-LED toggle test (cwcTestMode=1) ---
   cwcTestMode: 0,     // 0 = normal CWC; 1 = P00 1s -> P01..P17 -> fast master
   cwcTestLed: 0,      // LED index to track (0..cwcN-1)
+  // --- Handheld health guard (1909; forensics 30 Sep on s14p-1908):
+  //     motion-degraded bursts lose bimodality and gate-pass ghosts at the
+  //     noise floor (39 vs page 118 on one burst). Flag per plane:
+  //     chain conf (tripod 0.95 vs handheld-degraded 0.57-0.81) and chain
+  //     remainder px (budget 5; that burst ran 3-9.5 med 4.5). Any flagged
+  //     plane => amber warning line + box count shown amber in the title.
+  cwcGuardConf: 0.90,
+  cwcGuardRem: 5,
 };
 // sticky bench settings across reloads (localStorage)
 try { const saved = JSON.parse(localStorage.getItem('s14cfg') || '{}'); for (const key of Object.keys(saved)) if (key in CFG) CFG[key] = saved[key]; } catch (e) {}
@@ -752,10 +760,27 @@ async function benchRun() {
       const chain = cwcChain(cwcMst, planes);
       log('chain totals (source px): ' + chain.map((s, p) =>
         'p' + p + '(' + s.dx.toFixed(1) + ',' + s.dy.toFixed(1) + '@' + s.conf.toFixed(2) + ')').join(' '));
+      // health guard (1909): any plane outside the residual budget warps the
+      // registration and the decode degrades to noise-floor sensitivity —
+      // say SO on the phone instead of showing a trustworthy-looking view.
+      let badConf = 0, badRem = 0;
+      let prevT = { dx: 0, dy: 0 };
+      const flagged = [];
+      chain.forEach((s, p) => {
+        const rem = Math.hypot(s.dx - prevT.dx, s.dy - prevT.dy);
+        prevT = s;
+        if (s.conf < CFG.cwcGuardConf) { badConf++; flagged.push('p' + p + ' conf ' + s.conf.toFixed(2)); }
+        else if (p > 0 && rem > CFG.cwcGuardRem) { badRem++; flagged.push('p' + p + ' rem ' + rem.toFixed(1)); }
+      });
+      if (badConf || badRem)
+        log('E MOTION WARNING: chain degraded outside budget — conf<'
+            + CFG.cwcGuardConf + ' on ' + badConf + ' plane(s), remainder>'
+            + CFG.cwcGuardRem + 'px on ' + badRem + ' plane(s): ' + flagged.join(' '));
       const dec = cwcDecode(cwcMst, planes, chain, nL);
       log('decode: ' + dec.nSites + ' px masked, ' + dec.sites.length + ' sites confirmed' +
           ' (amp>=' + CFG.cwcAmpGate + ', margin>=' + CFG.cwcMarginGate + ')');
-      cwcShowResults(cwcMst, dec, testMode ? 'test led ' + testLed : 'cwc burst');
+      cwcShowResults(cwcMst, dec, testMode ? 'test led ' + testLed : 'cwc burst'
+          + ((badConf || badRem) ? ' — MOTION FLAGGED, unreliable' : ''));
       if (testMode) log('test LED ' + testLed + ' codeword bits: ' + cwcBits(testLed, nL).join(','));
       cwcStats = { build: BUILD, n: planes.length, comp: 0,
                    testMode: testMode ? 1 : 0, testLed,
