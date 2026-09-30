@@ -62,7 +62,7 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14P-1917";
+const BUILD = "S14P-1918";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -1265,20 +1265,32 @@ function cwcDecode(masterL, planes, chain, nL) {
   const MASK_THR = (CFG.cwcMaskThr | 0) || 150; // must default to console default (150), not 175
   const mMed = Math.max(histMedian(masterL), 1);
   const kk = planes.map((pl) => histMedian(pl) / mMed);
-  const blur3 = (f) => {
+  // 1918: mask blur = separable 5-tap Gaussian matching console cv2.GaussianBlur((5,5), 1.2)
+  // 1D kernel = [0.085629, 0.242668, 0.343406, 0.242668, 0.085629] (sum=1)
+  const GAUSS5 = [0.08562916, 0.24266760, 0.34340648, 0.24266760, 0.08562916];
+  const gauss5 = (f) => {
     const t = new Float32Array(f.length), o = new Float32Array(f.length);
-    for (let y = 0; y < H; y++) for (let x = 1; x < W - 1; x++) {
-      const r = y * W;
-      t[r + x] = (f[r + x - 1] + f[r + x] + f[r + x + 1]) / 3;
+    for (let y = 0; y < H; y++) {
+      for (let x = 2; x < W - 2; x++) {
+        const r = y * W;
+        t[r + x] = GAUSS5[0] * f[r + x - 2] + GAUSS5[1] * f[r + x - 1] +
+                   GAUSS5[2] * f[r + x]     + GAUSS5[3] * f[r + x + 1] +
+                   GAUSS5[4] * f[r + x + 2];
+      }
     }
-    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
-      o[y * W + x] = (t[(y - 1) * W + x] + t[y * W + x] + t[(y + 1) * W + x]) / 3;
+    for (let y = 2; y < H - 2; y++) {
+      for (let x = 2; x < W - 2; x++) {
+        const r = y * W;
+        o[r + x] = GAUSS5[0] * t[(y - 2) * W + x] + GAUSS5[1] * t[(y - 1) * W + x] +
+                   GAUSS5[2] * t[y * W + x]     + GAUSS5[3] * t[(y + 1) * W + x] +
+                   GAUSS5[4] * t[(y + 2) * W + x];
+      }
     }
     return o;
   };
-  const mb = blur3(blur3(masterL));
+  const mb = gauss5(masterL);
   const pts = [];
-  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
+  for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++)
     if (mb[y * W + x] >= MASK_THR) pts.push(y * W + x);
   const nS = pts.length;
   if (!nS) return { sites: [], nSites: 0, k: kk, chain };
