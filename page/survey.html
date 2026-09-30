@@ -62,7 +62,7 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14P-1911";
+const BUILD = "S14P-1916";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -86,9 +86,7 @@ const CFG = {
                       // estimate vs the burst master, warp the stored frame
                       // back (bilinear), ship measured shifts in BSTATS
   // --- S14J CWC-form burst (master + 18 planes, NO off frame) ---
-  cwc: 0,             // 1 = CWC-form burst: master grab, then 18 plane
-                      // paints (codewords below), each grabbed + seed-
-                      // registered to the master.
+  cwc: 1,             // 1 = CWC-form burst (the survey). 0 = all-on movement burst.
   cwcN: 200,          // LEDs mapped to codewords 0..cwcN-1 (10-1600)
   cwcSettle: 100,     // ms paint-ack -> grab (holeGap floor lesson: <70 flaky)
   // --- in-page position decode gates (console cwc_pos_decode recipe;
@@ -99,6 +97,8 @@ const CFG = {
                       // handheld run; strongest-site dedup bounds stolen-site
                       // ghosts
   cwcMaskThr: 150,    // candidate sites: blurred-master luma >= this.
+                      // DO NOT raise to 175: edge/shallow-angle LEDs
+                      // (documented 20-25 and 150-156 class) sit at 184-191.
                       // 30 Sep: 150 validated offline on tripod + flagged
                       // handheld run at amp 60/marg 10; codeword-103 phantom
                       // re-measured amp ~40 at current margins — revisit if
@@ -115,18 +115,36 @@ const CFG = {
   //     chain conf (tripod 0.95 vs handheld-degraded 0.57-0.81) and chain
   //     remainder px (budget 5; that burst ran 3-9.5 med 4.5). Any flagged
   //     plane => amber warning line + box count shown amber in the title.
-  cwcGuardConf: 0.90, // DEFAULT PENDING re-theme from direct-registration conf
-                      // distributions (tripod vs handheld) measured
-                      // console-side
-  cwcGuardRem: 5,
+  cwcGuardConf: 0.65,   // direct-registration conf floor. Passing handheld
+                        // measured 0.728–0.898 (r3/r4); 1908 degraded went to
+                        // 0.57. The old 0.90 theme was the chain-era tripod
+                        // number and flagged every decent handheld round.
+  cwcGuardRem: 24,     // absolute offset vs master, px. Small handheld
+                        // drift can reach ~20 px and still decode; flag only
+                        // when well outside the recoverable budget.
+  cwcGuardStep: 10,    // max successive plane-to-plane step, px. Catches
+                        // sudden jerks without flagging slow drift.
+                        // (1911 changed the quantity from chain remainder.)
   cwcNccPeakMargin: 0.05, // peak-vs-shoulder conditioning floor for the
                           // parabolic sub-peak; below -> keep integer pick
                           // (measured: tripod margins med 0.176/min ~0.17,
                           // degraded handheld med 0.045 -> refused there)
+  cwcAeLock: 1,        // best-effort: lock AE after master+p00 (manual exposure)
+                       // Android may support it; iOS Safari has no manual AE.
 };
-// sticky bench settings across reloads (localStorage)
-try { const saved = JSON.parse(localStorage.getItem('s14cfg') || '{}'); for (const key of Object.keys(saved)) if (key in CFG) CFG[key] = saved[key]; } catch (e) {}
-window._saveCfg = () => { try { localStorage.setItem('s14cfg', JSON.stringify(CFG)); } catch (e) {} };
+// sticky bench settings across reloads of the SAME build. A new BUILD
+// starts at the shipped defaults — r4's phone kept margin 25 after 1911
+// shipped 10, and the count gap was that, not the decoder.
+try {
+  if (localStorage.getItem('s14cfgBuild') === BUILD) {
+    const saved = JSON.parse(localStorage.getItem('s14cfg') || '{}');
+    for (const key of Object.keys(saved)) if (key in CFG) CFG[key] = saved[key];
+  } else {
+    localStorage.setItem('s14cfgBuild', BUILD);
+    localStorage.removeItem('s14cfg');
+  }
+} catch (e) {}
+window._saveCfg = () => { try { localStorage.setItem('s14cfgBuild', BUILD); localStorage.setItem('s14cfg', JSON.stringify(CFG)); } catch (e) {} };
 // S13 defaults REMOVED with the S1-S13 survey (27 Sep): the CWC burst needs
 // only the keys above + mergeR (detectDiffBlobs, the pile-up reader).
 CFG.mergeR = 6;                 // used by detectDiffBlobs (the CWC pile-up reader)
@@ -304,6 +322,22 @@ function applyEvBias() {
         .then(() => log('ev bias ' + target)).catch((e) => log('ev bias failed'));
     } else log('ev: not exposed (iOS expected)');
   } catch (e) { log('ev probe failed'); }
+}
+async function lockAeAfterP00() {
+  // Best-effort AE lock after the all-on primer (p00). Only freeze the
+  // exposure mode to manual; do NOT touch exposureCompensation, because the
+  // camera has already been running with the desired EV bias. Android Chrome
+  // may honour this; iOS Safari exposes neither, so this returns gracefully.
+  if (!videoTrack || !CFG.cwcAeLock) return;
+  try {
+    const caps = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+    if (caps.exposureMode && caps.exposureMode.includes('manual')) {
+      await videoTrack.applyConstraints({ advanced: [{ exposureMode: 'manual' }] });
+      log('AE locked to manual after p00');
+    } else {
+      log('AE lock not supported on this device');
+    }
+  } catch (e) { log('AE lock failed: ' + (e && e.message || e)); }
 }
 function expLine() {           // compact exposure readback (platform-dependent)
   try {
@@ -728,17 +762,15 @@ async function benchRun() {
     let masterLuma = null;
     const bShifts = [];
     let lastLuma = null;               // comp=0 path: previous frame luma
-    // ---- S14 CWC-form burst (master + 18 planes, NO off frame) -----------
-    // BOTH cwc modes use this burst shape: planes grab p00..p17 (p00 also the
-    // 1 s AE primer), then master all-on with the 500 ms pipeline flush
-    // (S14P-1902 lesson: an immediate master grab delivers p17's content).
+    // ---- S14P-1916 CWC-form burst (primer P00..P17 + fast master) ---------
+    // P00 is painted for 1 s so AE settles, then P00..P17 are grabbed, then a
+    // fast all-on master grab before the meter can re-adjust (the 1915 lesson:
+    // locking AE to manual with a frozen exposureCompensation is safe; the 1914
+    // bug froze it to the half-on P00 plane, which was dark). If AE lock is
+    // supported it is applied after P00 is grabbed and before P01..P17.
     // S14P-1911: REGISTRATION IS DIRECT PER-PLANE (cwcChain: each plane NCCs
     // vs the master independently — the 1904 backwards-accumulation chain is
-    // retired; its accumulated totals carried a 1-2.3 px bias that corrupted
-    // stacked bit profiles at 20 px pitch, and the direct shifts reproduced
-    // the tripod gate 197/200 on the flagged handheld run, offline-verified).
-    // All measurement lives in cwcChain/cwcDecode (below the bank); the
-    // result view draws site boxes on the static master on the phone.
+    // retired; its accumulated totals carried a 1-2.3 px bias).
     if (cwcMode && (!window.CWC_CODES_9OF18 || !window.CWC_CODES_9OF18.length)) {
       log('E cwc: codeword bank missing');
     } else if (cwcMode) {
@@ -747,7 +779,7 @@ async function benchRun() {
       const cb = Math.max(20, Math.min(255, CFG.bBurstB | 0 || 150));
       const testLed = Math.max(0, Math.min(nL - 1, CFG.cwcTestLed | 0 || 0));
       log((testMode ? 'cwc test: ' : 'cwc burst: ') +
-          'primer(1s) -> 18 planes -> master(500ms flush), ' + nL + ' leds, b=' + cb +
+          'primer(1s) -> 18 planes -> master(fast), ' + nL + ' leds, b=' + cb +
           (testMode ? ', led=' + testLed : ''));
       const grabPlane = () => grabTimeout().then(() => lumaOf(procCx.getImageData(0, 0, W, H)));
       const planes = [];
@@ -758,14 +790,13 @@ async function benchRun() {
         const tS = Date.now();
         while (Date.now() - tS < settle) await sleep(10);
         planes.push(await grabPlane());
+        if (p === 0 && CFG.cwcAeLock) await lockAeAfterP00();
         benchCapture('cwc:r' + benchRunNo + ':p' + String(p).padStart(2, '0'));
         gts.push(Date.now());
       }
-      // MASTER: pipeline flush (~2 camera frames of the previous plane's
-      // content), then grab — measured clean as dip ratio 0.96 on 1903.
+      // MASTER: fast all-on grab before the AE meter re-adjusts.
       await paint({ cmd: 'all', b: cb });
-      const tAe = Date.now();
-      while (Date.now() - tAe < 500) await sleep(20);
+      await sleep(70);  // just enough pipeline flush; keep it fast
       const cwcMst = await grabPlane();
       benchCapture('cwc:r' + benchRunNo + ':master');
       gts.push(Date.now());
@@ -774,27 +805,32 @@ async function benchRun() {
       const chain = cwcChain(cwcMst, planes);
       log('chain totals (source px): ' + chain.map((s, p) =>
         'p' + p + '(' + s.dx.toFixed(1) + ',' + s.dy.toFixed(1) + '@' + s.conf.toFixed(2) + ')').join(' '));
-      // health guard (1909): any plane outside the residual budget warps the
-      // registration and the decode degrades to noise-floor sensitivity —
-      // say SO on the phone instead of showing a trustworthy-looking view.
-      // 1911: rem now flags planes whose OWN shift vs master exceeds the
-      // budget — motion-per-plane (no consecutive-delta chain remainder).
-      let badConf = 0, badRem = 0;
+      // health guard (1909/1915): any plane outside the residual budget warps
+      // registration and the decode degrades. Flag low confidence, absolute
+      // offset beyond the recoverable budget, or a sudden step between planes.
+      let badConf = 0, badRem = 0, badStep = 0;
       const flagged = [];
+      let prev = null;
       chain.forEach((s, p) => {
         const rem = Math.hypot(s.dx, s.dy);
         if (s.conf < CFG.cwcGuardConf) { badConf++; flagged.push('p' + p + ' conf ' + s.conf.toFixed(2)); }
         else if (rem > CFG.cwcGuardRem) { badRem++; flagged.push('p' + p + ' rem ' + rem.toFixed(1)); }
+        else if (prev) {
+          const step = Math.hypot(s.dx - prev.dx, s.dy - prev.dy);
+          if (step > CFG.cwcGuardStep) { badStep++; flagged.push('p' + p + ' step ' + step.toFixed(1)); }
+        }
+        prev = s;
       });
-      if (badConf || badRem)
+      if (badConf || badRem || badStep)
         log('E MOTION WARNING: chain degraded outside budget — conf<'
-            + CFG.cwcGuardConf + ' on ' + badConf + ' plane(s), remainder>'
-            + CFG.cwcGuardRem + 'px on ' + badRem + ' plane(s): ' + flagged.join(' '));
+            + CFG.cwcGuardConf + ' on ' + badConf + ' plane(s), offset>'
+            + CFG.cwcGuardRem + 'px on ' + badRem + ' plane(s), step>'
+            + CFG.cwcGuardStep + 'px on ' + badStep + ' plane(s): ' + flagged.join(' '));
       const dec = cwcDecode(cwcMst, planes, chain, nL);
       log('decode: ' + dec.nSites + ' px masked, ' + dec.sites.length + ' sites confirmed' +
           ' (amp>=' + CFG.cwcAmpGate + ', margin>=' + CFG.cwcMarginGate + ')');
       cwcShowResults(cwcMst, dec, testMode ? 'test led ' + testLed : 'cwc burst'
-          + ((badConf || badRem) ? ' — MOTION FLAGGED, unreliable' : ''));
+          + ((badConf || badRem || badStep) ? ' — MOTION FLAGGED, unreliable' : ''));
       if (testMode) log('test LED ' + testLed + ' codeword bits: ' + cwcBits(testLed, nL).join(','));
       cwcStats = { build: BUILD, n: planes.length, comp: 0,
                    testMode: testMode ? 1 : 0, testLed,
@@ -806,13 +842,18 @@ async function benchRun() {
       // NOTE: sites do NOT ride in cwcStats — the full stats line must stay
       // under the box's 4096 B WS message cap; sites ship via shipCwcDec's
       // chunked CWCDEC lines (console reassembles -> <run>/cwc_dec.json).
-      // 1911: drift trail = raw per-plane shifts vs the MEDIAN plane shift —
-      // under direct registration there is no chained total to diff, so each
-      // pair is a plane's motion relative to the string's central shift.
-      const medDx = chain.map(s => s.dx).sort((a, b) => a - b)[chain.length >> 1];
-      const medDy = chain.map(s => s.dy).sort((a, b) => a - b)[chain.length >> 1];
-      window._driftTrail = { pairs: chain.map((s) => ({ dx: s.dx - medDx, dy: s.dy - medDy })),
-                           scale: 6, text: 'cwc ' + planes.length + ' planes, direct' };
+      // 1912: drift trail = successive differences of the absolute offsets.
+      // Summing the offsets themselves drew a false lurch (r4 Σdx −146).
+      const pairs = [];
+      let netX = 0, netY = 0, stepMax = 0;
+      for (let i = 1; i < chain.length; i++) {
+        const dx = chain[i].dx - chain[i - 1].dx, dy = chain[i].dy - chain[i - 1].dy;
+        pairs.push({ dx: dx, dy: dy });
+        netX += dx; netY += dy;
+        stepMax = Math.max(stepMax, Math.hypot(dx, dy));
+      }
+      window._driftTrail = { pairs: pairs, scale: 6,
+        text: 'cwc step ' + stepMax.toFixed(1) + ' net ' + Math.hypot(netX, netY).toFixed(1) };
       drawDriftTrail();
       await paint({ cmd: 'black' });
       // ship the full decode: sites list FIRST (CWCDEC chunks 1..N), then the
@@ -1157,19 +1198,21 @@ function cwcChain(masterL, planes) {
     // conditioning floor (CFG.cwcNccPeakMargin) on the curvature term — flat
     // shoulders give garbage fits; conf stays the integer peak's surface value.
     let deltaX = 0, deltaY = 0;
+    const margin = CFG.cwcNccPeakMargin;
     if (Math.abs(bdx) <= 11 && Math.abs(bdy) <= 11) {
       const cIdx = (bdy + 12) * 25 + (bdx + 12);
-      const mx = Math.abs(surface[(bdy + 12) * 25 + bdx + 11] + surface[(bdy + 12) * 25 + bdx + 13] - 2 * surface[cIdx]);
-      const my = Math.abs(surface[(bdy + 11) * 25 + bdx + 12] + surface[(bdy + 13) * 25 + bdx + 12] - 2 * surface[cIdx]);
-      const margin = CFG.cwcNccPeakMargin;
-      if (mx > 2 * margin && my > 2 * margin) {
-        const fx = surface[(bdy + 12) * 25 + bdx + 11];
-        const f0 = surface[cIdx];
-        const gx = surface[(bdy + 12) * 25 + bdx + 13];
-        const fy = surface[(bdy + 11) * 25 + bdx + 12];
-        const gy = surface[(bdy + 13) * 25 + bdx + 12];
-        if (mx > 0) deltaX = Math.max(-0.5, Math.min(0.5, (fx - gx) / (2 * (fx + gx - 2 * f0))));
-        if (my > 0) deltaY = Math.max(-0.5, Math.min(0.5, (fy - gy) / (2 * (fy + gy - 2 * f0))));
+      const fx = surface[(bdy + 12) * 25 + bdx + 11];
+      const f0 = surface[cIdx];
+      const gx = surface[(bdy + 12) * 25 + bdx + 13];
+      const fy = surface[(bdy + 11) * 25 + bdx + 12];
+      const gy = surface[(bdy + 13) * 25 + bdx + 12];
+      const mx = f0 - Math.max(fx, gx);
+      const my = f0 - Math.max(fy, gy);
+      if (mx >= margin && my >= margin) {
+        const dx0 = 2 * (fx + gx - 2 * f0);
+        const dy0 = 2 * (fy + gy - 2 * f0);
+        if (Math.abs(dx0) > 1e-12) deltaX = Math.max(-0.5, Math.min(0.5, (fx - gx) / dx0));
+        if (Math.abs(dy0) > 1e-12) deltaY = Math.max(-0.5, Math.min(0.5, (fy - gy) / dy0));
       }
     }
     return { dx: (bdx + deltaX) * K, dy: (bdy + deltaY) * K, conf: Math.max(0, surface[(bdy + 12) * 25 + (bdx + 12)]) };
@@ -1178,16 +1221,48 @@ function cwcChain(masterL, planes) {
   // total carry, no remainder: chain[p] is plane p's OWN shift vs master.
   return pD.map((pd) => ncc(mD, pd));
 }
+function nccRefine(masterL, plane, sdx, sdy) {
+  // Score-time full-res NCC in ±4 px around the decimated seed. Same
+  // sample-at as cwcChain ncc: plane[y+dy, x+dx] aligns master[y, x].
+  // Stride 2 thins correlation pixels only; the shift grid is 1 px.
+  // Console twin: tools/cwc_pos_decode.py ncc_refine (rad 4, stride 2).
+  const rad = 4, stride = 2;
+  let sa = 0, sb = 0;
+  for (let i = 0; i < masterL.length; i++) { sa += masterL[i]; sb += plane[i]; }
+  const ma = sa / masterL.length, mb = sb / plane.length;
+  let best = -1e9, bdx = sdx, bdy = sdy;
+  for (let dy = sdy - rad; dy <= sdy + rad; dy++) {
+    const y0 = Math.max(0, -dy), y1 = Math.min(H, H - dy);
+    if (y1 - y0 < 16) continue;
+    for (let dx = sdx - rad; dx <= sdx + rad; dx++) {
+      const x0 = Math.max(0, -dx), x1 = Math.min(W, W - dx);
+      if (x1 - x0 < 16) continue;
+      let s = 0, a2 = 0, b2 = 0;
+      for (let y = y0; y < y1; y += stride) {
+        const rowM = y * W, rowP = (y + dy) * W;
+        for (let x = x0; x < x1; x += stride) {
+          const a = masterL[rowM + x] - ma;
+          const v = plane[rowP + x + dx] - mb;
+          s += a * v; a2 += a * a; b2 += v * v;
+        }
+      }
+      a2 = Math.sqrt(a2); b2 = Math.sqrt(b2);
+      const n = (a2 * b2) > 0 ? s / (a2 * b2) : 0;
+      if (n > best) { best = n; bdx = dx; bdy = dy; }
+    }
+  }
+  return { dx: bdx, dy: bdy };
+}
 function cwcDecode(masterL, planes, chain, nL) {
   // Per-codeword score-map AT SITES (console cwc_pos_decode recipe, ported):
   // per-plane gain k_p = median(plane)/median(master); stacksig_p =
-  // master - k_p*plane sampled at the plane's OWN shift (1911: direct
+  // master - k_p*plane bilinear-resampled at the plane's OWN shift (1911: direct
   // per-plane registration, no accumulation); score(i, s) =
   // sum_p sign[i,p]*stacksig_p(s), sign ON=-1 OFF=+1. Sites = blurred-master
   // luma >= CFG.cwcMaskThr. Greedy accept best-score-first; amp + d6-margin
   // gates; 7 px suppression; then STRONGEST-SITE-PER-CODEWORD dedup (with
   // only one physical string active, multi-site claims are ghosts).
-  const MASK_THR = CFG.cwcMaskThr | 0 || 175;
+  const MASK_THR = (CFG.cwcMaskThr | 0) || 150; // must default to console default (150), not 175
   const mMed = Math.max(histMedian(masterL), 1);
   const kk = planes.map((pl) => histMedian(pl) / mMed);
   const blur3 = (f) => {
@@ -1219,18 +1294,32 @@ function cwcDecode(masterL, planes, chain, nL) {
     }
     codeInt[i] = v;
   }
-  // pre-sample every plane at its OWN shift (1911: direct per-plane
-  // registration), then fold the gain in-place:
-  // sig[p][i] = masterL[i] - k_p * plane_p[i + shift_p]
+  // bilinear-resample every plane at its OWN float shift (1911: direct
+  // per-plane registration), then fold the gain in-place:
+  // sig[p][y,x] = masterL[y,x] - k_p * bilinear(plane_p, x+dx, y+dy)
   const sig = planes.map((pl, p) => {
-    const tdx = Math.round(chain[p].dx), tdy = Math.round(chain[p].dy);
+    const tdx = chain[p].dx, tdy = chain[p].dy;
     const sh = new Float32Array(W * H);
     for (let y = 0; y < H; y++) {
-      const sy = y + tdy; if (sy < 0 || sy >= H) continue;
-      const rS = sy * W, rD = y * W;
+      const fy = y + tdy;
+      const y0 = Math.floor(fy), ty = fy - y0;
+      const y1 = y0 + 1;
       for (let x = 0; x < W; x++) {
-        const sx = x + tdx; if (sx < 0 || sx >= W) continue;
-        sh[rD + x] = pl[rS + sx];
+        const fx = x + tdx;
+        const x0 = Math.floor(fx), tx = fx - x0;
+        const x1 = x0 + 1;
+        let v = 0;
+        if (y0 >= 0 && y0 < H) {
+          const row0 = y0 * W;
+          if (x0 >= 0 && x0 < W) v += pl[row0 + x0] * (1 - tx) * (1 - ty);
+          if (x1 >= 0 && x1 < W) v += pl[row0 + x1] * tx * (1 - ty);
+        }
+        if (y1 >= 0 && y1 < H) {
+          const row1 = y1 * W;
+          if (x0 >= 0 && x0 < W) v += pl[row1 + x0] * (1 - tx) * ty;
+          if (x1 >= 0 && x1 < W) v += pl[row1 + x1] * tx * ty;
+        }
+        sh[y * W + x] = v;
       }
     }
     const kp = kk[p];
@@ -1249,29 +1338,10 @@ function cwcDecode(masterL, planes, chain, nL) {
     for (let j = 0; j < nS; j++) if (sc[j] > bestS[j]) { bestS[j] = sc[j]; argI[j] = i; }
   }
   const order = Array.from({ length: nS }, (_, j) => j).sort((a, b) => bestS[b] - bestS[a]);
-  // local-max filter (console-validated: blooms decay monotonically from a
-  // core, so a true site is a local max of bestS within ±3 px of masked px)
-  const idxOf = new Int32Array(W * H).fill(-1);
-  for (let j = 0; j < nS; j++) idxOf[pts[j]] = j;
-  const lmax = new Uint8Array(nS);
-  for (let j = 0; j < nS; j++) {
-    const p0 = pts[j], y0 = (p0 / W) | 0, x0 = p0 % W, v = bestS[j];
-    let ok = 1;
-    for (let dyy = -3; dyy <= 3 && ok; dyy++) {
-      const yy = y0 + dyy; if (yy < 0 || yy >= H) continue;
-      for (let dxx = -3; dxx <= 3; dxx++) {
-        if (!dyy && !dxx) continue;
-        const xx = x0 + dxx; if (xx < 0 || xx >= W) continue;
-        const nb = idxOf[yy * W + xx];
-        if (nb >= 0 && bestS[nb] > v) { ok = 0; break; }
-      }
-    }
-    lmax[j] = ok;
-  }
   const used = new Uint8Array(nS);
   const out = [];
   for (const j of order) {
-    if (used[j] || !lmax[j]) continue;
+    if (used[j]) continue;
     const amp = bestS[j] / 9;
     if (amp < CFG.cwcAmpGate) continue;
     const i = argI[j];

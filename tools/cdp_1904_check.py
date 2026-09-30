@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""S14P-1911 pre-flash QA: mock box + headless Chromium + fake camera.
+"""S14P-1916 pre-flash QA: mock box + headless Chromium + fake camera.
 
 Validates the REAL page end-to-end before an ESP32 flash:
-  1. build stamp == S14P-1911
+  1. build stamp == S14P-1916
   2. CFG (cwc=1, cwcN=10) + BURST via mock drv? directives
   3. burst runs: 18 planes + master, bench store ships 19 frames
   4. chained registration log line present (backwards chain, no crash)
@@ -76,7 +76,7 @@ async def main():
                                     "cam:document.getElementById('camst').textContent,"
                                     "ws:document.getElementById('wsst').textContent})")
             print("STATUS", st)
-            ok = "S14P-1911" in st and "live" in st and "open" in st
+            ok = "S14P-1916" in st and "live" in st and "open" in st
             if not ok:
                 print("FAIL: page state", st); return 1
             # ---- burst 1: normal CWC mode ----
@@ -86,7 +86,7 @@ async def main():
             print("burst 1 queued")
             chain_ln = await wait_log(ws, "chain totals", tries=60)
             print("chain:", chain_ln)
-            dec_ln = await wait_log(ws, "decode:", tries=30)
+            dec_ln = await wait_log(ws, "decode:", tries=90)
             print("decode:", dec_ln)
             ship_ln = await wait_log(ws, "bench pull done", tries=90)
             print("ship:", ship_ln)

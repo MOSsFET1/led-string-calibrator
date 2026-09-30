@@ -71,6 +71,9 @@ MASK_THR = CWC_MASK_THR
 SUPPRESS = 7          # per-LED site suppression window (px)
 DW = 128              # decimated grid width (page cwcChain DW2)
 SEARCH = 12           # ±12 steps both axes (page cwcChain)
+FULLRES_RAD = 4        # ±px window of the score-time full-res NCC around the
+                       # decimated seed (r3 GT error max 2.19; K/2 = 2.8)
+FULLRES_STRIDE = 2     # correlation pixel stride; shift grid stays 1 px
 
 
 def round_half_up(x):
@@ -197,6 +200,41 @@ def parabolic_refine(surf, bdx, bdy, floor):
     return fits, info
 
 
+def ncc_refine(ref, cur, sdx, sdy, rad=FULLRES_RAD, stride=FULLRES_STRIDE):
+    """Full-res integer NCC in a window around the decimated seed.
+
+    Sample-at, same as the page: cur[y+dy, x+dx] aligns ref[y, x].
+    Whole-array means (page ncc). Stride thins the correlation pixels only;
+    the shift grid is 1 px. Returns (dx, dy, ncc) in source px.
+    """
+    H, W = ref.shape
+    ma = float(ref.mean())
+    mb = float(cur.mean())
+    aC = ref - ma
+    best, bdx, bdy = -1e9, int(sdx), int(sdy)
+    for dy in range(int(sdy) - rad, int(sdy) + rad + 1):
+        y0, y1 = max(0, -dy), min(H, H - dy)
+        if y1 - y0 < 16:
+            continue
+        for dx in range(int(sdx) - rad, int(sdx) + rad + 1):
+            x0, x1 = max(0, -dx), min(W, W - dx)
+            if x1 - x0 < 16:
+                continue
+            a = aC[y0:y1:stride, x0:x1:stride]
+            v = cur[y0 + dy:y1 + dy:stride, x0 + dx:x1 + dx:stride] - mb
+            h = min(a.shape[0], v.shape[0])
+            w = min(a.shape[1], v.shape[1])
+            a = a[:h, :w]
+            v = v[:h, :w]
+            s = float((a * v).sum())
+            a2 = float((a * a).sum()) ** 0.5
+            b2 = float((v * v).sum()) ** 0.5
+            n = s / (a2 * b2) if (a2 * b2) > 0 else 0.0
+            if n > best:
+                best, bdx, bdy = n, dx, dy
+    return bdx, bdy, max(0.0, best)
+
+
 def register_direct(mlum, planeL, floor, refine=True, verbose=True, tag=''):
     """DIRECT per-plane registration (S14P-1911): every plane runs the
     remainder NCC vs the master with the integer pre-shift DISABLED
@@ -247,6 +285,9 @@ def main():
     ap.add_argument('--save-json', action='store_true')
     ap.add_argument('--save-shifts', action='store_true',
                     help='dump per-plane direct shifts + refine info to JSON')
+    ap.add_argument('--fullres-rad', type=int, default=FULLRES_RAD,
+                    help='score-time full-res NCC window around the decimated '
+                         'seed, px. 0 disables (1911 decimated shifts only).')
     args = ap.parse_args()
     run = Path(args.run_dir)
 
@@ -264,18 +305,34 @@ def main():
     planeL = {p: np.asarray(planes[p], dtype=np.float32).max(axis=2).astype(np.float32)
               for p in planes}
     tot, surf, info = register_direct(mlum, planeL, args.peak_margin)
+    if args.fullres_rad > 0:
+        for p in sorted(planeL):
+            sdx = round_half_up(tot[p][0])
+            sdy = round_half_up(tot[p][1])
+            rdx, rdy, _n = ncc_refine(mlum, planeL[p], sdx, sdy,
+                                      rad=args.fullres_rad)
+            # keep the decimated parabolic sub-pixel fraction for bilinear stacksig
+            tot[p] = (float(rdx) + (tot[p][0] - sdx),
+                      float(rdy) + (tot[p][1] - sdy),
+                      tot[p][2])
+        print(f'full-res refine: rad {args.fullres_rad} stride {FULLRES_STRIDE}')
     shifts = [tot[p] for p in sorted(tot)]
 
-    # per-plane stacksig EXACTLY like the page cwcDecode: integer sample-at
-    # of the RAW plane at the plane's DIRECT total (no warp copies);
+    # per-plane stacksig EXACTLY like the page cwcDecode: bilinear resampling
+    # of the RAW plane at the plane's DIRECT float shift (no warp copies);
     # k_p from the page's histMedian (page-parity per-plane gain)
     stacksig = np.empty((18, H, W), np.float32)
     kbgs = []
     mmed = hist_median(mlum)
     for j, p in enumerate(sorted(planeL)):
-        tdx = round_half_up(tot[p][0])
-        tdy = round_half_up(tot[p][1])
-        sh = shift_at_full(planeL[p], tdx, tdy, H, W)
+        tdx = float(tot[p][0])
+        tdy = float(tot[p][1])
+        # bilinear resample plane at float shift (x+dx, y+dy) -> out[y,x]
+        mx, my = np.meshgrid(
+            np.arange(W, dtype=np.float32) + np.float32(tdx),
+            np.arange(H, dtype=np.float32) + np.float32(tdy))
+        sh = cv2.remap(planeL[p], mx, my, cv2.INTER_LINEAR,
+                       borderMode=cv2.BORDER_CONSTANT, borderValue=0)
         kp = float(hist_median(planeL[p])) / mmed
         kbgs.append(kp)
         stacksig[j] = mlum - kp * sh
@@ -331,7 +388,9 @@ def main():
             byled[q['led']] = q
     ledpos = list(byled.values())
     leds = sorted(ledpos, key=lambda q: q['led'])
+    miss = [i for i in range(N) if i not in byled]
     print(f'sites {int(mask.sum() // 10)}-ish; LEDs confirmed: {len(leds)} / {N}')
+    print('missing:', miss)
     amps = [p['amp'] for p in leds]
     if amps:
         print(f'amp: min {min(amps)}, med {sorted(amps)[len(amps)//2]}, max {max(amps)}')
