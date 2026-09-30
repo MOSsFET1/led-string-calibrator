@@ -69,7 +69,7 @@ CRGB pxColour[N_PX];                 // the CURRENT paint, applied every frame
 
 // --- embedded assets (replaced by pack_page.py) ----------------------------
 static const char PAGE_GZ_B64[] =
-  "H4sIAKCBvWoC/9S923IbSZIo+M6viFafaQJFAEQmkAAIiqqlKOrSLYkyUdWaNq1MlgQSZBYBJDoT"
+  "H4sIAAAAAAAC/9S923IbSZIo+M6viFafaQJFAEQmkAAIiqqlKOrSLYkyUdWaNq1MlgQSZBYBJDoT"
   "IInRqGwe93n3/MGa7T7vL5wP2I+YL1m/RGTGLSFV99gx25pzWkSmR2SEh4e7h9/i8R+m2WS9XSXi"
   "Zr2YP9l7jP+Ieby8PnmULB/hgySewj+LZB2LyU2cF8n65NFmPWuPHqnHy3iRnDy6S5P7VZavH4lJ"
   "tlwnSwC7T6frm5NpcpdOkjb9aKXLdJ3G83YxiefJSYB9rNP1PHny+vyZuNzkd8lWvLs4e3zIT/ce"
@@ -95,7 +95,7 @@ static const char PAGE_GZ_B64[] =
   "22pyA5whx/GBntAubrAVTQR7y2YiptWH1/EE9z9PD7q/T9c3Ii6nIZI77GUew9fFLInXOHOccVLQ"
   "DJ+BogUbGl7Pt+L06eX52w+iscRGADVPAS8wryy/TabHMKhpIja4QZKiiPMtzH11g6N7ArsJO4PV"
   "EsVNulrBfFowZfjKYZ4Um0XSgikXRZrh3oRvdcQF8Fw1nBi2oFini6SztwcbsFiLp7+8ev1MnIhH"
-  "l0H/XTs4CgaPjuWr/waPG+m0KU6eCFC9oe/lunOdrM/nCf75dPtqiq+P93BAbes/cfb8hWigBgsa"
+  "l0H/XTs4CoaPjuWr/waPG+m0KU6eCFC9oe/lunOdrM/nCf75dPtqiq+P93BAbes/cfb8hWigBgsa"
   "9HqzxGVv6ft/mt/9LFbZfN6022J3l0H7MugpgqLxxMt1Id6fv7n4KxBfIxyKy2TV7IhLeEHsSa7T"
   "Ia9SgaxYrG8S7G0RLzdAAEz+sHLJ3dM0hn8XSX6dvBcNABNnH8/EKp0n7c1qv2ACpddNGPVyqnoC"
   "LEE3sGHFbbItOuJttgbquQbpBNgFouIBg/KQTNJZOoGmW1AScsA34xSxciK+wsaD0T4di2DQbTH3"
@@ -132,7 +132,7 @@ static const char PAGE_GZ_B64[] =
   "0BpDpNdeZ22mQZjjiud4Fq8nN0mxazjFBrT6pfg1yW8Lsq3AqBjzSE8FMGuef2dXJ8BSgkBKB5IA"
   "4u+bmG1GsxzOjrxly93WkVrT28nkXRLfsvKE9N4FeqejR3zbvivQKASHC6AGIPUpqYzVuU3ZGYTY"
   "MS5UDa+yeTqBaV61sdtj0L1wTsBqb1GGgTqbXOP+Tye3u/tqqH0zVjJdydAF7aVgODhEle83/LO1"
-  "u69yd5XUzH10+xGOLE/wwEWI5BMVqqrJ62xyq58YUG6h0pbMABfrsUBHmoBjYjxDnYpJ/WAFUqYh"
+  "u69yd5XUzH10+xGOLE/wwEWI5BMVqqrJ62xyq5+qUG6h0pbMABfrsUBHmoBjYjxDnYpJ/WAFUqYh"
   "DTHK0FCnY5IxRFocFvEWcLZCd61I12R7EJcxCNYUxlygSUN2enre2ftG1knYC5PbLYxpCXsEz6qw"
   "WCABJnkG8iBP0HxKch7J4/L0zTmbAoGbimVyzxYx7ibOS8nB1jZAhTRlS4Wlv1+wZQ4WcaWUGYGq"
   "HM0dqZG6ko1x40hrkmTC13BgYe4Ur9liie94H+edPTzCo7UoBREDaI3nl6DogJxCO9yrdbJo7IOk"
@@ -638,7 +638,7 @@ static const char PAGE_GZ_B64[] =
   "8r4xIcItwwfapCndbITb902aHRte2djuErdBGkgPgjgaaU69VmVz1di65zSjn41Qdi+Hh/6e/tO9"
   "WjZHUjpmUyWggvj/wb2ibPy4KfGtcuvIxbXZJVX+9s2bC3H8/OXLKYuPzwRg/eQ1oRQBbMq4OPmL"
   "SDahPxHf2vYTJNBpigTgAQBjFg6BFxSFcjDKmP7tH89enkwepMggjucLYhiAtQb8Xk7pBflCkh0j"
-  "ZE4cem2t7emBnPQZnmaRV9DfZbYKn/0/GhrmkFuuAQA="
+  "ZE4cem2t7emBnPQZnmaRV9DfZbYKn/0/bTDOD1uuAQA="
 ;
 static const unsigned PAGE_GZ_LEN = 32465;
 
@@ -713,7 +713,7 @@ static char sPageBuild[16] = "";
 // status-LED state machine (operator request): breathing OFF during
 // experiments (scanning flag from drv? traffic), solid RED until a page
 // with the CURRENT build stamps hello (new code ready to load on phone)
-static const char PAGE_BUILD[] = "S14P-1916";   // keep in sync with the page BUILD
+static const char PAGE_BUILD[] = "S14P-1917";   // keep in sync with the page BUILD
 static bool sBuildMatched = false;             // page hello matched PAGE_BUILD
 static volatile bool sScanning = false;        // page sets via drv? flag
 // millis() of the last PAINT command (frame/all/black/npx): the operator's
@@ -942,7 +942,7 @@ static void decodePage() {
 void setup() {
   Serial.begin(115200);
   delay(2000);
-  Serial.println("\n=== poc_survey S14P-1916: fixed AE lock + fast master + relaxed guard ===");
+  Serial.println("\n=== poc_survey S14P-1917: AE lock default-off revert + fast master + relaxed guard ===");
 
   FastLED.addLeds<WS2815, LANE1_PIN, RGB>(lane1, N_PX);   // bench chips are RGB-wired
   FastLED.addLeds<WS2815, LANE2_PIN, RGB>(lane2, N_PX);

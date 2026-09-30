@@ -62,7 +62,7 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14P-1916";
+const BUILD = "S14P-1917";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -129,7 +129,7 @@ const CFG = {
                           // parabolic sub-peak; below -> keep integer pick
                           // (measured: tripod margins med 0.176/min ~0.17,
                           // degraded handheld med 0.045 -> refused there)
-  cwcAeLock: 1,        // best-effort: lock AE after master+p00 (manual exposure)
+  cwcAeLock: 0,        // best-effort: lock AE after master+p00 (manual exposure)
                        // Android may support it; iOS Safari has no manual AE.
 };
 // sticky bench settings across reloads of the SAME build. A new BUILD
