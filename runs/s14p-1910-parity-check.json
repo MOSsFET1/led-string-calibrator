@@ -1,0 +1,1197 @@
+{
+ "perPlane": {
+  "tripod": [
+   {
+    "plane": 0,
+    "refined": [
+     0.094,
+     -0.06
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.951,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.2493,
+    "marginY": 0.1761,
+    "deltaXpx": 0.011,
+    "deltaYpx": -0.002
+   },
+   {
+    "plane": 1,
+    "refined": [
+     0.083,
+     -0.058
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.948,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.2498,
+    "marginY": 0.177,
+    "deltaXpx": 0.005,
+    "deltaYpx": -0.004
+   },
+   {
+    "plane": 2,
+    "refined": [
+     0.078,
+     -0.055
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.947,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.2513,
+    "marginY": 0.1779,
+    "deltaXpx": 0.005,
+    "deltaYpx": -0.008
+   },
+   {
+    "plane": 3,
+    "refined": [
+     0.073,
+     -0.047
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.948,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.2474,
+    "marginY": 0.1736,
+    "deltaXpx": 0.003,
+    "deltaYpx": -0.005
+   },
+   {
+    "plane": 4,
+    "refined": [
+     0.07,
+     -0.042
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.951,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.2518,
+    "marginY": 0.1761,
+    "deltaXpx": 0.003,
+    "deltaYpx": -0.003
+   },
+   {
+    "plane": 5,
+    "refined": [
+     0.067,
+     -0.039
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.945,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.2494,
+    "marginY": 0.1749,
+    "deltaXpx": 0.005,
+    "deltaYpx": -0.009
+   },
+   {
+    "plane": 6,
+    "refined": [
+     0.062,
+     -0.03
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.944,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.2482,
+    "marginY": 0.176,
+    "deltaXpx": 0.008,
+    "deltaYpx": 0.001
+   },
+   {
+    "plane": 7,
+    "refined": [
+     0.054,
+     -0.031
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.945,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.249,
+    "marginY": 0.1735,
+    "deltaXpx": 0.006,
+    "deltaYpx": -0.009
+   },
+   {
+    "plane": 8,
+    "refined": [
+     0.048,
+     -0.022
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.95,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.2485,
+    "marginY": 0.1769,
+    "deltaXpx": 0.01,
+    "deltaYpx": 0.0
+   },
+   {
+    "plane": 9,
+    "refined": [
+     0.039,
+     -0.022
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.948,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.2468,
+    "marginY": 0.1741,
+    "deltaXpx": 0.006,
+    "deltaYpx": -0.004
+   },
+   {
+    "plane": 10,
+    "refined": [
+     0.032,
+     -0.018
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.946,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.2464,
+    "marginY": 0.1739,
+    "deltaXpx": 0.005,
+    "deltaYpx": -0.009
+   },
+   {
+    "plane": 11,
+    "refined": [
+     0.027,
+     -0.009
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.947,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.2523,
+    "marginY": 0.1764,
+    "deltaXpx": 0.004,
+    "deltaYpx": -0.007
+   },
+   {
+    "plane": 12,
+    "refined": [
+     0.024,
+     -0.003
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.947,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.2486,
+    "marginY": 0.1758,
+    "deltaXpx": -0.004,
+    "deltaYpx": 0.003
+   },
+   {
+    "plane": 13,
+    "refined": [
+     0.028,
+     -0.005
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.947,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.2516,
+    "marginY": 0.1758,
+    "deltaXpx": 0.006,
+    "deltaYpx": -0.003
+   },
+   {
+    "plane": 14,
+    "refined": [
+     0.022,
+     -0.002
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.945,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.25,
+    "marginY": 0.1744,
+    "deltaXpx": 0.002,
+    "deltaYpx": -0.003
+   },
+   {
+    "plane": 15,
+    "refined": [
+     0.02,
+     0.001
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.949,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.25,
+    "marginY": 0.176,
+    "deltaXpx": 0.008,
+    "deltaYpx": -0.0
+   },
+   {
+    "plane": 16,
+    "refined": [
+     0.012,
+     0.002
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.948,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.2519,
+    "marginY": 0.1782,
+    "deltaXpx": 0.002,
+    "deltaYpx": 0.001
+   },
+   {
+    "plane": 17,
+    "refined": [
+     0.009,
+     0.001
+    ],
+    "integer": [
+     0.0,
+     0.0
+    ],
+    "conf": 0.948,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.2519,
+    "marginY": 0.1801,
+    "deltaXpx": 0.009,
+    "deltaYpx": 0.001
+   }
+  ],
+  "handheld": [
+   {
+    "plane": 0,
+    "refined": [
+     -6.59,
+     -34.717
+    ],
+    "integer": [
+     -6.344,
+     -34.891
+    ],
+    "conf": 0.66,
+    "refinedX": true,
+    "refinedY": false,
+    "marginX": 0.0563,
+    "marginY": 0.0459,
+    "deltaXpx": 0.072,
+    "deltaYpx": 0.0
+   },
+   {
+    "plane": 1,
+    "refined": [
+     -6.662,
+     -25.201
+    ],
+    "integer": [
+     -6.344,
+     -25.375
+    ],
+    "conf": 0.672,
+    "refinedX": false,
+    "refinedY": false,
+    "marginX": 0.0111,
+    "marginY": 0.0391,
+    "deltaXpx": 0.0,
+    "deltaYpx": 0.0
+   },
+   {
+    "plane": 2,
+    "refined": [
+     -6.662,
+     -18.857
+    ],
+    "integer": [
+     -6.344,
+     -19.031
+    ],
+    "conf": 0.663,
+    "refinedX": false,
+    "refinedY": false,
+    "marginX": 0.0339,
+    "marginY": 0.0462,
+    "deltaXpx": 0.0,
+    "deltaYpx": 0.0
+   },
+   {
+    "plane": 3,
+    "refined": [
+     -13.006,
+     -12.514
+    ],
+    "integer": [
+     -12.688,
+     -12.688
+    ],
+    "conf": 0.652,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.0507,
+    "marginY": 0.0569,
+    "deltaXpx": 0.319,
+    "deltaYpx": -0.022
+   },
+   {
+    "plane": 4,
+    "refined": [
+     -19.669,
+     -6.147
+    ],
+    "integer": [
+     -19.031,
+     -6.344
+    ],
+    "conf": 0.612,
+    "refinedX": true,
+    "refinedY": false,
+    "marginX": 0.0616,
+    "marginY": 0.0431,
+    "deltaXpx": -0.202,
+    "deltaYpx": 0.0
+   },
+   {
+    "plane": 5,
+    "refined": [
+     -25.811,
+     -6.147
+    ],
+    "integer": [
+     -25.375,
+     -6.344
+    ],
+    "conf": 0.578,
+    "refinedX": true,
+    "refinedY": false,
+    "marginX": 0.0568,
+    "marginY": 0.0133,
+    "deltaXpx": -0.02,
+    "deltaYpx": 0.0
+   },
+   {
+    "plane": 6,
+    "refined": [
+     -22.619,
+     -6.147
+    ],
+    "integer": [
+     -22.203,
+     -6.344
+    ],
+    "conf": 0.613,
+    "refinedX": false,
+    "refinedY": false,
+    "marginX": 0.0402,
+    "marginY": 0.0292,
+    "deltaXpx": 0.0,
+    "deltaYpx": 0.0
+   },
+   {
+    "plane": 7,
+    "refined": [
+     -16.276,
+     -9.319
+    ],
+    "integer": [
+     -15.859,
+     -9.516
+    ],
+    "conf": 0.617,
+    "refinedX": false,
+    "refinedY": false,
+    "marginX": 0.0063,
+    "marginY": 0.0025,
+    "deltaXpx": 0.0,
+    "deltaYpx": 0.0
+   },
+   {
+    "plane": 8,
+    "refined": [
+     -9.932,
+     -9.319
+    ],
+    "integer": [
+     -9.516,
+     -9.516
+    ],
+    "conf": 0.646,
+    "refinedX": false,
+    "refinedY": false,
+    "marginX": 0.0419,
+    "marginY": 0.0094,
+    "deltaXpx": 0.0,
+    "deltaYpx": 0.0
+   },
+   {
+    "plane": 9,
+    "refined": [
+     -6.76,
+     -12.491
+    ],
+    "integer": [
+     -6.344,
+     -12.688
+    ],
+    "conf": 0.661,
+    "refinedX": false,
+    "refinedY": false,
+    "marginX": 0.03,
+    "marginY": 0.0335,
+    "deltaXpx": 0.0,
+    "deltaYpx": 0.0
+   },
+   {
+    "plane": 10,
+    "refined": [
+     -6.76,
+     -15.663
+    ],
+    "integer": [
+     -6.344,
+     -15.859
+    ],
+    "conf": 0.673,
+    "refinedX": false,
+    "refinedY": false,
+    "marginX": 0.0011,
+    "marginY": 0.039,
+    "deltaXpx": 0.0,
+    "deltaYpx": 0.0
+   },
+   {
+    "plane": 11,
+    "refined": [
+     -3.588,
+     -15.663
+    ],
+    "integer": [
+     -3.172,
+     -15.859
+    ],
+    "conf": 0.717,
+    "refinedX": false,
+    "refinedY": true,
+    "marginX": 0.017,
+    "marginY": 0.054,
+    "deltaXpx": 0.0,
+    "deltaYpx": 0.162
+   },
+   {
+    "plane": 12,
+    "refined": [
+     -0.416,
+     -12.654
+    ],
+    "integer": [
+     0.0,
+     -12.688
+    ],
+    "conf": 0.699,
+    "refinedX": false,
+    "refinedY": false,
+    "marginX": 0.0484,
+    "marginY": 0.0027,
+    "deltaXpx": 0.0,
+    "deltaYpx": 0.0
+   },
+   {
+    "plane": 13,
+    "refined": [
+     2.756,
+     -15.826
+    ],
+    "integer": [
+     3.172,
+     -15.859
+    ],
+    "conf": 0.734,
+    "refinedX": true,
+    "refinedY": false,
+    "marginX": 0.0502,
+    "marginY": 0.0425,
+    "deltaXpx": -0.43,
+    "deltaYpx": 0.0
+   },
+   {
+    "plane": 14,
+    "refined": [
+     3.185,
+     -15.826
+    ],
+    "integer": [
+     3.172,
+     -15.859
+    ],
+    "conf": 0.782,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.0996,
+    "marginY": 0.0707,
+    "deltaXpx": 0.108,
+    "deltaYpx": 0.237
+   },
+   {
+    "plane": 15,
+    "refined": [
+     3.077,
+     -6.547
+    ],
+    "integer": [
+     3.172,
+     -6.344
+    ],
+    "conf": 0.806,
+    "refinedX": true,
+    "refinedY": true,
+    "marginX": 0.1063,
+    "marginY": 0.0755,
+    "deltaXpx": -0.193,
+    "deltaYpx": -0.204
+   },
+   {
+    "plane": 16,
+    "refined": [
+     3.27,
+     -3.172
+    ],
+    "integer": [
+     3.172,
+     -3.172
+    ],
+    "conf": 0.756,
+    "refinedX": false,
+    "refinedY": false,
+    "marginX": 0.0198,
+    "marginY": 0.043,
+    "deltaXpx": 0.0,
+    "deltaYpx": 0.0
+   },
+   {
+    "plane": 17,
+    "refined": [
+     3.27,
+     0.0
+    ],
+    "integer": [
+     3.172,
+     0.0
+    ],
+    "conf": 0.814,
+    "refinedX": true,
+    "refinedY": false,
+    "marginX": 0.128,
+    "marginY": 0.0426,
+    "deltaXpx": 0.098,
+    "deltaYpx": 0.0
+   }
+  ]
+ },
+ "margins": {
+  "tripod": {
+   "x": {
+    "min": 0.2464,
+    "median": 0.2496,
+    "max": 0.2523
+   },
+   "y": {
+    "min": 0.1735,
+    "median": 0.176,
+    "max": 0.1801
+   },
+   "axesActive": {
+    "x": 18,
+    "y": 18
+   }
+  },
+  "handheld": {
+   "x": {
+    "min": 0.0011,
+    "median": 0.0452,
+    "max": 0.128
+   },
+   "y": {
+    "min": 0.0025,
+    "median": 0.0425,
+    "max": 0.0755
+   },
+   "axesActive": {
+    "x": 8,
+    "y": 4
+   }
+  }
+ },
+ "handheld": {
+  "gtDeviationPx": {
+   "median": 1.28,
+   "max": 2.9,
+   "note": "refined shifts vs phaseCorrelate GT (FORENSICS recipe); integer-ship chain deviates the same class (med 1.26, max 2.62)"
+  },
+  "refinedVsIntegerPx": {
+   "median": 0.42,
+   "max": 0.67
+  },
+  "before": {
+   "count": 39,
+   "missing": [
+    7,
+    9,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    56,
+    57,
+    58,
+    59,
+    60,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    85,
+    86,
+    87,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    96,
+    97,
+    98,
+    99,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    132,
+    135,
+    136,
+    137,
+    138,
+    139,
+    140,
+    141,
+    142,
+    143,
+    144,
+    145,
+    146,
+    147,
+    148,
+    149,
+    150,
+    151,
+    152,
+    153,
+    154,
+    155,
+    156,
+    157,
+    159,
+    160,
+    161,
+    162,
+    163,
+    164,
+    165,
+    166,
+    167,
+    168,
+    169,
+    171,
+    172,
+    173,
+    174,
+    176,
+    177,
+    178,
+    179,
+    180,
+    181,
+    182,
+    184,
+    185,
+    186,
+    192,
+    194,
+    195,
+    196,
+    197,
+    198,
+    199
+   ],
+   "dups": 0,
+   "pitch": {
+    "median": 167.7,
+    "min": 18.0,
+    "max": 470.8
+   },
+   "ampMin": 74.3,
+   "ampMed": 105.1,
+   "ampMax": 149.6
+  },
+  "afterRefined": {
+   "count": 122,
+   "missing": [
+    5,
+    6,
+    16,
+    20,
+    22,
+    24,
+    27,
+    28,
+    31,
+    33,
+    34,
+    37,
+    38,
+    39,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    48,
+    49,
+    50,
+    51,
+    53,
+    55,
+    56,
+    57,
+    59,
+    60,
+    63,
+    69,
+    71,
+    73,
+    74,
+    81,
+    82,
+    83,
+    84,
+    85,
+    90,
+    91,
+    97,
+    98,
+    100,
+    102,
+    113,
+    117,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    128,
+    129,
+    130,
+    133,
+    134,
+    135,
+    136,
+    142,
+    143,
+    150,
+    153,
+    155,
+    156,
+    157,
+    162,
+    170,
+    175,
+    177,
+    179,
+    180,
+    181,
+    184,
+    195,
+    197
+   ],
+   "dups": 0,
+   "pitch": {
+    "median": 21.4,
+    "min": 6.7,
+    "max": 413.7
+   },
+   "ampMin": 77.6,
+   "ampMed": 118.8,
+   "ampMax": 192.0
+  },
+  "afterNoRefine": {
+   "count": 136,
+   "missing": [
+    5,
+    16,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    37,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    55,
+    57,
+    59,
+    60,
+    68,
+    70,
+    73,
+    84,
+    85,
+    90,
+    91,
+    97,
+    98,
+    99,
+    102,
+    120,
+    121,
+    122,
+    124,
+    130,
+    133,
+    134,
+    135,
+    136,
+    142,
+    143,
+    148,
+    150,
+    152,
+    155,
+    156,
+    157,
+    158,
+    161,
+    175,
+    176,
+    177,
+    179,
+    180,
+    181,
+    184,
+    199
+   ],
+   "dups": 0,
+   "pitch": {
+    "median": 20.0,
+    "min": 4.1,
+    "max": 423.1
+   },
+   "ampMin": 78.6,
+   "ampMed": 121.0,
+   "ampMax": 198.2
+  },
+  "pageSim100Note": "FORENSICS 100 came from sim_mask175.py whose NCC correlates ref/cur over the SAME window (bug); on identical footing (this scorer, integer ship chain) the count is 136; GT-phaseCorrelate tots give 180",
+  "serpentine": {
+   "consecutiveRunHistogram": {
+    "1": 17,
+    "2": 8,
+    "3": 3,
+    "4": 3,
+    "5": 4,
+    "6": 2,
+    "7": 1,
+    "9": 1,
+    "10": 2
+   },
+   "longestRun": 10
+  }
+ },
+ "tripod": {
+  "before": {
+   "count": 197,
+   "missing": [
+    46,
+    90,
+    91
+   ],
+   "dups": 0,
+   "pitch": {
+    "median": 20.2,
+    "min": 4.1,
+    "max": 75.0
+   },
+   "ampMin": 110.1,
+   "ampMed": 173.2,
+   "ampMax": 250.8
+  },
+  "afterRefined": {
+   "count": 197,
+   "missing": [
+    46,
+    90,
+    91
+   ],
+   "dups": 0,
+   "pitch": {
+    "median": 20.2,
+    "min": 4.1,
+    "max": 76.5
+   },
+   "ampMin": 104.0,
+   "ampMed": 167.8,
+   "ampMax": 242.7
+  },
+  "afterNoRefine": {
+   "count": 197,
+   "missing": [
+    46,
+    90,
+    91
+   ],
+   "dups": 0,
+   "pitch": {
+    "median": 20.2,
+    "min": 4.1,
+    "max": 76.5
+   },
+   "ampMin": 104.0,
+   "ampMed": 167.8,
+   "ampMax": 242.7
+  },
+  "posDeltaVsBefore": {
+   "n": 197,
+   "max": 69,
+   "median": 0.0,
+   "over1px": 4
+  },
+  "posDeltaVsPage": {
+   "n": 194,
+   "max": 14,
+   "median": 0.0,
+   "over1px": 43
+  },
+  "led16After": {
+   "led": 16,
+   "cx": 135,
+   "cy": 571,
+   "amp": 130.5,
+   "margin": 75.2
+  },
+  "led25After": {
+   "led": 25,
+   "cx": 166,
+   "cy": 424,
+   "amp": 137.2,
+   "margin": 85.9
+  },
+  "note": "amps/margins now use page histMedian gain (k_p = med_p/med_m) \u2014 LED16 amp 130.5 vs old-console 137.1 (old k was med_m/med_p: inverted vs page cwcDecode; positions/gates unaffected above)"
+ },
+ "threshold": {
+  "cwcNccPeakMargin_default": 0.05,
+  "measured": {
+   "tripodPerAxisMin": {
+    "x": {
+     "min": 0.2464,
+     "median": 0.2496,
+     "max": 0.2523
+    },
+    "y": {
+     "min": 0.1735,
+     "median": 0.176,
+     "max": 0.1801
+    },
+    "axesActive": {
+     "x": 18,
+     "y": 18
+    }
+   },
+   "handheldPerAxis": {
+    "x": {
+     "min": 0.0011,
+     "median": 0.0452,
+     "max": 0.128
+    },
+    "y": {
+     "min": 0.0025,
+     "median": 0.0425,
+     "max": 0.0755
+    },
+    "axesActive": {
+     "x": 8,
+     "y": 4
+    }
+   }
+  },
+  "rationale": "floor far below tripod good-peak margins (min 0.17) so the refinement stays active on all healthy planes; above most degraded-burst per-axis margins (1908 med 0.045) so flat shoulders keep the integer pick"
+ },
+ "outputs": {
+  "decoderLogTripod": [
+   "registration chain: refine on (floor 0.05); axes refined x 18/18 y 18/18; remainder med 0.01 px, max 0.01 px",
+   "sites 1993-ish; LEDs confirmed: 197 / 200",
+   "amp: min 104.0, med 167.8, max 242.7",
+   "consecutive-id pitch: median 20.2 px, min 4.1, max 76.5",
+   "positions -> /home/nellie/projects/led-display/POC LED survey/runs/s14p-1906-phone-pos1/ledpos.json",
+   "overlay -> /home/nellie/projects/led-display/POC LED survey/runs/s14p-1906-phone-pos1/led_overlay.png"
+  ],
+  "decoderLogHandheld": [
+   "registration chain: refine on (floor 0.05); axes refined x 8/18 y 4/18; remainder med 4.49 px, max 9.52 px",
+   "sites 766-ish; LEDs confirmed: 122 / 200",
+   "amp: min 77.6, med 118.8, max 192.0",
+   "consecutive-id pitch: median 21.4 px, min 6.7, max 413.7",
+   "positions -> /home/nellie/projects/led-display/POC LED survey/runs/s14p-1908-handheld/ledpos.json",
+   "overlay -> /home/nellie/projects/led-display/POC LED survey/runs/s14p-1908-handheld/led_overlay.png"
+  ]
+ }
+}

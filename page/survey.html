@@ -62,7 +62,7 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14P-1909";
+const BUILD = "S14P-1910";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -111,6 +111,10 @@ const CFG = {
   //     plane => amber warning line + box count shown amber in the title.
   cwcGuardConf: 0.90,
   cwcGuardRem: 5,
+  cwcNccPeakMargin: 0.05, // peak-vs-shoulder conditioning floor for the
+                          // parabolic sub-peak; below -> keep integer pick
+                          // (measured: tripod margins med 0.176/min ~0.17,
+                          // degraded handheld med 0.045 -> refused there)
 };
 // sticky bench settings across reloads (localStorage)
 try { const saved = JSON.parse(localStorage.getItem('s14cfg') || '{}'); for (const key of Object.keys(saved)) if (key in CFG) CFG[key] = saved[key]; } catch (e) {}
@@ -1111,6 +1115,7 @@ function cwcChain(masterL, planes) {
     for (let i = 0; i < ref.length; i++) { const v = ref[i] - ma; aC[i] = v; a2 += v * v; }
     a2 = Math.sqrt(a2);
     let best = -1e9, bdx = 0, bdy = 0;
+    const surface = new Float32Array(25 * 25);   // full 25×25 NCC score surface (dx,dy ∈ ±12)
     for (let dy = -12; dy <= 12; dy++) {
       const y0 = Math.max(0, -dy), y1 = Math.min(dh, dh - dy);
       for (let dx = -12; dx <= 12; dx++) {
@@ -1126,10 +1131,32 @@ function cwcChain(masterL, planes) {
         }
         b2 = Math.sqrt(b2);
         const n = (a2 * b2) > 0 ? s / (a2 * b2) : 0;
+        surface[(dy + 12) * 25 + (dx + 12)] = n;   // keep what §10d parabolic refinement consumes
         if (n > best) { best = n; bdx = dx; bdy = dy; }
       }
     }
-    return { dx: bdx * K, dy: bdy * K, conf: Math.max(0, best) };
+    // §10d parabolic sub-peak: fit Δ = (y₋−y₊)/(2(y₊+y₋−2y₀)) per axis through
+    // the stored surface — integer pick quantises the total to K = 5.625 px
+    // chunks under motion. Guards: interior peak only, and a peak-vs-shoulder
+    // conditioning floor (CFG.cwcNccPeakMargin) on the curvature term — flat
+    // shoulders give garbage fits; conf stays the integer peak's surface value.
+    let deltaX = 0, deltaY = 0;
+    if (Math.abs(bdx) <= 11 && Math.abs(bdy) <= 11) {
+      const cIdx = (bdy + 12) * 25 + (bdx + 12);
+      const mx = Math.abs(surface[(bdy + 12) * 25 + bdx + 11] + surface[(bdy + 12) * 25 + bdx + 13] - 2 * surface[cIdx]);
+      const my = Math.abs(surface[(bdy + 11) * 25 + bdx + 12] + surface[(bdy + 13) * 25 + bdx + 12] - 2 * surface[cIdx]);
+      const margin = CFG.cwcNccPeakMargin;
+      if (mx > 2 * margin && my > 2 * margin) {
+        const fx = surface[(bdy + 12) * 25 + bdx + 11];
+        const f0 = surface[cIdx];
+        const gx = surface[(bdy + 12) * 25 + bdx + 13];
+        const fy = surface[(bdy + 11) * 25 + bdx + 12];
+        const gy = surface[(bdy + 13) * 25 + bdx + 12];
+        if (mx > 0) deltaX = Math.max(-0.5, Math.min(0.5, (fx - gx) / (2 * (fx + gx - 2 * f0))));
+        if (my > 0) deltaY = Math.max(-0.5, Math.min(0.5, (fy - gy) / (2 * (fy + gy - 2 * f0))));
+      }
+    }
+    return { dx: (bdx + deltaX) * K, dy: (bdy + deltaY) * K, conf: Math.max(0, surface[(bdy + 12) * 25 + (bdx + 12)]) };
   };
   const shiftAt = (f, dx, dy) => {   // out[y,x] = f[y+dy, x+dx] (decimated units)
     const out = new Float32Array(f.length);

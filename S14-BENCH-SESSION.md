@@ -238,6 +238,32 @@ target: TEST MODE VERDICT PASS — 18/18 + residual < 1 px + ratio > 1.5x.
   painting. If disciplined handheld still fails the 197/200 + zero-dup
   gate: escalate to plan §5 mid-burst re-anchor / §9 blob-landmark
   lever; the §11 ack-driven capture remains the structural fix.
+- **1910 (parabolic sub-peak, both decoders)**: page cwcChain ncc()
+  stores its 25×25 NCC surface and fits the 3-point parabola per axis
+  (Δ=(y₋−y₊)/2(y₊+y₋−2y₀), clamp ±0.5, interior + conditioning guard
+  CFG `cwcNccPeakMargin` 0.05; boundary/flat → integer pick);
+  console cwc_pos_decode.py brought to TRUE page parity — the old
+  console had a double-warp (+shift on a SAMPLE-AT convention moved
+  content twice; residuals +6.3/−12.7/−25.4 px vs page-style 0.00) and
+  inverted gain k (med(M)/med(P) vs page med(P)/med(M)) — both fixed.
+  Offline validation (runs/s14p-1910-parity-check.json + -brief.md):
+  tripod 197/200, zero dups, missing [46,90,91], LED16 (135,571)
+  amp 130.5 marg 75.2, LED25 (166,424), position deltas vs old console
+  med 0.0 / max 69 px (=LED120 only, where parity now agrees with the
+  page's own shipped verdict — see below); synthetic sub-px case
+  2.30→0.27 px warp error; refined shift moves ≤0.67 px from integer
+  chain per plane. HANDHELD 1908 re-decode with parity+refinement:
+  39 → 122 LEDs, ZERO dups, pitch med 167.7 → 21.4 px, serpentine
+  runs (longest 10) — the console no longer amplifies the motion
+  degradation (comparators 100/142 were NOT apples-to-apples: the sim
+  had a same-window NCC bug; on identical footing integer chain 136,
+  phaseCorrelate tots 180). Threshold reconciliation: 0.05 (tripod
+  margins med 0.176, fit active 36/36; degraded handheld med 0.045 →
+  refused 24/36 flat peaks). LED120 OPEN ITEM: post-parity,
+  console+page AGREE on the reflection site (both wrong vs pitch) —
+  console authority for export now rests on the PITCH convention, not
+  decoder identity; exclusion list for §8 export: [46,90,91 hidden,
+  120 pitch-resolved].
 
 ## 29 Sep session (continued): WS-heap + the pull recipe + POWER
 
