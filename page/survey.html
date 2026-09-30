@@ -62,7 +62,7 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14P-1906";
+const BUILD = "S14P-1908";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -1256,6 +1256,7 @@ function cwcShowResults(masterL, dec, caption) {
   // static master with a box at each detected LED site (operator view):
   // green = single-claim codeword, amber = multi-site codeword (mirrored
   // strings make 2 sites per code the EXPECTED case in this rig).
+  // S14P-1907: LED-number chip beside each box, same colour as the box.
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const cx2 = cv.getContext('2d');
   const im = cx2.createImageData(W, H);
@@ -1267,10 +1268,23 @@ function cwcShowResults(masterL, dec, caption) {
   cx2.putImageData(im, 0, 0);
   const counts = {};
   for (const s of dec.sites) counts[s.led] = (counts[s.led] || 0) + 1;
+  cx2.font = '10px monospace';
   for (const s of dec.sites) {
-    cx2.strokeStyle = counts[s.led] > 1 ? '#ffb400' : '#00ff55';
+    const multi = counts[s.led] > 1;
+    // 1908: label chips -30% (font 14→10, chip 15→11); site-box stroke
+    // semi-transparent so the operator can see the LED through the box.
+    const col = multi ? 'rgba(255,180,0,0.55)' : 'rgba(0,255,85,0.55)';
+    cx2.strokeStyle = col;
     cx2.lineWidth = 1;
     cx2.strokeRect(s.x - 6, s.y - 6, 13, 13);
+    // label chip right of the box, dark bg for readability on bloom:
+    const txt = String(s.led);
+    const tw2 = cx2.measureText(txt).width;
+    const lx = s.x + 10, ly = s.y - 10;
+    cx2.fillStyle = 'rgba(0,0,0,0.6)';
+    cx2.fillRect(lx - 2, ly - 9, tw2 + 4, 11);
+    cx2.fillStyle = multi ? '#ffb400' : '#00ff55';
+    cx2.fillText(txt, lx, ly);
   }
   const label = caption + ' — ' + dec.sites.length + ' sites';
   cx2.font = '16px monospace';
