@@ -73,20 +73,18 @@ since 28 Sep should finally pass. Sequence:
    `tools/boot_check.py` (expect `page build 'S14P-1903' -> ALIVE`);
    Oliver reloads the phone if it shows GONE. LED supply must be ON
    (ask Oliver — he forgot once). String length is 150 (box default).
-2. `` `/home/nellie/.hermes/hermes-agent/venv/bin/python3 tools/run_round.py
-   runs/s14p-1903-test-lead0 --cwc-test-mode 1 --cwc-test-led 0```
-3. `` `/home/nellie/.hermes/hermes-agent/venv/bin/python3 tools/cwc_analyse.py
-   runs/s14p-1903-test-lead0 --test-led 0``
+2. `/home/nellie/.hermes/hermes-agent/venv/bin/python3 tools/run_round.py runs/s14p-1903-test-lead0 --cwc-test-mode 1 --cwc-test-led 0`
+3. `/home/nellie/.hermes/hermes-agent/venv/bin/python3 tools/cwc_analyse.py runs/s14p-1903-test-lead0 --test-led 0`
 4. GATE: `TEST MODE VERDICT: PASS` — 18/18 bits, residual < 1 px on all
    planes, ON/OFF ratio > 1.5×. If any bit fails, diagnose from the
    per-plane table before touching code (the analyser names the plane).
 
 ## Then, in order (each step verified before the next)
 
-2. LED 1 and LED 25 repeat of the toggle test (different codewords) —
+2. LED 1 and LED 25 repeats of the toggle test (different codewords) —
    cheap confidence that the read isn't tuned to LED 0's pattern.
 3. Handheld repeat of step 1 (same protocol; residual budget ~5 px,
-   zero-error target stands). Oliver holds the phone.
+   zero-error target stands).
 4. Positions-only point set from `runs/s14p-1903-pos1/` site union
    (keep the amp/margin gates from `cwc_pos_decode.py`): emit
    ledcloud/2 (§8) with class C for strong single sites, then show
@@ -94,7 +92,7 @@ since 28 Sep should finally pass. Sequence:
 5. Serpentine string tracing over the site union (positions only) —
    separates string 1 from string 2. This is the step that needs
    Oliver's eyes on the overlay, since string topology is physical.
-6. Only then start the S14Q build per plan §11 — gates: C6 async-WS
+6. Only then start the build per plan §11 — gates: C6 async-WS
    spike FIRST (httpd_ws_send_frame_async on raw esp_https_server,
    unsolicited send), then the JS decoder must reproduce the console
    decoder's verdicts on the SAME captured frames before any
