@@ -168,6 +168,22 @@ target: TEST MODE VERDICT PASS — 18/18 + residual < 1 px + ratio > 1.5x.
   pixels read coin-flips → the segment is OCCLUDED/defocused, not
   unlit). Handling per §5: honest reject → class I interpolate from
   serpentine neighbours.
+- **[SUPERSEDED occlusion call]** — see plan §10c: the real root cause
+  of the 1905 misses was the CANDIDATE MASK, not occlusion
+  (operator-corrected); the 1906 recipe recovers 20–25 + 150–156.
+- **1906 PHONE ROUND 14:58 (first phone-side 1906 validation,
+  runs/s14p-1906-phone-pos1)**: boot_check ALIVE 'S14P-1906'; run_round
+  19/19 frames, labels unique; page decode 194 LEDs → cwc_dec.json;
+  console **197/200** missing [46,90,91] (margin-0-everywhere), ZERO
+  dup claims both sides; LED 16 recovered amp 137.1 margin 77.2; amp
+  max 250.8, no 255 clip; 20–25 + 150–156 all present amp 117–207;
+  LED 25 VERIFIED (167,424) amp 136.9 margin 83.9 (toggle 16/18 =
+  bloom crosstalk, now confirmed). Gate PASSED. One page-vs-console
+  divergence: codeword 120's page box 67 px right on a specular
+  REFLECTION (253,301 vs console 186,303 on-pitch); console
+  authoritative, page mask divergence → cwc_decode_sim gate list;
+  other 193 shared IDs median 0.00 px. NEXT: handheld toggle repeat
+  (§4), then ledcloud/2 export (§8).
 
 ## 29 Sep session (continued): WS-heap + the pull recipe + POWER
 
