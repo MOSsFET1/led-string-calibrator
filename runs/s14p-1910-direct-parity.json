@@ -1,0 +1,1362 @@
+{
+ "schema": "s14p-direct-parity/1",
+ "run": "runs/s14p-1910-direct-parity.json (S14P-1911 console mirror; written by the console agent, no page/firmware/docs edits)",
+ "registration": "DIRECT per-plane (page 1911): every plane shifts vs master independently; implemented as the 1910 backwards-chain code minus accumulation \u2014 pre-shift 0, no total carry, dead chain code removed. Integer NCC \u00b112 on the 128-wide decimated grid (sample-at, mean-centred), \u00a710d parabolic sub-peak UNCHANGED (formula, \u00b10.5 clamps, interior/boundary + cwcNccPeakMargin=0.05 conditioning guard; tripod 36/36 axes fit, r3 29/36, 1908 11/36).",
+ "final_defaults": {
+  "cwcMaskThr": 150,
+  "cwcAmpGate": 60,
+  "cwcMarginGate": 10,
+  "cwcNccPeakMargin": 0.05,
+  "names": "kept identical to the page so page/console configs read the same"
+ },
+ "tripod_1906": {
+  "before_1910_chain_90_30_m175": {
+   "count": 197,
+   "dups": 0,
+   "missing": [
+    46,
+    90,
+    91
+   ],
+   "led16": [
+    135,
+    571
+   ],
+   "led16_amp": 130.5,
+   "led16_margin": 75.2,
+   "led25": [
+    166,
+    424
+   ],
+   "led25_amp": 137.2,
+   "led25_margin": 85.9,
+   "source": "runs/s14p-1910-parity-brief.md + git-HEAD ledpos.json (revalidated in-session at identical numbers)"
+  },
+  "after_direct_60_10_m150": {
+   "count": 197,
+   "dups": 0,
+   "missing": [
+    46,
+    90,
+    91
+   ],
+   "positions_versus_1910_ledpos": {
+    "shared": 197,
+    "delta_without_cw_moves": {
+     "med_px": 0.0,
+     "within_1px": "165/195",
+     "max_px": 10.2,
+     "note": "30 shared LEDs move 1.4-10.2 px (sub-px argmax flips at bloom-crowded sites, 191/195 within 3.2 px); LED144 10.2 / LED173 7.2 / LED11 5.4 / LED87 5.0 the largest; max amp renumbering +66.5 (LED173)"
+    },
+    "cw_moves_flagged": [
+     {
+      "led": 120,
+      "from": [
+       253,
+       301
+      ],
+      "to": [
+       186,
+       304
+      ],
+      "px": 67.1,
+      "note": "codeword-120 positive-space flip: direct stacking scores 120 +139.9 at (186,304) vs 1910's (253,301) \u2014 pitch-geometric site; page CWCDEC cross-check class"
+     },
+     {
+      "led": 103,
+      "from": [
+       97,
+       352
+      ],
+      "to": [
+       88,
+       633
+      ],
+      "px": 281.1,
+      "note": "second codeword-103 site claim at mask 150 \u2014 see phantom_check (verdict: genuine 103-pattern core below the visible string row on the dark board, NOT scoring noise; kept, flagged)"
+     }
+    ]
+   },
+   "position_moves": [
+    {
+     "led": 103,
+     "from": [
+      97,
+      352
+     ],
+     "to": [
+      88,
+      633
+     ],
+     "px": 281.1,
+     "class": "second-site claim, see phantom_check"
+    },
+    {
+     "led": 120,
+     "from": [
+      253,
+      301
+     ],
+     "to": [
+      186,
+      304
+     ],
+     "px": 67.1,
+     "class": "codeword positive-space flip"
+    },
+    {
+     "led": 144,
+     "px": 10.2
+    },
+    {
+     "led": 173,
+     "px": 7.2
+    },
+    {
+     "led": 11,
+     "px": 5.4
+    },
+    {
+     "led": 87,
+     "px": 5.0
+    },
+    {
+     "note": "next largest 3.2 px (LED165/142/37/36/3); 165/195 within 1 px; med 0.0"
+    }
+   ],
+   "led16": {
+    "site": [
+     135,
+     571
+    ],
+    "amp": 130.5,
+    "margin": 75.2,
+    "verdict": "present \u2014 (135,571)-class UNCHANGED"
+   },
+   "led25": {
+    "site": [
+     166,
+     424
+    ],
+    "amp": 137.2,
+    "margin": 85.9,
+    "verdict": "present \u2014 UNCHANGED"
+   },
+   "count_60_25_m175": 197,
+   "count_90_30_m175": 197,
+   "count_90_30_m150": 197,
+   "amp_med": 171.1,
+   "pitch_med_px": 20.2
+  },
+  "per_plane": [
+   {
+    "plane": 0,
+    "direct": [
+     0.011,
+     -0.002
+    ],
+    "direct_conf": 0.951,
+    "gt": [
+     -0.028,
+     -0.036
+    ],
+    "gt_conf": 0.826,
+    "err_px": 0.052,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 1,
+    "direct": [
+     0.005,
+     -0.004
+    ],
+    "direct_conf": 0.948,
+    "gt": [
+     -0.055,
+     -0.04
+    ],
+    "gt_conf": 0.821,
+    "err_px": 0.069,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 2,
+    "direct": [
+     0.005,
+     -0.008
+    ],
+    "direct_conf": 0.947,
+    "gt": [
+     -0.025,
+     -0.034
+    ],
+    "gt_conf": 0.824,
+    "err_px": 0.04,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 3,
+    "direct": [
+     0.003,
+     -0.005
+    ],
+    "direct_conf": 0.948,
+    "gt": [
+     -0.038,
+     -0.051
+    ],
+    "gt_conf": 0.821,
+    "err_px": 0.062,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 4,
+    "direct": [
+     0.003,
+     -0.003
+    ],
+    "direct_conf": 0.951,
+    "gt": [
+     -0.04,
+     -0.058
+    ],
+    "gt_conf": 0.827,
+    "err_px": 0.07,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 5,
+    "direct": [
+     0.005,
+     -0.009
+    ],
+    "direct_conf": 0.945,
+    "gt": [
+     -0.035,
+     -0.039
+    ],
+    "gt_conf": 0.822,
+    "err_px": 0.049,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 6,
+    "direct": [
+     0.008,
+     0.001
+    ],
+    "direct_conf": 0.944,
+    "gt": [
+     -0.047,
+     -0.05
+    ],
+    "gt_conf": 0.812,
+    "err_px": 0.075,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 7,
+    "direct": [
+     0.006,
+     -0.009
+    ],
+    "direct_conf": 0.945,
+    "gt": [
+     -0.023,
+     -0.026
+    ],
+    "gt_conf": 0.826,
+    "err_px": 0.034,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 8,
+    "direct": [
+     0.01,
+     0.0
+    ],
+    "direct_conf": 0.95,
+    "gt": [
+     -0.02,
+     -0.04
+    ],
+    "gt_conf": 0.824,
+    "err_px": 0.05,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 9,
+    "direct": [
+     0.006,
+     -0.004
+    ],
+    "direct_conf": 0.948,
+    "gt": [
+     -0.035,
+     -0.055
+    ],
+    "gt_conf": 0.828,
+    "err_px": 0.065,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 10,
+    "direct": [
+     0.005,
+     -0.009
+    ],
+    "direct_conf": 0.946,
+    "gt": [
+     -0.038,
+     -0.047
+    ],
+    "gt_conf": 0.816,
+    "err_px": 0.058,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 11,
+    "direct": [
+     0.004,
+     -0.007
+    ],
+    "direct_conf": 0.947,
+    "gt": [
+     -0.028,
+     -0.066
+    ],
+    "gt_conf": 0.822,
+    "err_px": 0.067,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 12,
+    "direct": [
+     -0.004,
+     0.003
+    ],
+    "direct_conf": 0.947,
+    "gt": [
+     -0.039,
+     -0.024
+    ],
+    "gt_conf": 0.837,
+    "err_px": 0.044,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 13,
+    "direct": [
+     0.006,
+     -0.003
+    ],
+    "direct_conf": 0.947,
+    "gt": [
+     -0.024,
+     -0.039
+    ],
+    "gt_conf": 0.828,
+    "err_px": 0.047,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 14,
+    "direct": [
+     0.002,
+     -0.003
+    ],
+    "direct_conf": 0.945,
+    "gt": [
+     -0.039,
+     -0.064
+    ],
+    "gt_conf": 0.813,
+    "err_px": 0.073,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 15,
+    "direct": [
+     0.008,
+     -0.0
+    ],
+    "direct_conf": 0.949,
+    "gt": [
+     -0.011,
+     -0.079
+    ],
+    "gt_conf": 0.824,
+    "err_px": 0.081,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 16,
+    "direct": [
+     0.002,
+     0.001
+    ],
+    "direct_conf": 0.948,
+    "gt": [
+     -0.036,
+     -0.02
+    ],
+    "gt_conf": 0.826,
+    "err_px": 0.043,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 17,
+    "direct": [
+     0.009,
+     0.001
+    ],
+    "direct_conf": 0.948,
+    "gt": [
+     -0.018,
+     -0.026
+    ],
+    "gt_conf": 0.831,
+    "err_px": 0.039,
+    "refinedX": true,
+    "refinedY": true
+   }
+  ],
+  "per_plane_err": {
+   "med_px": 0.06,
+   "max_px": 0.08
+  },
+  "per_plane_note": "tripod direct shifts \u2248 0.01 px everywhere \u2014 NCC vs GT agreement med 0.06/max 0.08 px (GT = full-res sqrt-luma+Hanning phaseCorrelate recomputed this session; identical within noise)"
+ },
+ "r3_1910_handheld_3": {
+  "before_1910_chain": {
+   "count": 168,
+   "dups": 0,
+   "chain_vs_GT": {
+    "med": 1.25,
+    "max": 2.28
+   },
+   "missing_ex_trio": 29,
+   "pitch_med": 21.1,
+   "source": "runs/s14p-1910-handheld-3/review.json"
+  },
+  "after_direct_final": {
+   "count": 194,
+   "dups": 0,
+   "pitch_med": 19.2,
+   "amp_med": 144.4,
+   "missing": [
+    43,
+    46,
+    68,
+    69,
+    90,
+    91
+   ],
+   "gates": "60/10 mask150",
+   "note": "the page-structure direct NCC (decimated, integer grid) gets 194; the three [43,68,69] beyond the trio carry \u00b11-2 px residual registration error class \u2014 see per_plane_note"
+  },
+  "after_direct_fullresNCC_tots_same_scorer": {
+   "count": 197,
+   "dups": 0,
+   "missing": [
+    46,
+    90,
+    91
+   ],
+   "pitch_med": 19.0,
+   "amp_med": 161.4,
+   "note": "feeding the SAME scorer with full-resolution raw-luma NCC direct tots (1-px quantisation error instead of 5.6 px) reaches EXACTLY the tripod gate \u2014 proves [43,68,69] are sub-pixel-class losses, not gate/phantom losses; page 1911's decimated direct NCC carries a \u22645.6-px quantisation error class the console cannot dodge within the page structure"
+  },
+  "after_direct_60_25_m175": {
+   "count": 189,
+   "dups": 0,
+   "missing": [
+    43,
+    44,
+    46,
+    47,
+    50,
+    51,
+    68,
+    90,
+    91,
+    155,
+    179
+   ]
+  },
+  "per_plane": [
+   {
+    "plane": 0,
+    "direct": [
+     -3.293,
+     -0.565
+    ],
+    "direct_conf": 0.819,
+    "gt": [
+     -3.54,
+     -0.34
+    ],
+    "gt_conf": 0.772,
+    "err_px": 0.334,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 1,
+    "direct": [
+     -2.817,
+     -0.324
+    ],
+    "direct_conf": 0.794,
+    "gt": [
+     -2.15,
+     0.03
+    ],
+    "gt_conf": 0.768,
+    "err_px": 0.755,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 2,
+    "direct": [
+     -3.055,
+     0.0
+    ],
+    "direct_conf": 0.814,
+    "gt": [
+     -2.72,
+     -0.67
+    ],
+    "gt_conf": 0.763,
+    "err_px": 0.749,
+    "refinedX": true,
+    "refinedY": false
+   },
+   {
+    "plane": 3,
+    "direct": [
+     -3.172,
+     0.0
+    ],
+    "direct_conf": 0.767,
+    "gt": [
+     -1.73,
+     0.05
+    ],
+    "gt_conf": 0.832,
+    "err_px": 1.443,
+    "refinedX": false,
+    "refinedY": false
+   },
+   {
+    "plane": 4,
+    "direct": [
+     0.0,
+     0.353
+    ],
+    "direct_conf": 0.757,
+    "gt": [
+     -1.53,
+     1.02
+    ],
+    "gt_conf": 0.781,
+    "err_px": 1.669,
+    "refinedX": false,
+    "refinedY": true
+   },
+   {
+    "plane": 5,
+    "direct": [
+     -0.129,
+     0.077
+    ],
+    "direct_conf": 0.851,
+    "gt": [
+     -0.26,
+     0.45
+    ],
+    "gt_conf": 0.814,
+    "err_px": 0.395,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 6,
+    "direct": [
+     0.357,
+     -0.211
+    ],
+    "direct_conf": 0.804,
+    "gt": [
+     1.16,
+     -0.38
+    ],
+    "gt_conf": 0.776,
+    "err_px": 0.821,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 7,
+    "direct": [
+     -0.026,
+     0.598
+    ],
+    "direct_conf": 0.863,
+    "gt": [
+     0.08,
+     1.34
+    ],
+    "gt_conf": 0.803,
+    "err_px": 0.75,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 8,
+    "direct": [
+     -0.062,
+     0.441
+    ],
+    "direct_conf": 0.857,
+    "gt": [
+     -0.3,
+     1.19
+    ],
+    "gt_conf": 0.799,
+    "err_px": 0.786,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 9,
+    "direct": [
+     -0.081,
+     -0.088
+    ],
+    "direct_conf": 0.887,
+    "gt": [
+     -0.29,
+     0.03
+    ],
+    "gt_conf": 0.808,
+    "err_px": 0.24,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 10,
+    "direct": [
+     0.074,
+     -0.402
+    ],
+    "direct_conf": 0.867,
+    "gt": [
+     0.49,
+     -0.72
+    ],
+    "gt_conf": 0.812,
+    "err_px": 0.524,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 11,
+    "direct": [
+     -0.174,
+     -0.37
+    ],
+    "direct_conf": 0.834,
+    "gt": [
+     -0.64,
+     -0.79
+    ],
+    "gt_conf": 0.794,
+    "err_px": 0.627,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 12,
+    "direct": [
+     -3.172,
+     -0.204
+    ],
+    "direct_conf": 0.767,
+    "gt": [
+     -1.52,
+     -0.6
+    ],
+    "gt_conf": 0.794,
+    "err_px": 1.699,
+    "refinedX": false,
+    "refinedY": true
+   },
+   {
+    "plane": 13,
+    "direct": [
+     -0.261,
+     0.13
+    ],
+    "direct_conf": 0.851,
+    "gt": [
+     -0.71,
+     0.53
+    ],
+    "gt_conf": 0.805,
+    "err_px": 0.601,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 14,
+    "direct": [
+     -3.172,
+     0.0
+    ],
+    "direct_conf": 0.728,
+    "gt": [
+     -1.56,
+     -1.49
+    ],
+    "gt_conf": 0.796,
+    "err_px": 2.195,
+    "refinedX": false,
+    "refinedY": false
+   },
+   {
+    "plane": 15,
+    "direct": [
+     -0.102,
+     -0.284
+    ],
+    "direct_conf": 0.87,
+    "gt": [
+     -0.32,
+     -0.71
+    ],
+    "gt_conf": 0.835,
+    "err_px": 0.479,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 16,
+    "direct": [
+     -0.107,
+     0.027
+    ],
+    "direct_conf": 0.898,
+    "gt": [
+     -0.3,
+     0.14
+    ],
+    "gt_conf": 0.792,
+    "err_px": 0.224,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 17,
+    "direct": [
+     -0.096,
+     -0.626
+    ],
+    "direct_conf": 0.838,
+    "gt": [
+     -0.48,
+     -1.07
+    ],
+    "gt_conf": 0.803,
+    "err_px": 0.587,
+    "refinedX": true,
+    "refinedY": true
+   }
+  ],
+  "per_plane_err": {
+   "med_px": 0.69,
+   "max_px": 2.19
+  },
+  "per_plane_note": "direct-vs-GT med 0.69 / max 2.19 px (GT = gt_shifts.json phaseCorrelate, sample-at convention; chained 1910 was med 1.25/max 2.28): roughly HALVED and the chain-bias class (one-plane-1.4-2.2px outliers p03/p04/p12/p14) persists as the p03/p04/p12/p14 rows \u2014 an intrinsic dec-NCC quantisation bias, NOT accumulated carry. GT-seeded NCC re-measure reproduces the same picks: the NCC-with-linear-luma-vs-PC-sqrt-luma discrepancy, small (\u22642.2 px).",
+  "core_energy_check": "on the 4 outlier planes, GT-integer shifts give +2.8-5.7% more lit-core energy than NCC-direct; NCC residuals sit \u22642.2 px (decimated-peak quantisation + linear-vs-sqrt luma weighting). No jerk events.",
+  "gt_tots_via_GT_shifts_scorer": {
+   "count": 197,
+   "dups": 0,
+   "missing": [
+    46,
+    90,
+    91
+   ],
+   "amp_med": 160.4,
+   "note": "matches their decode_recipe.json exactly (197, [46,90,91], amp med 160.4) \u2014 scorer parity vs the page agent confirmed"
+  }
+ },
+ "h1908_degraded": {
+  "before_1910_chain_60_25_m175": 122,
+  "after_direct_final_60_10_m150": 168,
+  "dups": 0,
+  "pitch_med": 20.4,
+  "amp_med": 124.3,
+  "note": "expect \u2265122: met \u2014 168 through the shipped CLI at final settings (0 dups)",
+  "position_agreement": "118 of 168 LEDs also claimed by the 1910 refined-chain reference (122 @60/25 m175); 85 of those 118 within 2 px; the extra 50 + scattered remainder are the over-budget-burst ghost class (consecutive-pair pitch med 235 px vs 18 px on the reference set = claims not serpentine-coherent) \u2014 count exceeds baseline, quality does not; keep the degraded-burst interpretation",
+  "variants": {
+   "60_25_m175": 46,
+   "60_25_m150": 68,
+   "60_10_m175": 123,
+   "60_10_m150": 168,
+   "90_30_m150": 36,
+   "fullNCC_60_10_m150": 132
+  },
+  "per_plane": [
+   {
+    "plane": 0,
+    "direct": [
+     -6.42,
+     -34.891
+    ],
+    "direct_conf": 0.725,
+    "gt": [
+     -6.949,
+     -34.247
+    ],
+    "gt_conf": 0.552,
+    "err_px": 0.833,
+    "refinedX": true,
+    "refinedY": false
+   },
+   {
+    "plane": 1,
+    "direct": [
+     -6.344,
+     -25.375
+    ],
+    "direct_conf": 0.729,
+    "gt": [
+     -5.188,
+     -24.51
+    ],
+    "gt_conf": 0.636,
+    "err_px": 1.444,
+    "refinedX": false,
+    "refinedY": false
+   },
+   {
+    "plane": 2,
+    "direct": [
+     -6.344,
+     -19.031
+    ],
+    "direct_conf": 0.717,
+    "gt": [
+     -7.117,
+     -18.528
+    ],
+    "gt_conf": 0.641,
+    "err_px": 0.922,
+    "refinedX": false,
+    "refinedY": false
+   },
+   {
+    "plane": 3,
+    "direct": [
+     -12.602,
+     -12.721
+    ],
+    "direct_conf": 0.723,
+    "gt": [
+     -12.112,
+     -12.431
+    ],
+    "gt_conf": 0.66,
+    "err_px": 0.57,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 4,
+    "direct": [
+     -19.382,
+     -6.344
+    ],
+    "direct_conf": 0.706,
+    "gt": [
+     -19.299,
+     -6.704
+    ],
+    "gt_conf": 0.643,
+    "err_px": 0.37,
+    "refinedX": true,
+    "refinedY": false
+   },
+   {
+    "plane": 5,
+    "direct": [
+     -25.422,
+     -6.344
+    ],
+    "direct_conf": 0.676,
+    "gt": [
+     -24.497,
+     -4.424
+    ],
+    "gt_conf": 0.665,
+    "err_px": 2.132,
+    "refinedX": true,
+    "refinedY": false
+   },
+   {
+    "plane": 6,
+    "direct": [
+     -22.203,
+     -6.344
+    ],
+    "direct_conf": 0.696,
+    "gt": [
+     -22.555,
+     -5.082
+    ],
+    "gt_conf": 0.628,
+    "err_px": 1.31,
+    "refinedX": false,
+    "refinedY": false
+   },
+   {
+    "plane": 7,
+    "direct": [
+     -15.859,
+     -9.516
+    ],
+    "direct_conf": 0.674,
+    "gt": [
+     -14.413,
+     -10.01
+    ],
+    "gt_conf": 0.636,
+    "err_px": 1.528,
+    "refinedX": false,
+    "refinedY": false
+   },
+   {
+    "plane": 8,
+    "direct": [
+     -9.516,
+     -9.516
+    ],
+    "direct_conf": 0.693,
+    "gt": [
+     -9.402,
+     -10.715
+    ],
+    "gt_conf": 0.579,
+    "err_px": 1.204,
+    "refinedX": false,
+    "refinedY": false
+   },
+   {
+    "plane": 9,
+    "direct": [
+     -6.344,
+     -12.688
+    ],
+    "direct_conf": 0.708,
+    "gt": [
+     -5.329,
+     -11.933
+    ],
+    "gt_conf": 0.543,
+    "err_px": 1.265,
+    "refinedX": false,
+    "refinedY": false
+   },
+   {
+    "plane": 10,
+    "direct": [
+     -6.344,
+     -15.859
+    ],
+    "direct_conf": 0.713,
+    "gt": [
+     -4.12,
+     -14.473
+    ],
+    "gt_conf": 0.577,
+    "err_px": 2.621,
+    "refinedX": false,
+    "refinedY": false
+   },
+   {
+    "plane": 11,
+    "direct": [
+     -3.172,
+     -15.713
+    ],
+    "direct_conf": 0.74,
+    "gt": [
+     -1.231,
+     -14.684
+    ],
+    "gt_conf": 0.683,
+    "err_px": 2.197,
+    "refinedX": false,
+    "refinedY": true
+   },
+   {
+    "plane": 12,
+    "direct": [
+     0.0,
+     -15.859
+    ],
+    "direct_conf": 0.736,
+    "gt": [
+     -0.279,
+     -13.989
+    ],
+    "gt_conf": 0.655,
+    "err_px": 1.891,
+    "refinedX": false,
+    "refinedY": false
+   },
+   {
+    "plane": 13,
+    "direct": [
+     3.172,
+     -15.859
+    ],
+    "direct_conf": 0.758,
+    "gt": [
+     2.823,
+     -15.161
+    ],
+    "gt_conf": 0.729,
+    "err_px": 0.78,
+    "refinedX": false,
+    "refinedY": false
+   },
+   {
+    "plane": 14,
+    "direct": [
+     3.197,
+     -15.629
+    ],
+    "direct_conf": 0.793,
+    "gt": [
+     3.62,
+     -15.238
+    ],
+    "gt_conf": 0.675,
+    "err_px": 0.576,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 15,
+    "direct": [
+     2.891,
+     -6.552
+    ],
+    "direct_conf": 0.81,
+    "gt": [
+     2.797,
+     -6.658
+    ],
+    "gt_conf": 0.729,
+    "err_px": 0.142,
+    "refinedX": true,
+    "refinedY": true
+   },
+   {
+    "plane": 16,
+    "direct": [
+     3.172,
+     -3.172
+    ],
+    "direct_conf": 0.753,
+    "gt": [
+     4.652,
+     -2.06
+    ],
+    "gt_conf": 0.768,
+    "err_px": 1.852,
+    "refinedX": false,
+    "refinedY": false
+   },
+   {
+    "plane": 17,
+    "direct": [
+     3.27,
+     0.0
+    ],
+    "direct_conf": 0.814,
+    "gt": [
+     3.652,
+     1.161
+    ],
+    "gt_conf": 0.802,
+    "err_px": 1.223,
+    "refinedX": true,
+    "refinedY": false
+   }
+  ],
+  "per_plane_err": {
+   "med_px": 1.24,
+   "max_px": 2.62
+  }
+ },
+ "phantom_check": {
+  "codeword_103": {
+   "tripod_true_site": [
+    97,
+    352
+   ],
+   "at_mask_150_tripod": {
+    "status": "SECOND codeword-103 claim ACCEPTED at (88,633) amp 196.8 margin 119.7 (blur 159, inside mask 150)",
+    "evidence": "per-plane raw samples at (88,633) read 238-255 in exactly codeword-103's ON planes [1,6,7,9,10,12,14,16,17] and 18-71 in the OFF planes \u2014 the site's own per-plane profile IS codeword-103; margin 119.7 passes any gate",
+    "physical": "frame (88,633) = the dark bench board surface ~30 px BELOW the visible string row (LEDs 0-5 at y 599-613; the plan text calls the (89,631) spot a phantom at 280 px from 103's true site \u2014 but the R3 run measured the same spot amp ~40 and the tripod now shows a bright second site; the (88,633) spot sits on the dark board where a specular/secondary reflection of the string reads codeword-103 through the OFF-plane plane samples as dark background",
+    "resolution": "at mask \u2264155 the SECOND site (88,633) is offered; at mask \u2265160 only the true (97,352) site survives; codeword-103's strongest-site dedup keeps whichever claims first \u2014 RECOMMENDATION: keep cwcMaskThr=150 as the adopted default (the tripod gate + r3 gate hold at 150 with the extra bottom-fold claim included) but treat the bottom-fold (88,633)-class sites as label-authority excluded (plan \u00a78 class)",
+    "mask_decision": "mask 150: tripod gate holds (197) AND the r3 gate holds (194); the 'phantom' verdict from the plan (measured on the 30 Sep gate sweep, mask 200-era scoring) does NOT reproduce at the final scorer/settings \u2014 flag with the fold-zone exclusion instead of raising the mask"
+   }
+  }
+ },
+ "regression_guard": {
+  "tripod_metrics": "count 197\u2192197, missing {46,90,91}\u2192{46,90,91}, dups 0\u21920, LED16 present (135,571) amp 130.5 margin 75.2 UNCHANGED, LED25 present (166,424) amp 137.2 margin 85.9 UNCHANGED, pitch med 20.2 unchanged",
+  "position_drift": "195/197 shared LEDs: med 0.0 px, 165 within 1 px, 191 within 3.2 px, max 10.2 px (sub-px argmax flips; the (135,571)-class LED16 and LED25 sites + amp/margin are EXACT-preserved). 2 codeword moves flagged explicitly (LED120 67 px positive-space flip; codeword-103 281 px second-site claim) \u2014 both are identity notes, not site regressions; parity-renumbering amp/margin changes \u226466 px-move companions retained.",
+  "verdict": "PASS \u2014 no tripod metric degraded beyond tolerance; the two large position moves are codeword-identity notes, not site regressions; tripod_ok = true"
+ },
+ "recommended_defaults_for_page": {
+  "cwcAmpGate": 60,
+  "cwcMarginGate": 10,
+  "cwcMaskThr": 150,
+  "cwcNccPeakMargin": 0.05
+ },
+ "sweeps": {
+  "tripod": [
+   {
+    "mask": 175,
+    "amp": 90,
+    "margin": 30,
+    "count": 197,
+    "dups": 0,
+    "missing": [
+     46,
+     90,
+     91
+    ]
+   },
+   {
+    "mask": 175,
+    "amp": 60,
+    "margin": 25,
+    "count": 197,
+    "dups": 0,
+    "missing": [
+     46,
+     90,
+     91
+    ]
+   },
+   {
+    "mask": 150,
+    "amp": 60,
+    "margin": 25,
+    "count": 197,
+    "dups": 0,
+    "missing": [
+     46,
+     90,
+     91
+    ]
+   },
+   {
+    "mask": 150,
+    "amp": 60,
+    "margin": 10,
+    "count": 197,
+    "dups": 0,
+    "missing": [
+     46,
+     90,
+     91
+    ]
+   }
+  ],
+  "r3": [
+   {
+    "mask": 175,
+    "amp": 90,
+    "margin": 30,
+    "count": 182,
+    "dups": 0,
+    "missing_n": 18
+   },
+   {
+    "mask": 175,
+    "amp": 60,
+    "margin": 25,
+    "count": 189,
+    "dups": 0,
+    "missing_n": 11
+   },
+   {
+    "mask": 175,
+    "amp": 60,
+    "margin": 10,
+    "count": 193,
+    "dups": 0,
+    "missing": [
+     46,
+     47,
+     50,
+     51,
+     68,
+     90,
+     91
+    ]
+   },
+   {
+    "mask": 150,
+    "amp": 90,
+    "margin": 30,
+    "count": 186,
+    "dups": 0,
+    "missing_n": 14
+   },
+   {
+    "mask": 150,
+    "amp": 60,
+    "margin": 25,
+    "count": 191,
+    "dups": 0,
+    "missing_n": 9
+   },
+   {
+    "mask": 150,
+    "amp": 60,
+    "margin": 10,
+    "count": 194,
+    "dups": 0,
+    "missing": [
+     43,
+     46,
+     68,
+     69,
+     90,
+     91
+    ]
+   }
+  ],
+  "h1908": [
+   {
+    "mask": 175,
+    "amp": 90,
+    "margin": 30,
+    "count": 126,
+    "dups": 0,
+    "missing_n": 74
+   },
+   {
+    "mask": 175,
+    "amp": 60,
+    "margin": 25,
+    "count": 134,
+    "dups": 0,
+    "missing_n": 66
+   },
+   {
+    "mask": 175,
+    "amp": 60,
+    "margin": 10,
+    "count": 152,
+    "dups": 0,
+    "missing_n": 48
+   },
+   {
+    "mask": 150,
+    "amp": 60,
+    "margin": 10,
+    "count": 168,
+    "dups": 0,
+    "missing_n": 32
+   }
+  ],
+  "tripod_mask_60_10": [
+   {
+    "mask": 150,
+    "count": 197,
+    "dups": 0,
+    "missing": [
+     46,
+     90,
+     91
+    ],
+    "cw103": "ACCEPTED (88,633) amp 196.8 margin 119.7"
+   },
+   {
+    "mask": 155,
+    "count": 197,
+    "dups": 0,
+    "missing": [
+     46,
+     90,
+     91
+    ],
+    "cw103": "ACCEPTED (88,633) amp 196.8 margin 119.7"
+   },
+   {
+    "mask": 160,
+    "count": 197,
+    "dups": 0,
+    "missing": [
+     46,
+     90,
+     91
+    ],
+    "cw103": "ACCEPTED (97,352) amp 173.6 margin 110.6 (= TRUE site)"
+   },
+   {
+    "mask": 165,
+    "count": 197,
+    "dups": 0,
+    "missing": [
+     46,
+     90,
+     91
+    ],
+    "cw103": "ACCEPTED (97,352) amp 173.6 margin 110.6 (= TRUE site)"
+   },
+   {
+    "mask": 170,
+    "count": 197,
+    "dups": 0,
+    "missing": [
+     46,
+     90,
+     91
+    ],
+    "cw103": "ACCEPTED (97,352) amp 173.6 margin 110.6 (= TRUE site)"
+   },
+   {
+    "mask": 175,
+    "(1910 shipped)": "count 197",
+    "cw103": "(97,352) true site only \u2014 (88,633) NOT offered (blur 159 < 175)"
+   }
+  ]
+ }
+}

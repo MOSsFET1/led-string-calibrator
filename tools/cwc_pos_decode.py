@@ -1,18 +1,24 @@
 #!/usr/bin/env python3
 """CWC position+identity decode (S14P): score every LED's codeword against
-every lit site. S14P-1910: registration = the page's BACKWARDS CHAIN +
-parabolic sub-peak refinement (S14 plan §10d) — line-for-line with page
-cwcChain/cwcNccPeakMargin (cwc_decode_sim gate, plan §11.5).
+every lit site. S14P-1911: registration = DIRECT per-plane — every plane
+registers vs the master independently (page agent decision S14P-1911: chain
+totals sat 1.25-2.28 px off GT on handheld runs, and that 1-2 px total-stack
+bias corrupts crowded d6 pairs at 20 px pitch; the plan's own §3 already
+found plane-vs-master NEVER degrades with raw shift). Structure = the same
+backwards-chain code minus the accumulation: for each plane p the NCC runs
+vs the master with the integer pre-shift DISABLED (pre-shift = 0), i.e.
+shift[p] = ncc(mD, dec(plane_p)); the §10d parabolic sub-peak (S14 plan
+§10d, page cwcNccPeakMargin) is unchanged — formula, clamps, interior/
+boundary and conditioning-guard behaviour identical to 1910.
 
 Inputs: a pulled CWC run dir (master + 18 planes).
 Outputs: <run>/ledpos.json (per confirmed LED: cx, cy, amp, amp_margin) and
          <run>/led_overlay.png (12 px box + id on the master frame).
 
-Registration recipe (S14 plan §10/§10d, page cwcChain 30 Sep):
+Registration recipe (S14 plan §3/§10d, page cwcChain structure):
   - decimate master+plane to 128-wide grid (nearest-sample, W/128 = K px/step);
-  - p17 registers DIRECT vs master; then each p (16..0) is pre-shifted by the
-    previous plane's integer TOTAL (Math.round(prev.dx/K) steps, sample-at)
-    and re-measured vs master for its remainder; totals carry down backwards.
+  - EVERY plane measures DIRECT vs the decimated master (no pre-shift, no
+    carry: the dead chain remainder/pre-shift/total-carry code is removed);
   - integer NCC, ±12 steps both axes, mean-centred (ref global-mean cross
     term; cur global mean for b2) — sample-at convention: cur[y+dy, x+dx]
     aligns ref[y,x] (verified against the shipped CWCSTATS chain: 1908 dev
@@ -23,9 +29,9 @@ Registration recipe (S14 plan §10/§10d, page cwcChain 30 Sep):
     applied ONLY when the peak stands over its shoulders (per-axis margin
     peak − max(side) >= cwcNccPeakMargin conf units, default 0.05 — measured:
     tripod per-axis margins 0.17–0.25 min, handheld degraded 0.001–0.13);
-    integer pick kept at ±12 boundary peaks. Float totals, integer pre-shift.
+    integer pick kept at ±12 boundary peaks. Float shifts, no carry.
 Read recipe (S14 plan §1/§3, r6 lesson): per-plane stacksig = master − k_p·plane
-sampled at the plane's integer chained shift (k_p = per-plane median gain,
+sampled at the plane's integer direct shift (k_p = per-plane median gain,
 integer sample-at like the page — NO warpAffine; the old float-warp path was
 sign-inverted vs the page convention and doubled handheld residuals).
 Signed profile: positive = LED OFF in that plane at that site; per-LED score
@@ -33,9 +39,9 @@ Signed profile: positive = LED OFF in that plane at that site; per-LED score
 Codeword bank prefix property: first-150 d_min = 6 → the identity gate
 requires a d6 margin (score minus best non-confusable competitor > gate).
 
-Usage: venv python3 cwc_pos_decode.py <run_dir> [--amp-gate 90]
-       [--margin-gate 30] [--peak-margin 0.05] [--no-refine]
-       [--save-overlay] [--save-json]
+Usage: venv python3 cwc_pos_decode.py <run_dir> [--amp-gate 60]
+       [--margin-gate 10] [--peak-margin 0.05] [--save-overlay]
+       [--save-json]
 """
 import argparse, json, math, sys
 from pathlib import Path
@@ -46,27 +52,25 @@ BASE = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE))
 from offline_hole_verify import decode_run  # noqa: E402
 
-MASK_THR = 175        # master blur luma = candidate LED site (200->175, 30 Sep
-                      # sweep: 20-25 + 150-156 fail the MASK not the gates —
-                      # their true sites score amp 90-124 / margin 56-78 but
-                      # blur-luma 184-191; 175 = mid-gap, weakest needed 180 /
-                      # strongest phantom 167; do NOT go <=160, a codeword-103
-                      # phantom at (89,631) survives there even after dedup)
-AMP_GATE = 90         # per-plane mean amplitude (of the 18-plane score)
-MARGIN_GATE = 30      # d6-margin (same units)
+# Final S14P-1911 default set (mirrors the page CFG knobs, same NAMES):
+CWC_MASK_THR = 150       # cwcMaskThr  — master blur luma = candidate LED site;
+                         # 175 -> 150 decided on run s14p-1910-handheld-3
+                         # (edge-on cores 50/155/179-class sit 143-172 under
+                         # mask 175; mask 150 is what took handheld r3 to
+                         # 197/200 = the tripod gate). Phantom watch below.
+CWC_AMP_GATE = 60        # cwcAmpGate   — unchanged (per-plane mean score)
+CWC_MARGIN_GATE = 10     # cwcMarginGate — 25 -> 10 on run-3 evidence (LED27
+                         # margin 11.8 = the last fold-crowded true site)
+CWC_NCC_PEAK_MARGIN = 0.05   # cwcNccPeakMargin — §10d conditioning floor,
+                         # CONF-UNITS form, IDENTICAL to 1910 (tripod
+                         # per-axis margins min 0.17/0.25; the 1908
+                         # degraded burst 0.001-0.13 → refused there).
+MARGIN_GATE = CWC_MARGIN_GATE   # legacy alias for older wrappers
+AMP_GATE = CWC_AMP_GATE
+MASK_THR = CWC_MASK_THR
 SUPPRESS = 7          # per-LED site suppression window (px)
 DW = 128              # decimated grid width (page cwcChain DW2)
 SEARCH = 12           # ±12 steps both axes (page cwcChain)
-PEAK_MARGIN = 0.05    # §10d sub-peak conditioning floor in conf units —
-                      # page knob: cwcNccPeakMargin. Measured floor (tripod
-                      # 1906): per-axis peak-minus-shoulder margins min 0.173
-                      # (y) / 0.246 (x), median 0.176/0.250 → 0.05 keeps the
-                      # fit active on all 36 tripod axis-fits and sits far
-                      # below typical good peaks; on the degraded 1908
-                      # handheld the same distribution is 0.001–0.13 (median
-                      # 0.045) so the floor there refuses most fits (the
-                      # flat-shoulder class §10d guards against). Reconcile
-                      # with the page default via --peak-margin.
 
 
 def round_half_up(x):
@@ -81,7 +85,7 @@ def hist_median(v):
     Page-parity for per-plane gains (np.median averages the two middle
     values on even counts — a different number)."""
     h = np.bincount(np.asarray(v, dtype=np.int64).ravel(), minlength=256)
-    half = h.size * h.sum() >> 1 if False else (h.sum() // 2)
+    half = h.sum() // 2
     acc = 0
     for val in range(256):
         acc += h[val]
@@ -105,6 +109,17 @@ def shift_at(f, dx, dy):
     h, w = f.shape
     out[max(0, -dy):min(h, h - dy), max(0, -dx):min(w, w - dx)] = \
         f[max(0, dy):min(h, h + dy), max(0, dx):min(w, w + dx)]
+    return out
+
+
+def shift_at_full(f, dx, dy, H, W):
+    """out[y, x] = f[y+dy, x+dx] at FULL resolution (page cwcDecode
+    pre-sample of the raw plane at the plane's own shift, sample-at)."""
+    out = np.zeros((H, W), np.float32)
+    ys0, ys1 = max(0, -dy), min(H, H - dy)
+    xs0, xs1 = max(0, -dx), min(W, W - dx)
+    if ys1 > ys0 and xs1 > xs0:
+        out[ys0:ys1, xs0:xs1] = f[ys0 + dy:ys1 + dy, xs0 + dx:xs1 + dx]
     return out
 
 
@@ -138,7 +153,7 @@ def parabolic_refine(surf, bdx, bdy, floor):
     """§10d sub-peak: 3-point parabola through the integer peak along each
     axis of the captured NCC surface; delta = (y- − y+)/(2(y+ + y- − 2y0)) —
     the vertex of the parabola through (−1,y-),(0,y0),(+1,y+) — per-axis
-    guard margin = y0 − max(side shoulders) >= floor (page knob
+    guard margin = y0 − max(in-axis shoulders) >= floor (page knob
     cwcNccPeakMargin), clamp (−0.5,+0.5), integer pick kept when either
     shoulder would index outside the 25x25 surface (the ±12-boundary rule —
     also the corner-safe form of it). Fits in DECIMATED steps."""
@@ -146,9 +161,7 @@ def parabolic_refine(surf, bdx, bdy, floor):
     cy, cx = bdy + S, bdx + S
     y0 = float(surf[cy, cx])
     fits, info = {}, {}
-    for axis, b, (sy, sx) in (
-            ('x', bdx, (cy, cx)),
-            ('y', bdy, (cy, cx))):
+    for axis, b in (('x', bdx), ('y', bdy)):
         ly, lx = (cy, cx - 1) if axis == 'x' else (cy - 1, cx)
         ry, rx = (cy, cx + 1) if axis == 'x' else (cy + 1, cx)
         inb = (0 <= ly < surf.shape[0] and 0 <= lx < surf.shape[1]
@@ -184,44 +197,36 @@ def parabolic_refine(surf, bdx, bdy, floor):
     return fits, info
 
 
-def register_chain(mlum, planeL, floor, refine=True, verbose=True):
-    """Backwards registration chain (page cwcChain + §10d refinement).
-    Returns (tot{}, surf{}, info{}): tot[p] = (dx, dy, conf) source-px FLOAT
-    totals (sample-at), surfaced per-plane for the refinement + the JSON."""
+def register_direct(mlum, planeL, floor, refine=True, verbose=True, tag=''):
+    """DIRECT per-plane registration (S14P-1911): every plane runs the
+    remainder NCC vs the master with the integer pre-shift DISABLED
+    (pre-shift 0) — the 1910 backwards-chain code minus the accumulation.
+    Returns (sh{}, surf{}, info{}): sh[p] = (dx, dy, conf) source-px FLOAT
+    shifts (sample-at), surfaced per-plane for the refinement + the JSON."""
     mD, _ = decimate(mlum)
     pD = {p: decimate(planeL[p])[0] for p in planeL}
-    tot, surf, info = {}, {}, {}
+    sh, surf, info = {}, {}, {}
     noref = ({'x': 0.0, 'y': 0.0},
              {'x': {'applied': False, 'why': 'refine-off', 'delta': 0.0,
                     'margin': None},
               'y': {'applied': False, 'why': 'refine-off', 'delta': 0.0,
                     'margin': None}})
-    rdx, rdy, conf, srf = ncc_search(mD, pD[17], want_surface=True)
-    surf[17] = srf
-    fits, info[17] = parabolic_refine(srf, rdx, rdy, floor) if refine else noref
-    K = mlum.shape[1] / DW
-    tot[17] = ((rdx + fits['x']) * K, (rdy + fits['y']) * K, conf)
-    for p in range(16, -1, -1):
-        px = round_half_up(tot[p + 1][0] / K)
-        py = round_half_up(tot[p + 1][1] / K)
-        pre = shift_at(pD[p], px, py)
-        rdx, rdy, conf, srf = ncc_search(mD, pre, want_surface=True)
-        surf[p] = srf
-        fits, info[p] = parabolic_refine(srf, rdx, rdy, floor) if refine else noref
-        tot[p] = (tot[p + 1][0] + (rdx + fits['x']) * K,
-                  tot[p + 1][1] + (rdy + fits['y']) * K, conf)
+    for p in sorted(planeL, reverse=True):
+        res = ncc_search(mD, pD[p], want_surface=True)
+        rdx, rdy, conf = int(res[0]), int(res[1]), float(res[2])
+        surf[p] = res[3]
+        fits, info[p] = parabolic_refine(res[3], rdx, rdy, floor)
+        sh[p] = ((rdx + fits['x']) * (mlum.shape[1] / DW),
+                 (rdy + fits['y']) * (mlum.shape[1] / DW), conf)
     if verbose:
-        rems = []
-        for p in range(17):
-            rems.append((abs(tot[p][0] - tot[p + 1][0]),
-                         abs(tot[p][1] - tot[p + 1][1])))
-        remmag = sorted((r[0] ** 2 + r[1] ** 2) ** 0.5 for r in rems)
+        mag = np.array([math.hypot(*sh[p][:2]) for p in sorted(sh)])
         nx = sum(1 for p in info if info[p]['x']['applied'])
         ny = sum(1 for p in info if info[p]['y']['applied'])
-        print(f'registration chain: refine {("on" if refine else "OFF")} '
-              f'(floor {floor:.2f}); axes refined x {nx}/18 y {ny}/18; '
-              f'remainder med {remmag[len(remmag)//2]:.2f} px, max {remmag[-1]:.2f} px')
-    return tot, surf, info
+        print(f'registration {"direct per-plane" if not tag else tag}: '
+              f'refine {"on" if refine else "OFF"} (floor {floor:.2f}); '
+              f'axes refined x {nx}/{len(sh)} y {ny}/{len(sh)}; '
+              f'shift mag med {np.median(mag):.2f} px, max {mag.max():.2f} px')
+    return sh, surf, info
 
 
 def main():
@@ -229,15 +234,19 @@ def main():
     ap.add_argument('run_dir')
     ap.add_argument('--tag', default='cwc')
     ap.add_argument('--n', type=int, default=200)
-    ap.add_argument('--amp-gate', type=float, default=AMP_GATE)
-    ap.add_argument('--margin-gate', type=float, default=MARGIN_GATE)
-    ap.add_argument('--peak-margin', type=float, default=PEAK_MARGIN,
+    ap.add_argument('--amp-gate', type=float, default=CWC_AMP_GATE,
+                    help='page knob cwcAmpGate (final set: 60)')
+    ap.add_argument('--margin-gate', type=float, default=CWC_MARGIN_GATE,
+                    help='page knob cwcMarginGate (final set: 10)')
+    ap.add_argument('--mask-thr', type=float, default=CWC_MASK_THR,
+                    help='page knob cwcMaskThr (final set: 150)')
+    ap.add_argument('--peak-margin', type=float, default=CWC_NCC_PEAK_MARGIN,
                     help='§10d sub-peak conditioning floor, conf units '
                          '(page knob cwcNccPeakMargin)')
-    ap.add_argument('--no-refine', action='store_true',
-                    help='keep the integer chain (pre-1910 behaviour) for A/B')
     ap.add_argument('--save-overlay', action='store_true')
     ap.add_argument('--save-json', action='store_true')
+    ap.add_argument('--save-shifts', action='store_true',
+                    help='dump per-plane direct shifts + refine info to JSON')
     args = ap.parse_args()
     run = Path(args.run_dir)
 
@@ -254,12 +263,11 @@ def main():
 
     planeL = {p: np.asarray(planes[p], dtype=np.float32).max(axis=2).astype(np.float32)
               for p in planes}
-    tot, surf, info = register_chain(mlum, planeL, args.peak_margin,
-                                     refine=not args.no_refine)
+    tot, surf, info = register_direct(mlum, planeL, args.peak_margin)
     shifts = [tot[p] for p in sorted(tot)]
 
     # per-plane stacksig EXACTLY like the page cwcDecode: integer sample-at
-    # of the RAW plane at the plane's chained total (no warp copies);
+    # of the RAW plane at the plane's DIRECT total (no warp copies);
     # k_p from the page's histMedian (page-parity per-plane gain)
     stacksig = np.empty((18, H, W), np.float32)
     kbgs = []
@@ -267,12 +275,7 @@ def main():
     for j, p in enumerate(sorted(planeL)):
         tdx = round_half_up(tot[p][0])
         tdy = round_half_up(tot[p][1])
-        sh = np.zeros((H, W), np.float32)
-        ys0, ys1 = max(0, -tdy), min(H, H - tdy)
-        xs0, xs1 = max(0, -tdx), min(W, W - tdx)
-        if ys1 > ys0 and xs1 > xs0:
-            sh[ys0:ys1, xs0:xs1] = planeL[p][ys0 + tdy:ys1 + tdy,
-                                            xs0 + tdx:xs1 + tdx]
+        sh = shift_at_full(planeL[p], tdx, tdy, H, W)
         kp = float(hist_median(planeL[p])) / mmed
         kbgs.append(kp)
         stacksig[j] = mlum - kp * sh
@@ -293,7 +296,7 @@ def main():
     argi = sc.argmax(axis=0)
 
     mb = cv2.GaussianBlur(mlum, (5, 5), 1.2)
-    mask = mb >= MASK_THR
+    mask = mb >= args.mask_thr
     Dfull = (bits[:N][:, None, :] != bits[:N][None, :, :]).sum(-1)
 
     ledpos = []
@@ -351,6 +354,18 @@ def main():
         cv2.imwrite(str(run / 'led_overlay.png'),
                     cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
         print('overlay ->', run / 'led_overlay.png')
+    if args.save_shifts:
+        outd = run / 'direct_shifts.json'
+        outd.write_text(json.dumps(
+            [{'plane': int(p),
+              'dx': round(tot[p][0], 3), 'dy': round(tot[p][1], 3),
+              'conf': round(tot[p][2], 4),
+              'refinedX': bool(info[p]['x']['applied']),
+              'refinedY': bool(info[p]['y']['applied']),
+              'marginX': None if info[p]['x']['margin'] is None else round(info[p]['x']['margin'], 4),
+              'marginY': None if info[p]['y']['margin'] is None else round(info[p]['y']['margin'], 4),
+              } for p in sorted(tot)], indent=1))
+        print('shifts ->', outd)
     return 0
 
 

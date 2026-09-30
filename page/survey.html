@@ -62,7 +62,7 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14P-1910";
+const BUILD = "S14P-1911";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -92,14 +92,20 @@ const CFG = {
   cwcN: 200,          // LEDs mapped to codewords 0..cwcN-1 (10-1600)
   cwcSettle: 100,     // ms paint-ack -> grab (holeGap floor lesson: <70 flaky)
   // --- in-page position decode gates (console cwc_pos_decode recipe;
-  //     plan §10 round params: amp >= 60/plane, d6 margin >= 25) ---
+  //     plan §10 round params: amp >= 60/plane; margin re-themed 30 Sep) ---
   cwcAmpGate: 60,     // min per-codeword amplitude (stacksig score / 9)
-  cwcMarginGate: 25,  // min d6 margin (score minus best confusable competitor)
-  cwcMaskThr: 175,    // candidate sites: blurred-master luma >= this (30 Sep
-                      // sweep: 200 excluded the shallow-angle edge cores of
-                      // leds 20-25 + tail 150-156 whose true sites score far
-                      // ABOVE the gates but blur-luma 184-191; 175 = mid-gap;
-                      // NEVER <= 160 — a codeword-103 phantom survives there)
+  cwcMarginGate: 10,  // min d6 margin (score minus best confusable competitor)
+                      // 30 Sep: 11.8 lowest genuine margin on the flagged
+                      // handheld run; strongest-site dedup bounds stolen-site
+                      // ghosts
+  cwcMaskThr: 150,    // candidate sites: blurred-master luma >= this.
+                      // 30 Sep: 150 validated offline on tripod + flagged
+                      // handheld run at amp 60/marg 10; codeword-103 phantom
+                      // re-measured amp ~40 at current margins — revisit if
+                      // gates change (sweep history: 200 excluded the
+                      // shallow-angle edge cores of leds 20-25 + tail 150-156
+                      // whose true sites score far ABOVE the gates but
+                      // blur-luma 184-191)
   // --- Single-LED toggle test (cwcTestMode=1) ---
   cwcTestMode: 0,     // 0 = normal CWC; 1 = P00 1s -> P01..P17 -> fast master
   cwcTestLed: 0,      // LED index to track (0..cwcN-1)
@@ -109,7 +115,9 @@ const CFG = {
   //     chain conf (tripod 0.95 vs handheld-degraded 0.57-0.81) and chain
   //     remainder px (budget 5; that burst ran 3-9.5 med 4.5). Any flagged
   //     plane => amber warning line + box count shown amber in the title.
-  cwcGuardConf: 0.90,
+  cwcGuardConf: 0.90, // DEFAULT PENDING re-theme from direct-registration conf
+                      // distributions (tripod vs handheld) measured
+                      // console-side
   cwcGuardRem: 5,
   cwcNccPeakMargin: 0.05, // peak-vs-shoulder conditioning floor for the
                           // parabolic sub-peak; below -> keep integer pick
@@ -721,13 +729,14 @@ async function benchRun() {
     const bShifts = [];
     let lastLuma = null;               // comp=0 path: previous frame luma
     // ---- S14 CWC-form burst (master + 18 planes, NO off frame) -----------
-    // S14P-1904: BOTH cwc modes run the BACKWARDS-SEEDED REGISTRATION CHAIN
-    // (operator spec, 30 Sep): planes grab p00..p17 (p00 also the 1 s AE
-    // primer), then master all-on with the 500 ms pipeline flush (S14P-1902
-    // lesson: an immediate master grab delivers p17's content). Registration
-    // is NOT per-plane-vs-master: p17 registers DIRECTLY to the master; p16
-    // is pre-shifted by p17's TOTAL before its own NCC vs the master, and
-    // that accumulated TOTAL passes down to p15 ... p00 (Oliver, 30 Sep).
+    // BOTH cwc modes use this burst shape: planes grab p00..p17 (p00 also the
+    // 1 s AE primer), then master all-on with the 500 ms pipeline flush
+    // (S14P-1902 lesson: an immediate master grab delivers p17's content).
+    // S14P-1911: REGISTRATION IS DIRECT PER-PLANE (cwcChain: each plane NCCs
+    // vs the master independently — the 1904 backwards-accumulation chain is
+    // retired; its accumulated totals carried a 1-2.3 px bias that corrupted
+    // stacked bit profiles at 20 px pitch, and the direct shifts reproduced
+    // the tripod gate 197/200 on the flagged handheld run, offline-verified).
     // All measurement lives in cwcChain/cwcDecode (below the bank); the
     // result view draws site boxes on the static master on the phone.
     if (cwcMode && (!window.CWC_CODES_9OF18 || !window.CWC_CODES_9OF18.length)) {
@@ -760,21 +769,22 @@ async function benchRun() {
       const cwcMst = await grabPlane();
       benchCapture('cwc:r' + benchRunNo + ':master');
       gts.push(Date.now());
-      // backwards chain + in-page position decode + result view
+      // 1911: direct per-plane registration + in-page position decode +
+      // result view
       const chain = cwcChain(cwcMst, planes);
       log('chain totals (source px): ' + chain.map((s, p) =>
         'p' + p + '(' + s.dx.toFixed(1) + ',' + s.dy.toFixed(1) + '@' + s.conf.toFixed(2) + ')').join(' '));
       // health guard (1909): any plane outside the residual budget warps the
       // registration and the decode degrades to noise-floor sensitivity —
       // say SO on the phone instead of showing a trustworthy-looking view.
+      // 1911: rem now flags planes whose OWN shift vs master exceeds the
+      // budget — motion-per-plane (no consecutive-delta chain remainder).
       let badConf = 0, badRem = 0;
-      let prevT = { dx: 0, dy: 0 };
       const flagged = [];
       chain.forEach((s, p) => {
-        const rem = Math.hypot(s.dx - prevT.dx, s.dy - prevT.dy);
-        prevT = s;
+        const rem = Math.hypot(s.dx, s.dy);
         if (s.conf < CFG.cwcGuardConf) { badConf++; flagged.push('p' + p + ' conf ' + s.conf.toFixed(2)); }
-        else if (p > 0 && rem > CFG.cwcGuardRem) { badRem++; flagged.push('p' + p + ' rem ' + rem.toFixed(1)); }
+        else if (rem > CFG.cwcGuardRem) { badRem++; flagged.push('p' + p + ' rem ' + rem.toFixed(1)); }
       });
       if (badConf || badRem)
         log('E MOTION WARNING: chain degraded outside budget — conf<'
@@ -796,9 +806,13 @@ async function benchRun() {
       // NOTE: sites do NOT ride in cwcStats — the full stats line must stay
       // under the box's 4096 B WS message cap; sites ship via shipCwcDec's
       // chunked CWCDEC lines (console reassembles -> <run>/cwc_dec.json).
-      window._driftTrail = { pairs: chain.slice(1).map((s, i) => ({
-                             dx: s.dx - chain[i].dx, dy: s.dy - chain[i].dy })),
-                           scale: 6, text: 'cwc ' + planes.length + ' planes, chained' };
+      // 1911: drift trail = raw per-plane shifts vs the MEDIAN plane shift —
+      // under direct registration there is no chained total to diff, so each
+      // pair is a plane's motion relative to the string's central shift.
+      const medDx = chain.map(s => s.dx).sort((a, b) => a - b)[chain.length >> 1];
+      const medDy = chain.map(s => s.dy).sort((a, b) => a - b)[chain.length >> 1];
+      window._driftTrail = { pairs: chain.map((s) => ({ dx: s.dx - medDx, dy: s.dy - medDy })),
+                           scale: 6, text: 'cwc ' + planes.length + ' planes, direct' };
       drawDriftTrail();
       await paint({ cmd: 'black' });
       // ship the full decode: sites list FIRST (CWCDEC chunks 1..N), then the
@@ -1086,11 +1100,13 @@ function histMedian(a) {             // median via 256-bin histogram, one pass
   return 255;
 }
 function cwcChain(masterL, planes) {
-  // BACKWARDS REGISTRATION CHAIN (Oliver, 30 Sep): p17 registers DIRECT to
-  // master; then p16 is pre-shifted by p17's TOTAL, registered against the
-  // master for its remainder, and that total passed to p15, ... down to p00.
-  // Integer NCC on the 128-wide decimated grid (phaseCorrJS conventions:
-  // sample-at (dx, dy), mean-centred, +/-12 px), totals in SOURCE px.
+  // 1911: DIRECT per-plane registration — each plane NCCs vs master
+  // independently (no chain accumulation); verified offline: chained totals
+  // carried a 1-2.3px bias that corrupted bit profiles at 20px pitch;
+  // direct shifts reproduced the tripod gate 197/200 on the flagged
+  // handheld run. Integer NCC on the 128-wide decimated grid
+  // (phaseCorrJS conventions: sample-at (dx, dy), mean-centred, +/-12 px),
+  // shifts in SOURCE px.
   const DW2 = 128;
   const dh = Math.max(2, Math.round(DW2 * H / W / 2) * 2 || 72);
   const K = W / DW2;
@@ -1158,32 +1174,15 @@ function cwcChain(masterL, planes) {
     }
     return { dx: (bdx + deltaX) * K, dy: (bdy + deltaY) * K, conf: Math.max(0, surface[(bdy + 12) * 25 + (bdx + 12)]) };
   };
-  const shiftAt = (f, dx, dy) => {   // out[y,x] = f[y+dy, x+dx] (decimated units)
-    const out = new Float32Array(f.length);
-    for (let y = 0; y < dh; y++) {
-      const sy = y + dy; if (sy < 0 || sy >= dh) continue;
-      for (let x = 0; x < DW2; x++) {
-        const sx = x + dx; if (sx < 0 || sx >= DW2) continue;
-        out[y * DW2 + x] = f[sy * DW2 + sx];
-      }
-    }
-    return out;
-  };
-  const chain = new Array(planes.length);
-  const last = planes.length - 1;
-  chain[last] = ncc(mD, pD[last]);
-  for (let p = last - 1; p >= 0; p--) {
-    const prev = chain[p + 1];
-    const pre = shiftAt(pD[p], Math.round(prev.dx / K), Math.round(prev.dy / K));
-    const rem = ncc(mD, pre);
-    chain[p] = { dx: prev.dx + rem.dx, dy: prev.dy + rem.dy, conf: rem.conf };
-  }
-  return chain;
+  // 1911: direct per-plane registration — no shiftAt pre-shift, no previous
+  // total carry, no remainder: chain[p] is plane p's OWN shift vs master.
+  return pD.map((pd) => ncc(mD, pd));
 }
 function cwcDecode(masterL, planes, chain, nL) {
   // Per-codeword score-map AT SITES (console cwc_pos_decode recipe, ported):
   // per-plane gain k_p = median(plane)/median(master); stacksig_p =
-  // master - k_p*plane sampled at the plane's CHAINED shift; score(i, s) =
+  // master - k_p*plane sampled at the plane's OWN shift (1911: direct
+  // per-plane registration, no accumulation); score(i, s) =
   // sum_p sign[i,p]*stacksig_p(s), sign ON=-1 OFF=+1. Sites = blurred-master
   // luma >= CFG.cwcMaskThr. Greedy accept best-score-first; amp + d6-margin
   // gates; 7 px suppression; then STRONGEST-SITE-PER-CODEWORD dedup (with
@@ -1220,7 +1219,8 @@ function cwcDecode(masterL, planes, chain, nL) {
     }
     codeInt[i] = v;
   }
-  // pre-sample every plane at its chained shift, then fold the gain in-place:
+  // pre-sample every plane at its OWN shift (1911: direct per-plane
+  // registration), then fold the gain in-place:
   // sig[p][i] = masterL[i] - k_p * plane_p[i + shift_p]
   const sig = planes.map((pl, p) => {
     const tdx = Math.round(chain[p].dx), tdy = Math.round(chain[p].dy);
