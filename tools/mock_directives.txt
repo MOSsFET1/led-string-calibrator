@@ -1,1 +1,2 @@
+CFG={"cwc": 1, "cwcN": 10, "cwcSettle": 100, "bBurstB": 150, "bBurstHold": 800, "bComp": 0, "cwcTestMode": 1}
 BURST
