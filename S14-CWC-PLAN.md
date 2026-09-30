@@ -248,3 +248,116 @@ Next steps (in order):
    output ledcloud/2 with class from the site multiplicity + strength.
 3. Serpentine string tracing over the union (positions only, no ids).
 4. THEN per-LED bit read + identity decode (needs the strings separated).
+
+## 11. AGREED ARCHITECTURE — box-driven capture (S14Q design, 29 Sep night)
+
+Operator proposal, Nellie-verified 29 Sep. ONE firmware build carries all
+of it; the box becomes the sequencer and the phone the capture+decode
+client (the deployable product shape: phone + box, no console in the
+loop). Replaces the page-driven burst loop for the decode era; the
+19-frame protocol, primer/master structure, decode gates and
+cloud format are UNCHANGED.
+
+### 11.1 Who holds what
+
+- **The box is the single authority for the codeword bank** — 1600
+  codes as 18 × 1600-bit masks (~3.6 KB flash; program 66% of 1.94 MB).
+  The phone holds NO bank. Per-frame payloads carry the effective
+  per-LED state to the phone, so there is no cached-copy consistency
+  problem and no bank-hash handshake. The phone REBUILDS the effective
+  bit table from the payloads as the burst runs and decodes against
+  that (with d≤1 correction). Bank regeneration then never needs a page
+  or firmware repack — it is box data.
+- **Pattern payload = 1 bit per LED: exactly 200 bytes.** 1600 LEDs
+  (8 lanes × 200) → 25 bytes per lane, byte block = lane, bit = LED
+  index. ~3.8 KB of pattern data per burst. No further compression pays:
+  the codewords are deliberately high-entropy.
+- Per-string codeword blocks ride the same per-lane paint change
+  (string s = codes 200·s+i), so identity falls out of the decode with
+  NO serpentine second pass (§9.4 of the ledcloud spec; measured bank
+  facts in tools/cwc_bank_check.py output: block d_min 4, per-plane ON
+  exactly 100 within every 200-block, cross-block d_min 4).
+
+### 11.2 Capture flow (event-driven, NOT poll-paced)
+
+Tonight's 1.5 s is solely the page's drv? poll interval
+(setInterval 1500) — a polling artifact, not physics; measured capture
+cadence is 0.32–0.53 s/plane. The new flow removes the poll from the
+timing path:
+
+1. Box latches pattern p (FRAME_MS ≤ 40 ms pacing).
+2. Box pushes a CAPTURE command to the phone OVER WS (unsolicited),
+   payload = the 200-byte pattern (+ frame type: primer/master/plane,
+   + expected-lit count).
+3. Phone selects/exposes, grabs, ACKs {frame_type, plane_idx, grab_ts,
+   gross checks}. Box then latches p+1 and pushes the next command.
+4. After the master ack the phone computes the point cloud IN-PAGE and
+   returns ONE ~12 KB JSON (points + per-LED confidence + per-plane
+   gross-check results).
+5. The 19 JPEGs / 1.4 MB / LOGP-LOGA-sDrv-pull-recipe layer exists ONLY
+   as the bench debug tap (benchStore + BRAMP stay built and paid for,
+   never in the operating path).
+
+- Transport spike (HARD GATE before the build): the raw esp_https_server
+  has no WebSocket library — unsolicited send needs
+  httpd_ws_send_frame_async on the stored sockfd. Bench-verify it works
+  on the C6 harness EARLY. Fallback = raise the poll rate to ~150 ms
+  during capture mode (+≤150 ms/plane, ~2–4 s/burst, acceptable).
+
+### 11.3 Timing rules (AE / pipeline flush)
+
+- Per-plane budget measured with WS push: latch ≤40 + push 15 +
+  content-matched grab 30–100 + ack 10 ≈ 0.10–0.19 s → 2–4 s/burst
+  (2–3× faster than tonight's ~0.4 s/plane).
+- **Master at plane gain — AGREED (operator)**: grab the master early,
+  immediately after the last plane's ack. AE does not change within a
+  frame, so its master pixels are IDENTICAL in brightness to tonight's
+  late master (per-LED core brightness is per-pixel and exposure-driven;
+  the 2× global mean only influences AE's NEXT decision). Early master
+  lands at plane gain: k_p ≈ 1.0 by construction instead of the measured
+  0.84–1.18 spread — one less noise term in the bit read. LED-core
+  saturation is UNCHANGED between early and late masters (the early
+  master only widens already-saturated cores; harmless).
+- **Master flush = stable-pair + count rule (phone-side, no positions
+  needed)**: keep grabbing until two consecutive grabs agree (pipeline
+  flushed) AND the bright-source count ≈ 2× a plane's (catches the
+  r4/r5 stale-master failure: a stable pair of p17-content frames agree
+  with each other but count 1×, not 2×). Fixed 500 ms flush remains as
+  the hard fallback. OPEN bench item: is a flat ~250 ms flush sufficient
+  (tonight only brackets <100 ms bad / 500 ms clean)?
+- **Per-frame gross checks by the phone (aggregate, pre-decode)**:
+  plane lit-count ≈ expected N/2 (±bloom tolerance), toggle-count vs the
+  previous plane's payload ≈ Hamming(code_{p-1}, code_p). Catches
+  no-power, half-lit, stuck pattern in-burst (~1 s) instead of minutes
+  later console-side. Per-LED placement/verify gates remain DECODE-time
+  (the phone cannot localize LED i before the point set exists).
+- **The box must never dictate capture timing** — it latches and
+  commands; the phone owns camera-pipeline decisions (the ownership rule
+  that underlies the master bug fix).
+- sCfg (128 chars) is too small for the choreography: CAPTURE commands
+  ride a NEW directive message class; sDrv stays single-slot for bench
+  compatibility.
+
+### 11.4 Box-side hardware/firmware deltas (ONE build)
+
+- Capture state machine (latch → push → ack → advance; plane-retake on
+  missing/failed ack).
+- Bank embed 18 × 200-byte masks (~3.6 KB), bank-hash printed in hello.
+- **Per-lane paint**: pxColour[] is today ONE array mirrored to all 8
+  lanes; the burst path needs per-lane masks (required for per-string
+  codeword blocks).
+- Result store ≥ 12 KB (150 points × x/y/class/conf) — sEvid 1280 B is
+  not enough; SRAM has 269 KB free.
+
+### 11.5 Gates before the flip (in order)
+
+1. WS async-send spike on the C6 (transport decision above).
+2. Positions-only round on 1903 (§10 steps 1–3) — no firmware change.
+3. **JS decoder gate**: the phone's decode must reproduce the console
+   decoder's output on the SAME captured frames (cwc_decode_sim gate)
+   before any box-driven trust. The decoder is the schedule risk; the
+   plumbing is not.
+4. Then the S14Q build: box-driven capture + per-lane paint + per-string
+   blocks + in-page cloud, harness-validated (mock box + headless
+   Chromium extended with the capture state machine), tripod then
+   handheld.
