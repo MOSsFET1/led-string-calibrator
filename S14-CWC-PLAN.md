@@ -303,45 +303,37 @@ and fixed the decode ship (full sites list now reaches
 `<run>/cwc_dec.json`; 1904 shipped a summary only). **1906** lowered the
 candidate-mask threshold to a tunable CFG `cwcMaskThr`=175 and added the
 strongest-site-per-codeword dedup — the operator's miss report (20–25
-NOT occluded; duplicates erroneous with only string 1 active) resolved
+NOT occluded; with only string 1 active, duplicates erroneous) resolved
 by the sweep: the misses failed the MASK (blur-luma 184–191 < 200), not
-the gates; recipe validated 196/200 (pos1) + 197/200 (pos3 dim), zero
-dups. **Ghost anatomy (settles the far-twin question with pixels)**:
-the persistent "far twins" (led30 far claim, led120's) sit INSIDE the
-translucent drawer organiser — clipped specular glints (raw 255,
-blurred 203/221, no discrete LED core) that strengthened at lights-off;
-they are reflections on objects, matching the operator's "duplicates
-are erroneous" — NOT a second lit string (the plan §10b 'unplug' was
-already done; string 2 is out of circuit). The strongest-site rule
-(amp 155 vs 110) removes them at zero cost; the run-runner had
-misread their persistence as "string 2 still connected" — corrected
-here, and the earlier handoff-era 'never force 1:1' rule now applies
-ONLY to real multi-string installs (on this bench strongest-site-
-per-codeword is the operating rule).
+the gates — no amp/margin gate pair can recover a pixel the mask never
+offers (20–24 absent at all 7 sweep points down to amp 25/margin 10).
+Recipe validated CONSOLE-SIDE on both runs: 196/200 (pos1) + 197/200
+(pos3 dim), zero dups, 20–25 and 150–156 all claimed; residual
+[16,46,90,91] = margin-0.0-everywhere cases needing a per-codebook
+nearest-site 1:1 assignment (an algorithm change, queued).
+**Ghost anatomy (settled with pixels)**: the persistent "far twins"
+(led30 far claim, led120's) sit INSIDE the translucent drawer organiser
+— clipped specular glints (raw 255, blurred 203/221, no discrete LED
+core) that strengthened at lights-off; they are object reflections —
+NOT a second lit string (string 2 is out of circuit per the operator's
+rig state). The strongest-site rule (amp 155 vs 110) removes them at
+zero cost; a run-runner subagent misread their persistence as "string 2
+still connected" — corrected here. The handoff-era 'never force 1:1'
+rule above applies ONLY to real multi-string installs; on this single-
+string bench strongest-site-per-codeword IS the operating rule.
 
 - **Toggle-test GATE PASSED (§4)** on 1904: LED 0 18/18 PASS ×3 sites
-  (twin-site note fires — the mirrored-string expectation), LED 1 18/18
-  PASS, LED 25 honest-reject at 16/18 with the exact bloom-crosstalk
-  plane set (§5). Console registration residual 0.04 px median;
-  page chain totals all (0.0, 0.0) conf 0.955–0.967 — tripod, correct.
-- **Console-side validation harness** `tools/cwc_page_decode_sim.py`:
-  the page's chain+decode recipe mirrored in numpy (phaseCorrJS
-  semantics: 128-wide decimation, integer NCC ±12, sample-at). Run on
-  the 29 Sep 1903 capture FIRST: chain (0,0) conf 0.94 (correct on a
-  still rig), 188 sites/115 LEDs, 126 within 2 px of the independent
-  177-site union, multiplicity {1:63, 2:34, 3:16} — the mirrored-string
-  mode, tail trimmed by the ±3 px local-max filter (269 → 188).
-- **Full round on 1905** (`run_round.py runs/s14p-1905-pos1`, defaults
-  now 200/150/comp0): 19/19, chain (0,0) conf 0.955–0.967. In-page
-  decode: 209 sites / 170 distinct LEDs of 200 (multiplicity {1:141,
-  2:22, 3:4, 4:3}; amp 62–226 med 133). Console cross-check
-  (`cwc_pos_decode.py --n 200 --save-json`, same gates): 316 sites,
-  205/209 page sites carrying the SAME LED id, only 2 page-only sites,
-  91 console-only sites (skirt/ball claims the page's local-max +
-  gates reject — the string-2 jumble, matching the operator's screen
-  view). Overlay: claims trace the string route in id order; the jumble
-  cluster sits at string 2's ball. String 2 unplugged for the next
-  rounds (operator decision, crosstalk §5).
+  (twin-site note fires), LED 1 18/18 PASS, LED 25 honest-reject at
+  16/18 with the exact crosstalk plane set (§5 — call unproven until
+  the same segment is re-shot after the mask fix; LED 25 now claims at
+  (167,423) amp 115.5 margin 74.0 on pos1 with the 1906 recipe).
+  Console registration residual 0.04 px median; page chain totals all
+  (0.0, 0.0) conf 0.946–0.967 — tripod, correct.
+- **In-page decode counts by round** (gates amp 60 / margin 25):
+  pos1 209/170 dups 29-ghost; pos3 (dim, 14:29) 199/160 dups 29-ghost;
+  with the 1906 recipe the console re-decodes 197/160-equivalent at
+  zero dups (counts above). The page side of 1906 (mask 175 + dedup in
+  cwcDecode) shows the same on the phone at the NEXT shot.
 - Harness `tools/cdp_1904_check.py` (mock box + headless Chromium + fake
   camera) validates the real page pre-flash: stamp ALIVE, CFG+BURST via
   drv? directives, 19/19 frames, chain + decode logged, result canvas
@@ -355,7 +347,31 @@ Next steps (in order):
 3. ledcloud/2 export from the single-string site set (§8 classes).
 4. THEN §11 (S14Q build): WS async-send spike → box-driven capture.
 
-### 10c. 1905-pos1 miss list (operator-screen-confirmed, 30 Sep)
+### 10c. 1905-pos1 miss list (30 Sep, RESOLVED by the 1906 recipe)
+
+The 1905 page (gates amp 60 / margin 25, mask blur≥200) missed 30 LEDs:
+[6, 20, 21, 22, 23, 24, 29, 44, 46, 47, 50, 60, 70, 71, 74, 75, 76, 83,
+90, 91, 94, 97, 100, 101, 109, 110, 111, 122, 150, 156]. **Root cause
+(sweep-settled): NOT occlusion (operator-corrected) and NOT the gates —
+the CANDIDATE MASK.** Leds 20–25 + 150–156's true sites score far above
+the gates (amp 90–124, margin 56–78) at blur-luma 184–191; the mask
+never offered those pixels. The 1906 recipe (mask 175 + 60/25 gates +
+strongest-site dedup) re-decodes pos1 at 196/200 and pos3 (dim) at
+197/200, zero dups — the miss list collapses to [16,46,90,91] (pos1) /
+[46,90,91] (pos3): margin-0.0-everywhere cases whose argmax pixels are
+owned by other codewords' cores → per-codebook nearest-site 1:1
+assignment (ALGORITHM-CHANGE QUEUE, not gate tuning). Supersession
+note: the earlier occlusion theory in this section's first version and
+the parallel-session 'string 2 still connected' call are both corrected
+by 10b's ghost anatomy (drawer glints).
+
+[SUPERSEDED FORENSICS — kept for the record. The occlusion call below was
+WRONG (operator-corrected: 21–25 not occluded); the real root cause is the
+candidate mask, see 10b/10c above. The corridor observation itself was real
+(the corridor does mask thin at 255) but it was not what kept 21–24 out —
+their pixels die at the 200 mask threshold, and the 1906 recipe recovers
+them. Amber-codeword interpretation also superseded: with only string 1
+active those multi-site claims are ghosts, not mirror twins.]
 
 209 sites / 170 LEDs — 30 LEDs unclaimed: [6, 20, 21, 22, 23, 24, 29,
 44, 46, 47, 50, 60, 70, 71, 74, 75, 76, 83, 90, 91, 94, 97, 100, 101,
