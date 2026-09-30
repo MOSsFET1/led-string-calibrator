@@ -107,18 +107,35 @@ brightness-insensitive (S13: 150/150 at b=120/160/200/255).
   TOTAL seeds P15, ... down to P00. Integer NCC on the 128-wide
   decimated grid, sample-at convention. The page runs cwcChain for
   EVERY burst (test + full); totals ship in CWCSTATS `chain`.
-- **In-page position decode (S14P-1904/1905)**: after the master grab
+- **In-page position decode (S14P-1904..1906)**: after the master grab
   the page scores every codeword against every masked site —
   stacksig = master − k_p·plane (k_p = per-plane median gain),
   greedy accept best-score-first, amp gate `cwcAmpGate` 60, d6
   margin gate `cwcMarginGate` 25, ±3 px local-max + suppression,
-  MULTI-SITE per codeword legal (mirrored strings). The result shows
-  ON THE PHONE: a static master image with a box per detected LED
-  (green = single-site claim, amber = multi-site codeword twin) —
-  the operator's view of decode quality. Sites ALSO ship (CWCDEC
-  chunks + CWCDECS summary → `<run>/cwc_dec.json`) for the console
-  cross-check: 205/209 page sites carried the same LED id as the
-  independent console decoder on the 30 Sep full round.
+  then STRONGEST-SITE-PER-CODEWORD dedup (S14P-1906; with only one
+  physical string active, multi-site claims are bloom ghosts —
+  keep max amp; on real multi-string installs the pass is off and
+  per-lane paint + per-string code blocks identify instead, §11).
+  The result shows ON THE PHONE: a static master image with a box
+  per detected LED — the operator's view of decode quality. Sites
+  ALSO ship (CWCDEC chunks + CWCDECS summary → `<run>/cwc_dec.json`)
+  for the console cross-check.
+  **MASK LESSON (30 Sep sweep, the 20–25 miss root cause)**: the
+  candidate mask was blur≥200 and leds 20–25 + tail 150–156 never
+  became candidates — their true sites score FAR ABOVE the gates
+  (amp 90–124, margin 56–78) but blur-luma 184–191 (shallow-angle
+  edge cores). No amp/margin gate pair can recover a pixel the mask
+  never offers (measured: 20–24 absent at ALL 7 sweep points down
+  to amp 25/margin 10). MASK_THR -> 175 (CFG `cwcMaskThr`) =
+  mid-gap: weakest needed luma 180, strongest phantom 167. NEVER
+  <= 160: a codeword-103 phantom at (89,631), 280 px from its true
+  site, survives there even after strongest-site dedup.
+  Result validated on pos1 (lights-on): 196/200 claimed, zero dups,
+  missing only [16,46,90,91]; pos3 (dim): 197/200 missing
+  [46,90,91] — 16/46/90/91 have margin 0.0 at every candidate
+  (their argmax pixels are owned by other codewords' cores; needs
+  a per-codebook nearest-site 1:1 assignment, an algorithm change,
+  not a gate change).
 - **Analysis** `tools/cwc_analyse.py --test-led N`: scores EVERY
   candidate site against the test LED's codeword and takes the best
   read (A2 fix: 'deepest pile-up hole' picked an arbitrary LED on a
@@ -275,7 +292,7 @@ sites. Serpentine path tracing separates strings LATER; identity decode
 must NOT force one-site-per-code (1:1/argmax attempts plateau at
 94–111/150 with mis-assignments — the twin sites ARE the data).
 
-## 10b. 30 Sep — the gate + the 200-LED round (S14P-1904/1905)
+## 10b. 30 Sep — the gate + the 200-LED rounds (S14P-1904..1906)
 
 Builds (page embedded → one flash each): **1904** carried the session's
 code-review bundle (§4 list) + the operator's backwards registration
@@ -283,7 +300,24 @@ chain + the IN-PAGE position decode + the on-phone boxed-master result
 view + drv? poll retry + non-blocking STAT. **1905** raised the default
 string length to 200 (firmware nPx + page cwcN/npxin + tool defaults)
 and fixed the decode ship (full sites list now reaches
-`<run>/cwc_dec.json`; 1904 shipped a summary only).
+`<run>/cwc_dec.json`; 1904 shipped a summary only). **1906** lowered the
+candidate-mask threshold to a tunable CFG `cwcMaskThr`=175 and added the
+strongest-site-per-codeword dedup — the operator's miss report (20–25
+NOT occluded; duplicates erroneous with only string 1 active) resolved
+by the sweep: the misses failed the MASK (blur-luma 184–191 < 200), not
+the gates; recipe validated 196/200 (pos1) + 197/200 (pos3 dim), zero
+dups. **Ghost anatomy (settles the far-twin question with pixels)**:
+the persistent "far twins" (led30 far claim, led120's) sit INSIDE the
+translucent drawer organiser — clipped specular glints (raw 255,
+blurred 203/221, no discrete LED core) that strengthened at lights-off;
+they are reflections on objects, matching the operator's "duplicates
+are erroneous" — NOT a second lit string (the plan §10b 'unplug' was
+already done; string 2 is out of circuit). The strongest-site rule
+(amp 155 vs 110) removes them at zero cost; the run-runner had
+misread their persistence as "string 2 still connected" — corrected
+here, and the earlier handoff-era 'never force 1:1' rule now applies
+ONLY to real multi-string installs (on this bench strongest-site-
+per-codeword is the operating rule).
 
 - **Toggle-test GATE PASSED (§4)** on 1904: LED 0 18/18 PASS ×3 sites
   (twin-site note fires — the mirrored-string expectation), LED 1 18/18

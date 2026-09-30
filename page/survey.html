@@ -62,7 +62,7 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14P-1905";
+const BUILD = "S14P-1906";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -95,6 +95,11 @@ const CFG = {
   //     plan §10 round params: amp >= 60/plane, d6 margin >= 25) ---
   cwcAmpGate: 60,     // min per-codeword amplitude (stacksig score / 9)
   cwcMarginGate: 25,  // min d6 margin (score minus best confusable competitor)
+  cwcMaskThr: 175,    // candidate sites: blurred-master luma >= this (30 Sep
+                      // sweep: 200 excluded the shallow-angle edge cores of
+                      // leds 20-25 + tail 150-156 whose true sites score far
+                      // ABOVE the gates but blur-luma 184-191; 175 = mid-gap;
+                      // NEVER <= 160 — a codeword-103 phantom survives there)
   // --- Single-LED toggle test (cwcTestMode=1) ---
   cwcTestMode: 0,     // 0 = normal CWC; 1 = P00 1s -> P01..P17 -> fast master
   cwcTestLed: 0,      // LED index to track (0..cwcN-1)
@@ -1128,9 +1133,10 @@ function cwcDecode(masterL, planes, chain, nL) {
   // per-plane gain k_p = median(plane)/median(master); stacksig_p =
   // master - k_p*plane sampled at the plane's CHAINED shift; score(i, s) =
   // sum_p sign[i,p]*stacksig_p(s), sign ON=-1 OFF=+1. Sites = blurred-master
-  // luma >= 200. Greedy accept best-score-first; amp + d6-margin gates;
-  // 7 px suppression; MULTI-SITE per codeword is legal (mirrored strings).
-  const MASK_THR = 200;
+  // luma >= CFG.cwcMaskThr. Greedy accept best-score-first; amp + d6-margin
+  // gates; 7 px suppression; then STRONGEST-SITE-PER-CODEWORD dedup (with
+  // only one physical string active, multi-site claims are ghosts).
+  const MASK_THR = CFG.cwcMaskThr | 0 || 175;
   const mMed = Math.max(histMedian(masterL), 1);
   const kk = planes.map((pl) => histMedian(pl) / mMed);
   const blur3 = (f) => {
@@ -1235,7 +1241,16 @@ function cwcDecode(masterL, planes, chain, nL) {
       if (xx >= x0 && xx <= x1 && yy >= y0 && yy <= y1) used[jj] = 1;
     }
   }
-  return { sites: out, nSites: nS, k: kk, chain };
+  // strongest-site-per-codeword dedup (console-validated 30 Sep): one
+  // physical string active -> any codeword claiming 2+ sites has ghost
+  // skirts; keep max amp. Zero true-site cost (20-25/150-156 all kept).
+  const byled = {};
+  for (const s of out) {
+    const cur = byled[s.led];
+    if (!cur || s.amp > cur.amp) byled[s.led] = s;
+  }
+  const sites = Object.values(byled);
+  return { sites, nSites: nS, k: kk, chain };
 }
 function cwcShowResults(masterL, dec, caption) {
   // static master with a box at each detected LED site (operator view):

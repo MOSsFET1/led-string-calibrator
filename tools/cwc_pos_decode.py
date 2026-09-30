@@ -26,7 +26,12 @@ sys.path.insert(0, str(BASE))
 from offline_hole_verify import decode_run, luma  # noqa: E402
 from cwc_analyse import reg_residual              # noqa: E402
 
-MASK_THR = 200        # master blur luma = candidate LED site
+MASK_THR = 175        # master blur luma = candidate LED site (200->175, 30 Sep
+                      # sweep: 20-25 + 150-156 fail the MASK not the gates —
+                      # their true sites score amp 90-124 / margin 56-78 but
+                      # blur-luma 184-191; 175 = mid-gap, weakest needed 180 /
+                      # strongest phantom 167; do NOT go <=160, a codeword-103
+                      # phantom at (89,631) survives there even after dedup)
 AMP_GATE = 90         # per-plane mean amplitude (of the 18-plane score)
 MARGIN_GATE = 30      # d6-margin (same units)
 SUPPRESS = 7          # per-LED site suppression window (px)
@@ -109,6 +114,16 @@ def main():
              max(0, x - SUPPRESS // 2): x + SUPPRESS // 2 + 1] = True
         ledpos.append({'led': i, 'cx': x, 'cy': y,
                        'amp': round(amp, 1), 'margin': round(margin, 1)})
+    # strongest-site-per-codeword dedup (30 Sep): with only ONE physical
+    # string active, a codeword claiming 2+ sites is a bloom-skirt/ghost;
+    # keep the max-amp site. Zero cost to true sites (the recipe's dup
+    # anatomy: all 20-25/150-156 kept, 230 raw sites dropped).
+    byled = {}
+    for q in ledpos:
+        cur = byled.get(q['led'])
+        if cur is None or q['amp'] > cur['amp']:
+            byled[q['led']] = q
+    ledpos = list(byled.values())
     leds = sorted(ledpos, key=lambda q: q['led'])
     print(f'sites {int(mask.sum() // 10)}-ish; LEDs confirmed: {len(leds)} / {N}')
     amps = [p['amp'] for p in leds]
