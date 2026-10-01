@@ -1,13 +1,14 @@
-# Handover — S14P-1919 (01 Oct)
+# Handover — S14P-1923 (02 Oct)
 
 > Former `HANDOFF-S14Q.md` retired 30 Sep night; old content lives in git
-> (commit `21c5c56`) if needed. This file reflects the 30 Sep → 01 Oct
-> live round sequence ending at **S14P-1919**.
+> (commit `21c5c56`) if needed. This file reflects the 01 Oct → 02 Oct
+> live round sequence ending at **S14P-1923**.
 
 ## Current build
 
 - Firmware on box: **S14P-1923** (flashed 02 Oct, hash-verified, min_spiffs,
-  1,325,940 B = 67%; banner `frame-bits per-lane rig + nStr/nPerStr CFG`).
+  1,325,940 B = 67%, RAM 18%; banner `frame-bits per-lane rig +
+  nStr/nPerStr CFG`).
 - Page BUILD string: **S14P-1923**
 - `tools/cdp_1904_check.py` expects: **S14P-1923**
 
@@ -22,13 +23,15 @@ Design per S14-CWC-PLAN.md §6/§8/§11.4; codeword bank unchanged (1600 codes,
   ids ≥ nStr*nPerStr ignored; off-rig lanes/tails forced black; per-lane
   write, NO mirroring. Malformed → `{"err":"frame-bits shape"}`. Ack rides
   the normal latch path with the message's u16 epoch.
-- **Per-string fuse clamp** on frame-bits: maxB = floor(255·2/(nPerStr·0.0142))
-  (2 A hold, 14.2 mA/px full white — algebraically identical to fuseClampB
-  at nPerStr=200; at 1600 px a 50%-duty plane is the binding case).
+- **Per-string fuse clamp** on frame-bits: maxB = max(20,
+  floor(255·2/(nPerStr·0.0142))) (2 A hold, 14.2 mA/px full white —
+  byte-identical to fuseClampB at nPerStr=200; at 1600 px a 50%-duty
+  plane is the binding case).
 - **CFG nStr (1-8) / nPerStr (1-200)** (defaults 1/200): applied box-side
   AND page-side (mid-session re-CFG ok). sCfg budget widened 128→640 B
   (real max CFG is 413 chars; verifier `tools/verify_s12_cfg.py`).
-  hello reply adds `"nStr":N,"nPerStr":M`.
+  hello reply = `{"ok":true,"id":N,"fw":"poc_survey","px":nPx,
+  "nStr":nStr,"nPerStr":nPerStr}`.
 - **Page**: CWC planes now ship as ONE frame-bits binary each (was JSON
   per-LED strings — a 1600-LED JSON paint would have died on the 4,096 B
   recv limit per the S12 lesson); master = all-bits-set paint; JSON `frame`
@@ -38,13 +41,25 @@ Design per S14-CWC-PLAN.md §6/§8/§11.4; codeword bank unchanged (1600 codes,
 - **Decode string-aware**: suppression windows and the conflict audit
   never pair ids across strings; led = global id 0..nStr*nPerStr-1;
   CWCSTATS gains nStr/nPerStr; CWCDECS gains strings/perString
-  (ledcloud/2 §8 field names, ready for the export step).
+  (ledcloud/2 §8 field names, ready for the export step). Sites never
+  ride cwcStats (4,096 B WS cap) — they ship as chunked CWCDEC log
+  lines (1,200 chars) + CWCDECS.
 - **QA (PASS, exit 0)**: existing single-string checks untouched; NEW
   burst-3 multi-string case CFG nStr=8 nPerStr=25 (200 ids across 8
   virtual strings): 18 frame-bits latches, every plane exactly N/2 lit
   rig-wide, and bit-exact per-lane proof — LED 57 (display L3, pixel 7)
   latch sequence matched its codeword 000110010111110100 across all 18
   planes. Compile 1,325,940 B = 67% / RAM 18%.
+
+### Burst anatomy (actual, corrects the plan's abstract)
+
+NO all-off reference frame exists, and the primer is NOT an all-on frame:
+the primer IS coded plane P00 itself, a 50%-on coded plane (exactly N/2
+LEDs lit) HELD 1,000 ms for AE settle; P01..P17 follow at 100 ms settle
+each (floor 70, CFG `cwcSettle`); then a fast all-ON master (JSON `all`)
+is grabbed with only 70 ms of flush before AE re-meters. Decode diffs
+planes vs that MASTER. 19 frames = 18 coded planes + master. AE lock
+default OFF (`cwcAeLock 0`).
 
 ### Validation boundary (honest)
 
@@ -67,15 +82,23 @@ there — same protocol, rig = one lane).
   run1 frames decoded to runs/daemon/runs/run1/ (JPEGs local-only, not
   for GitHub per operator rule).
 
-## What changed since 1919
+## S14P-1922 — score-time full-res NCC refine (01 Oct, wired in 1922)
 
-1. **S14P-1922** — page decode now calls `nccRefine()` at score time
-   (±4 px, stride 2, full-res) before bilinear sampling, matching
-   `tools/cwc_pos_decode.py`; page-simulation harness verified page-vs-
-   console ±1 LED per run, +0.20 LEDs ensemble mean (reports/page-
-   simulation-s14p-1922.md).
+Page decode now calls `nccRefine()` at score time (±4 px, stride 2,
+full-res) before bilinear sampling, matching `tools/cwc_pos_decode.py`;
+page-simulation harness verified page-vs-console ±1 LED per run, +0.20
+LEDs ensemble mean (reports/page-simulation-s14p-1922.md).
 
-## What changed since 1911
+## What changed since 1919 (01 Oct → 02 Oct)
+
+1. **S14P-1922** — full-res NCC refine wired into page decode (above);
+   first handheld round accepted (193/200 above).
+2. **S14P-1923** — everything in the top section: frame-bits binary
+   command, nStr/nPerStr CFG box+page, sCfg 640 B, per-string polyfuse
+   clamp, same-string suppression + conflict audit, ledcloud/2 fields in
+   CWCDECS, QA multi-string bit-exact case.
+
+## Earlier history (kept, accurate)
 
 1. **S14P-1912** — direct-registration + full-resolution NCC refine in both
    page and Python (`--fullres-rad 4`, `FULLRES_STRIDE 2`); page prints
@@ -85,17 +108,21 @@ there — same protocol, rig = one lane).
 2. **S14P-1913** — page mask threshold default locked to `150` (was falling
    back to `175`); removed page-only ±3 px local-max filter; aligned page
    parabolic-refinement guard with Python (`peak - max(shoulder) >= margin`).
+   (The earlier 1906-era mask-175 lesson is plan §10c history; 150 is the
+   settled default.)
 3. **S14P-1914** — bilinear resampling in `stacksig` in both page and Python;
    best-effort AE-lock-after-P00 using `exposureMode: 'manual'` (with a
    frozen `exposureCompensation` that caused a dark image on the first test).
 4. **S14P-1915** — tried all-on primer as master + AE lock, then coded
    P01..P17. Phone reported MOTION FLAGGED on small real movement and only
    87 LEDs, image very dark.
-5. **S14P-1916** — reverted burst order to original regime: P00 1 s primer →
-   P00..P17 coded planes → fast all-on master grab before AE re-adjusts.
-   AE lock reduced to only `applyConstraints({advanced:[{exposureMode:'manual'}]})
-   without touching `exposureCompensation`. Motion guard relaxed:
-   `cwcGuardConf 0.65`, `cwcGuardRem 24`, added `cwcGuardStep 10`.
+5. **S14P-1916** — reverted burst order: P00 1 s primer (coded plane — see
+   Burst anatomy above; the "all-on primer" phrasing here was loose and is
+   corrected there) → P00..P17 coded planes → fast all-on master grab before
+   AE re-adjusts. AE lock reduced to only
+   `applyConstraints({advanced:[{exposureMode:'manual'}]})` without touching
+   `exposureCompensation`. Motion guard relaxed: `cwcGuardConf 0.65`,
+   `cwcGuardRem 24`, added `cwcGuardStep 10`.
 6. **S14P-1917** — **disabled AE lock by default** (`cwcAeLock: 0`). The lock
    code remains in place and can be re-enabled with `CFG={"cwcAeLock":1}`, but
    Android Chrome was honouring the manual-AE request and freezing exposure
@@ -103,73 +130,80 @@ there — same protocol, rig = one lane).
    the default off, exposure stays `aem=continuous` and detection returns to
    the pre-lock level.
 7. **S14P-1918** — replaced the page's double box-blur mask with a separable
-   5-tap Gaussian (`sigma ≈ 1.2`) to match console `cv2.GaussianBlur((5,5), 1.2)`.
-   Goal is blur parity between phone and Python decoder. Baseline from the
+   5-tap Gaussian (`sigma ≈ 1.2`) to match console `cv2.GaussianBlur((5,5),
+   1.2)`. Goal: blur parity phone vs Python decoder. Baseline from the
    S14P-1917 handheld run: phone confirmed 190 LEDs, console confirmed
-   **195/200**; gaps were phone-only `[16, 27, 91]` with marginal phone margins
-   `(14.6, 15.6, 10.4)`, and console-only `[4, 22, 25, 46, 99, 100, 122, 143]`.
-   `cwcAeLock` remains default-off (`0`). QA passes for 1918 with venv Python.
+   **195/200**; gaps were phone-only `[16, 27, 91]` with marginal phone
+   margins `(14.6, 15.6, 10.4)`, and console-only
+   `[4, 22, 25, 46, 99, 100, 122, 143]`. `cwcAeLock` remains default-off.
 8. **S14P-1919** — added `CFG.cwcSuppress` default `1` (3 px suppression window
    vs previous 7 px), and added a spatial conflict audit in `CWCSTATS`. All other
-   gates, blur, and peak-margin settings were left unchanged per the sweep
-   report. Expected outcome: ~+4 visible LEDs mean vs the S14P-1917 baseline,
-   targeting console parity or within 1–2 LEDs. QA passes for 1919 with venv
-   Python.
+   gates, blur, and peak-margin settings left unchanged per the sweep
+   report (reports/ensemble-blur-suppress-sweep.md). QA passes.
 
 ## Files of record
 
-- `page/survey.html` — S14P-1919, separable 5-tap Gaussian mask, AE lock default
-  OFF, bilinear stacksig, build-tied localStorage, `cwcSuppress` default `1`,
-  spatial conflict audit in `CWCSTATS`.
-- `firmware/poc_survey/poc_survey.ino` — S14P-1919 banner + PAGE_BUILD.
+- `page/survey.html` — S14P-1923: frame-bits shipping (one binary per
+  plane), nStr/nPerStr page-side, same-string suppression+conflict audit,
+  mask 150, AE lock default OFF, bilinear stacksig, build-tied
+  localStorage, `cwcSuppress` default `1`.
+- `firmware/poc_survey/poc_survey.ino` — S14P-1923 banner + PAGE_BUILD;
+  WS binary `frame-bits` handler; CFG nStr/nPerStr; per-string fuse clamp.
 - `tools/cwc_pos_decode.py` — bilinear stacksig, full-res refine.
-- `tools/cdp_1904_check.py` — S14P-1919 pre-flash QA.
+- `tools/cdp_1904_check.py` — S14P-1923 pre-flash QA (expects that stamp);
+  includes the burst-3 multi-string bit-exact case.
+- `tools/bench_daemon.py` — persistent LOGA arm; per-burst JPEG ship to
+  `runs/daemon/runs/<label>/`; directives via `runs/daemon/cmds/`.
 - `tools/codewords_9of18.json` — source codeword bank, valid for 1600 LEDs.
-- `reports/phone-vs-console-cwc-gap.md` — subagent report on phone-vs-console
-  differences (mask-threshold bug, local-max filter, parabolic guard).
-- `runs/s14p-1919-handheld/cwc_frames.txt` — next capture target for the
-  current run.
+- `reports/phone-vs-console-cwc-gap.md` — phone-vs-console decoder
+  differences (mask threshold, local-max filter, parabolic guard).
+- `reports/page-simulation-s14p-1922.md` — page-sim ±1 LED parity result.
+- Retired bench-era docs (old pull recipes etc.) live in `archive/`
+  (see `archive/README.md`); §10b-era harness details remain in
+  S14-CWC-PLAN.md §10b.
 
 ## Known open work (verify before claiming success)
 
-1. **Handheld S14P-1919** needs a real run to `runs/s14p-1919-handheld/cwc_frames.txt`
-   to validate the improvement over the S14P-1917 baseline (phone 190/200, console
-   195/200). The 1919 changes (`cwcSuppress` 1, spatial conflict audit) are in
-   place; verify whether visible LEDs move toward console parity or within 1–2
-   LEDs. 1917 baselines: phone-only `[16, 27, 91]` with margins `(14.6, 15.6,
-   10.4)`; console-only `[4, 22, 25, 46, 99, 100, 122, 143]`.
-2. **Motion robustness target**: the 1916 guard (24 px absolute, 10 px step)
-   accepted the 1917 handheld run without a motion flag; it appears good.
-3. **AE lock is now default-OFF**. If you ever want to re-test it, send
-   `CFG={"cwcAeLock":1}` over serial, reload the page, and run. The evidence
-   shows Android Chrome honours the lock and darkens the image.
-4. **1600-LED scaling** is a design discussion, not built: 8 strings × 200 LEDs
-   via ESP32-C6 PARLIO 8 lanes is feasible; codeword bank already supports
-   1600; current WS recv limit is 4096 bytes, so a 1600-LED JSON frame
-   (~8 KB) needs a compact binary frame format.
+1. **Real 8×200 rig round** — S14P-1923's multi-string path is QA-verified
+   on the mock only. First real round: CFG nStr=8 nPerStr=200 (or the
+   installed shorter lengths), reload, confirm header stamp + hello
+   nStr/nPerStr in a STAT, one burst, decode, conflict audit (see
+   Validation boundary above).
+2. **ledcloud/2 §8 export tool** — CWCDECS now carries strings/perString
+   (the §8 field names); the export converter itself is NOT built yet.
+   Console verdicts stay authoritative for cloud export.
+3. **Phone-side 1600-id display practicalities** — the result view boxes
+   200 ids fine; how a 1600-id map should render/select on the phone is
+   an open UI question.
 
 ## How to continue this session
 
-1. Confirm page shows `S14P-1919` and WS open.
-2. Capture reader should already be armed for
-   `runs/s14p-1919-handheld/cwc_frames.txt`. If not, restart it with `LOGA`.
-3. After Oliver runs handheld, retrieve the phone log and decode both page
-   output and console frames. Compare missing lists against the 1917 baselines
-   (phone 190/200, console 195/200).
-4. If 1919 handheld is good, push to GitHub: the last push was `00c929c`;
-   there are now local commits that need committing/merging first. Use the
-   PAT at `~/LED_PAT.txt`.
-5. If 1919 is bad, inspect the log: dark image → check whether AE lock was
-   accidentally enabled (`AE locked to manual`); motion flagged → note which
-   guard tripped (conf/rem/step) and adjust `cwcGuardConf`, `cwcGuardRem`,
-   `cwcGuardStep` over serial.
+1. Confirm page shows `S14P-1923` and WS open.
+2. Real-rig round per open item 1 (CFG nStr/nPerStr → BURST → decode),
+   capture through the bench daemon (LOGA armed; runs/daemon/cmds/ for
+   directives). The old LOGP→BRAMP per-pull recipe is retired
+   (archive/S14-BENCH-SESSION.md) — S14L auto-ship sends the frame store
+   over WS ~1 s after each burst; `tools/bench_daemon.py` is the primary
+   path.
+3. Decode both page output and console frames; compare missing lists
+   against the 1917/1922 baselines (phone 190→193/200, console 195/200).
+4. Everything through S14P-1923 is committed and PUSHED (origin/main =
+   b461654). Push the next good state with the PAT at `~/LED_PAT.txt`;
+   no new images to GitHub (runs JPEGs/pngs gitignored — operator rule).
+5. If the round is bad: dark image → check `cwcAeLock` was not enabled
+   (`AE locked to manual` in the log); motion flagged → note which guard
+   tripped (conf/rem/step) and adjust `cwcGuardConf`, `cwcGuardRem`,
+   `cwcGuardStep` over serial; decode short → check per-string conflict
+   flags and the suppress radius (`cwcSuppress`).
 
 ## Repo state
 
-- Branch `main` at GitHub `00c929c`; local working tree has unpushed changes.
+- Branch `main` AT origin/main = **b461654** — everything through S14P-1923
+  is committed and PUSHED. (Older notes saying "local commits unpushed at
+  00c929c" are stale.)
 - Backup branch `backup-before-image-strip` at `3286a94`.
-- `git stash` still holds dirty files from the image-strip push.
-- No new images should be pushed to GitHub (operator instruction).
+- No new images pushed to GitHub (operator instruction; runs JPEGs/pngs
+  gitignored).
 
 ## Build cycle (every page/firmware edit)
 
@@ -184,6 +218,11 @@ there — same protocol, rig = one lane).
    artifact, not code growth (see "Flash-size fact" below).
 5. `arduino-cli upload --fqbn ... -p /dev/ttyACM0 firmware/poc_survey`
 6. Verify boot banner; restart serial capture reader (flash resets port).
+   QA first (and any time you need the harness):
+   `/home/nellie/.hermes/hermes-agent/venv/bin/python3 tools/cdp_1904_check.py`
+   — the PROJECT VENV IS GONE (ambient python3 has no websockets; use the
+   Hermes-agent venv, websockets 15.0.1 + websocket-client 1.9.2).
+   `mock_box.py` spawns its own box; never hand-start one before QA.
 7. Oliver reloads phone; confirm page header + WS open.
 
 ## Flash-size fact (01 Oct, verified — resolves the "101%" scare)
