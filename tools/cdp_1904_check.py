@@ -1,18 +1,24 @@
 #!/usr/bin/env python3
-"""S14P-1922 pre-flash QA: mock box + headless Chromium + fake camera.
+"""S14P-1923 pre-flash QA: mock box + headless Chromium + fake camera.
 Validates the REAL page end-to-end before an ESP32 flash:
-  1. build stamp == S14P-1922
+  1. build stamp == S14P-1923
   2. CFG (cwc=1, cwcN=10) + BURST via mock drv? directives
-  3. burst runs: 18 planes + master, bench store ships 19 frames
-  4. chained registration log line present (backwards chain, no crash)
+  3. burst runs: 18 frame-bits planes + master, bench store ships 19 frames
+  4. direct registration log line present (chain, no crash)
   5. in-page decode ran (sitesMasked/confirmed logged; CWCDEC chunks ship)
   6. result canvas (static master + site boxes) exists and is non-blank;
      saved to runs/qa-1904/result.png for operator/agent visual check
-  7. second burst with cwcTestMode=1 exercises the test branch on 1904
+  7. second burst with cwcTestMode=1 exercises the test branch on 1923
+  8. multi-string rig via mock directives: CFG nStr=8, nPerStr=25 (200 ids
+     over 8 virtual strings), one burst; assert burst completes + decode
+     logs + per-lane frame-bits mapping exercised (LED 57 = display L3,
+     pixel 7: its codeword's ON-plane pattern must appear EXACTLY in the
+     lane-3 latch sequence across the 18 consecutive frame-bits messages).
 
-PASS = hard checks 1-6 pass; 7 exercises without an 'E ' error.
+PASS = hard checks 1-6 pass; 7 exercises without a NEW 'E ' error;
+       8 completes with decode log + exact per-lane mapping sequence match.
 Run with the venv python (websockets dep): see README tooling line."""
-import asyncio, base64, json, os, sys
+import asyncio, base64, json, os, re, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -21,6 +27,25 @@ from cdp_once_ship import cdp_call, cdp_eval, wait_log, CHROME, PORT, URL, TOOLS
 BASE = TOOLS.parent
 RUN = BASE / "runs" / "qa-1904"
 import urllib.request as u
+
+STAMP = "S14P-1923"
+
+
+def err_lines(logtxt, exclude_motion=True):
+    """Real 'E ' errors from the page log. Page line shape is
+    'tDD.D E <text>' (timestamp prefix), so strip() can never match —
+    match on the SPACE-prefixed token instead. E MOTION WARNING is the
+    by-design health flag (S14P-1909), excluded like the original spec's
+    'without an E error' intent."""
+    out = []
+    for l in (logtxt or "").split("\n"):
+        body = l.strip()
+        if body.startswith("t") and " E " in body:
+            e = body[body.index(" E ") + 3:]
+            if exclude_motion and e.startswith("MOTION WARNING"):
+                continue
+            out.append(l)
+    return out
 
 
 async def main():
@@ -49,7 +74,6 @@ async def main():
         f"--user-data-dir=/tmp/chr-1904-{PORT}-{os.getpid()}",
         "--window-size=800,1000", "about:blank",
         stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
-    mock_ok = chrome_ok = False
     try:
         ws_url = None
         for _ in range(40):
@@ -74,10 +98,10 @@ async def main():
                                     "cam:document.getElementById('camst').textContent,"
                                     "ws:document.getElementById('wsst').textContent})")
             print("STATUS", st)
-            ok = "S14P-1922" in st and "live" in st and "open" in st
+            ok = STAMP in st and "live" in st and "open" in st
             if not ok:
                 print("FAIL: page state", st); return 1
-            # ---- burst 1: normal CWC mode ----
+            # ---- burst 1: normal CWC mode (single-string, unchanged shape) ----
             cfg = {"cwc": 1, "cwcN": 10, "cwcSettle": 100, "bBurstB": 150,
                    "bBurstHold": 800, "bComp": 0, "cwcTestMode": 0}
             (TOOLS / "mock_directives.txt").write_text("CFG=" + json.dumps(cfg) + "\nBURST\n")
@@ -89,7 +113,7 @@ async def main():
             ship_ln = await wait_log(ws, "bench pull done", tries=90)
             print("ship:", ship_ln)
             logtxt = await cdp_eval(ws, "document.getElementById('log').textContent")
-            errs = [l for l in (logtxt or "").split("\n") if l.strip().startswith("E ")]
+            errs = err_lines(logtxt)
             print("page errors:", errs if errs else "none")
             # ---- result canvas: exists, non-blank, save it ----
             info = await cdp_eval(ws, "(() => { const c = document.getElementById('cwcResult');"
@@ -105,7 +129,7 @@ async def main():
             if shot:
                 (RUN / "result.png").write_bytes(base64.b64decode(shot.split(",")[1]))
                 print("result png ->", RUN / "result.png")
-            # ---- shipped stream sanity ----
+            # ---- shipped stream sanity (counted BEFORE burst 2 ships more) ----
             pull = (TOOLS / "mock_log_pull.txt").read_text()
             n_frames = sum(1 for l in pull.splitlines() if l.startswith("FRAME "))
             n_cwcdec = sum(1 for l in pull.splitlines() if l.startswith("CWCDEC "))
@@ -128,17 +152,97 @@ async def main():
             t2 = await wait_log(ws, "decode:", tries=60)
             print("test decode:", t2)
             logtxt2 = await cdp_eval(ws, "document.getElementById('log').textContent")
-            errs2 = [l for l in (logtxt2 or "").split("\n")
-                     if l.strip().startswith("E ") and l not in (errs or [])]
+            errs2 = [l for l in err_lines(logtxt2) if l not in (errs or [])]
             print("test-mode new errors:", errs2 if errs2 else "none")
-            mock_ok = chrome_ok = True
+            # let burst 2 FULLY finish (direct state poll — the stale
+            # "bench pull done" line from burst 1 fooled the log wait)
+            busy = True
+            for _ in range(60):
+                bb = await cdp_eval(ws, "JSON.stringify({r:benchRunning,u:benchUploading})")
+                if bb == '{"r":false,"u":false}':
+                    busy = False
+                    break
+                await asyncio.sleep(1)
+            print("burst 2 released:", not busy)
+            # ---- burst 3: multi-string rig (nStr=8 x nPerStr=25 = 200 ids) ----
+            cfg3 = dict(cfg, cwcN=200, nStr=8, nPerStr=25)
+            boxlog_at_b3 = len((TOOLS / "mock_box.log").read_text().splitlines())
+            (TOOLS / "mock_directives.txt").write_text("CFG=" + json.dumps(cfg3) + "\nBURST\n")
+            print("burst 3 (multi-string rig 8x25) queued")
+            cfg3_ln = await wait_log(ws, "nStr=8,nPerStr=25", tries=30)
+            if not cfg3_ln:      # diagnostics: the cfg demonstrably applied (rig line
+                lt = await cdp_eval(ws, "document.getElementById('log').textContent")  # below) — dump why the line wasn't seen
+                print("cfg3 line miss — page log tail:",
+                      "\n".join((lt or "").split("\n")[-8:]))
+            print("cfg3 applied:", cfg3_ln)
+            rig_ln = await wait_log(ws, "200 leds (rig 200)", tries=60)
+            print("multi-string burst:", rig_ln)
+            # burst end = the bench state releases (decode + ship can lag the
+            # burst lines; wait on STATE, never on a possibly-stale log line)
+            busy = True
+            for _ in range(90):
+                bb = await cdp_eval(ws, "JSON.stringify({r:benchRunning,u:benchUploading,s:scanning})")
+                if bb == '{"r":false,"u":false,"s":false}':
+                    busy = False
+                    break
+                await asyncio.sleep(1)
+            print("burst 3 released:", not busy)
+            logtxt3 = await cdp_eval(ws, "document.getElementById('log').textContent")
+            errs3 = [l for l in err_lines(logtxt3) if l not in (errs or [])]
+            dec3_ok = "rig 8x25" in (logtxt3 or "")          # decode line carries the rig shape
+            hello3 = await cdp_eval(ws, "JSON.stringify({nStr:window._nStr, nPerStr:window._nPerStr})")
+            hello3_ok = hello3 == '{"nStr":8,"nPerStr":25}'
+            ship3_ok = '"strings":8,"perString":25' in (TOOLS / "mock_log_pull.txt").read_text()
+            print("multi-string: decode logged:", dec3_ok, "| hello:", hello3,
+                  "| ship carries strings/perString:", ship3_ok,
+                  "| new errors:", errs3 if errs3 else "none")
+            # ---- per-lane bit mapping in the MOCK BOX ----
+            # burst 3 paints 18 consecutive frame-bits planes (P00 is plane 0
+            # held 1 s — no separate primer message). Probe LED 57:
+            # lane = 57/25 = 2 -> L3 (display), pixel = 57%25 = 7. Its
+            # codeword's ON-plane pattern must appear EXACTLY as the L3
+            # pixel-7 latch sequence over the 18 messages — this proves
+            # bit j -> (lane, px) = (j/nPerStr, j%nPerStr) AND the LSB-first
+            # byte packing through the REAL page encoder.
+            cw_txt = (BASE / "page" / "survey.html").read_text()
+            mbank = re.search(r"window\.CWC_CODES_9OF18 = \[(.*?)\];", cw_txt, re.S)
+            codes = re.findall(r'"([0-9,]+)"', mbank.group(1)) if mbank else []
+            LED_ID, LANE_COL, PX = 57, 2, 7            # id 57 -> L3(display) px 7
+            led_planes = codes[LED_ID].split(",") if len(codes) > LED_ID else []
+            blines = (TOOLS / "mock_box.log").read_text().splitlines()[boxlog_at_b3:]
+            fb_seen, px_seq, sums_ok = 0, [], True
+            expect = ["1" if str(p) in led_planes else "0" for p in range(18)]
+            pending_fb = None
+            for l in blines:
+                if l.startswith("FRAME-BITS"):
+                    fb_seen += 1
+                    pending_fb = l
+                elif l.startswith("LATCH ") and pending_fb is not None:
+                    parts = l[len("LATCH "):].split(" | ")
+                    if len(parts) == 8:
+                        vals = parts[LANE_COL].split(":")[1].split(",")
+                        px_seq.append("1" if vals[PX] == "white" else "0")
+                        lit = [int(x) for x in pending_fb.split("lit/lane=")[1].split(",")]
+                        if sum(lit) != 100:            # every plane = exactly N/2 = 100 ON rig-wide
+                            sums_ok = False
+                    pending_fb = None
+            seq_ok = px_seq[:18] == expect
+            print(f"frame-bits latches: {fb_seen}; led{LED_ID} codeword planes: {led_planes} "
+                  f"({len(led_planes)}/9); L{LANE_COL+1}px{PX} latch seq: {''.join(px_seq[:18])}")
+            print(f"per-lane mapping: seq match {seq_ok}; per-plane lit sum 100: {sums_ok}")
             hard_ok = (n_frames == 19 and stats_ok and chain_ln and dec_ln
                        and "NO CANVAS" not in info and not errs and cwcdec_ok and not errs2)
-            print("\nRESULT:", "PASS" if hard_ok else "FAIL")
+            multi_ok = (bool(rig_ln) and dec3_ok and hello3_ok and ship3_ok
+                        and not errs3 and seq_ok and sums_ok and fb_seen >= 18
+                        and len(led_planes) == 9)
+            print("\nRESULT:", "PASS" if (hard_ok and multi_ok) else "FAIL")
             print(f"  frames 19/19: {n_frames == 19}; stats<4096B: {stats_ok}; "
                   f"chain logged: {bool(chain_ln)}; decode logged: {bool(dec_ln)}; "
                   f"canvas: {'NO CANVAS' not in info}; CWCDEC {n_cwcdec} {cwcdec_ok}")
-            return 0 if hard_ok else 1
+            print(f"  multi-string: rig line {bool(rig_ln)}; decode rig-tagged {dec3_ok}; "
+                  f"hello 8x25 {hello3_ok}; ship strings-8 {ship3_ok}; errors {len(errs3)}; "
+                  f"lane-map {seq_ok}; lit-sum {sums_ok}")
+            return 0 if (hard_ok and multi_ok) else 1
     finally:
         proc.kill()
         mock.kill()
