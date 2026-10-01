@@ -6,11 +6,54 @@
 
 ## Current build
 
-- Firmware on box: **S14P-1922** (flashed 02 Oct, upload hash-verified,
-  min_spiffs, 1,322,190 B = 67%)
-- Page BUILD string: **S14P-1922**
-- `tools/cdp_1904_check.py` expects: **S14P-1922**
-- Boot banner says S14P-1922 (banner string was stale at 1921 — fixed same day).
+- Firmware on box: **S14P-1923** (flashed 02 Oct, hash-verified, min_spiffs,
+  1,325,940 B = 67%; banner `frame-bits per-lane rig + nStr/nPerStr CFG`).
+- Page BUILD string: **S14P-1923**
+- `tools/cdp_1904_check.py` expects: **S14P-1923**
+
+## S14P-1923 — 8-string × up-to-200-LED support (02 Oct)
+
+Design per S14-CWC-PLAN.md §6/§8/§11.4; codeword bank unchanged (1600 codes,
+9-of-18, d_min 4; prefix property keeps any nStr×nPerStr ≤1600 free).
+
+- **New WS binary command `frame-bits`** (client→box, exactly 206 B):
+  `[0]='B' [1]=1 [2]=b [3]=flags [4..5]=u16 LE epoch [6..205]=bit-plane`,
+  1600 bits LSB-first, bit j = LED id j; lane=j/nPerStr, px=j%nPerStr;
+  ids ≥ nStr*nPerStr ignored; off-rig lanes/tails forced black; per-lane
+  write, NO mirroring. Malformed → `{"err":"frame-bits shape"}`. Ack rides
+  the normal latch path with the message's u16 epoch.
+- **Per-string fuse clamp** on frame-bits: maxB = floor(255·2/(nPerStr·0.0142))
+  (2 A hold, 14.2 mA/px full white — algebraically identical to fuseClampB
+  at nPerStr=200; at 1600 px a 50%-duty plane is the binding case).
+- **CFG nStr (1-8) / nPerStr (1-200)** (defaults 1/200): applied box-side
+  AND page-side (mid-session re-CFG ok). sCfg budget widened 128→640 B
+  (real max CFG is 413 chars; verifier `tools/verify_s12_cfg.py`).
+  hello reply adds `"nStr":N,"nPerStr":M`.
+- **Page**: CWC planes now ship as ONE frame-bits binary each (was JSON
+  per-LED strings — a 1600-LED JSON paint would have died on the 4,096 B
+  recv limit per the S12 lesson); master = all-bits-set paint; JSON `frame`
+  mirrors lanes 2-8 only while nStr≤1 (single-string bench compat);
+  `all`/`black`/`npx` are rig-wide (semantics are rig-level; under nStr>1
+  a string-1-only black would leave 7 strings stale-lit).
+- **Decode string-aware**: suppression windows and the conflict audit
+  never pair ids across strings; led = global id 0..nStr*nPerStr-1;
+  CWCSTATS gains nStr/nPerStr; CWCDECS gains strings/perString
+  (ledcloud/2 §8 field names, ready for the export step).
+- **QA (PASS, exit 0)**: existing single-string checks untouched; NEW
+  burst-3 multi-string case CFG nStr=8 nPerStr=25 (200 ids across 8
+  virtual strings): 18 frame-bits latches, every plane exactly N/2 lit
+  rig-wide, and bit-exact per-lane proof — LED 57 (display L3, pixel 7)
+  latch sequence matched its codeword 000110010111110100 across all 18
+  planes. Compile 1,325,940 B = 67% / RAM 18%.
+
+### Validation boundary (honest)
+
+All 8-string behaviour is mock-box + fake-camera QA-verified; the REAL 8×200
+rig has not been shot yet. First real round: CFG nStr=8 nPerStr=200 (or the
+installed shorter lengths), reload, confirm header stamp + hello
+nStr/nPerStr in a STAT, one burst, decode, conflict audit. The bench single
+string keeps behaving exactly as before with nStr=1 (frame-bits also works
+there — same protocol, rig = one lane).
 
 ## S14P-1922 first handheld round (02 Oct 06:44, daemon run1)
 

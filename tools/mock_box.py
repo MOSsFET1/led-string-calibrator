@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Mock survey box: HTTPS-serves the exact survey.html (the box's own cert)
-and speaks the exact WS protocol (hello/frame/all/black/evid/drv?) on ONE
-port (:8443), like the real box. Lets the bench drive the REAL page in
-Chromium with a fake camera before any phone test.
+and speaks the exact WS protocol (hello/frame-bits/frame/all/black/npx/evid/
+drv?) on ONE port (:8443), like the real box. Lets the bench drive the REAL
+page in Chromium with a fake camera before any phone test.
 
 Usage: /home/nellie/.hermes/hermes-agent/venv/bin/python3 mock_box.py
 (evidence in tools/mock_box.log; serial-directive equivalent: put
 SCAN/ABRT/CFG=<json> lines in tools/mock_directives.txt, served in drv?)
+
+S14P-1923: speaks frame-bits (the binary per-lane paint class) + hello
+carries nStr/nPerStr. Per-lane LATCH log lines ('L1/L2/...') prove the
+per-lane bit mapping (lane = j/nPerStr, pixel = j%nPerStr, LSB-first).
 """
 import asyncio, json, ssl, base64, hashlib, struct
 from pathlib import Path
@@ -18,8 +22,9 @@ KEY = str(BASE / "firmware/poc_survey/key.pem")
 DIRV = BASE / "tools/mock_directives.txt"
 LOGF = BASE / "tools/mock_box.log"
 
-N_PX = 10
-state = {"npx": N_PX, "build": ""}
+N_PX = 200                 # per-lane capacity (matches the firmware N_PX)
+state = {"npx": N_PX, "nStr": 1, "nPerStr": 200, "build": ""}
+lanes: list[list[str | None]] = [[None] * N_PX for _ in range(8)]   # last latched content per lane
 WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 DIRV.write_text("")
 LOGF.write_text("")
@@ -28,18 +33,12 @@ def logp(s):
     with open(LOGF, "a") as f:
         f.write(s + "\n")
 
-def apply_paint(p, b):
-    paint = []
-    for i in range(N_PX):
-        s = p[i] if i < len(p) else None
-        if s is None or s == "0":
-            paint.append("black")
-        elif s == "W":
-            paint.append("white@" + str(b))
-        else:
-            r, g, bl = int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16)
-            paint.append(str(r * int(b) // 255) + "," + str(g * int(b) // 255) + "," + str(bl * int(b) // 255))
-    return paint
+def lane_tag(v):
+    if v is None:
+        return "off"
+    if v == "W":
+        return "white"
+    return str(v)
 
 async def send(ws_writer, obj):
     raw = json.dumps(obj).encode()
@@ -52,6 +51,16 @@ async def send(ws_writer, obj):
         hdr = struct.pack("!BBHQ", 0x81, 127, n)
     ws_writer.write(hdr + raw)
     await ws_writer.drain()
+
+def send_binary(ws_writer, data: bytes):
+    n = len(data)
+    if n < 126:
+        hdr = struct.pack("!BB", 0x82, n)
+    elif n < 65536:
+        hdr = struct.pack("!BBH", 0x82, 126, n)
+    else:
+        hdr = struct.pack("!BBHQ", 0x82, 127, n)
+    ws_writer.write(hdr + data)            # sync write; drained on next send
 
 async def ws_session(reader, writer):
     logp("WS OPEN")
@@ -73,6 +82,26 @@ async def ws_session(reader, writer):
             if opcode == 8:
                 logp("WS CLOSE")
                 break
+            if opcode == 2:                       # BINARY: frame-bits
+                if ln != 206 or payload[0] != 0x42 or payload[1] != 1:
+                    logp("BAD FRAME-BITS len=%d tag=%r" % (ln, payload[:2]))
+                    await send(writer, {"err": "frame-bits shape", "id": 0})
+                    continue
+                b = payload[2]
+                epoch = payload[4] | (payload[5] << 8)
+                nS, nPs = state["nStr"], state["nPerStr"]
+                total = nS * nPs
+                for ln_ in range(8):
+                    lanes[ln_] = [None] * N_PX
+                for j in range(total):
+                    bit = (payload[6 + (j >> 3)] >> (j & 7)) & 1
+                    if bit:
+                        lanes[j // nPs][j % nPs] = "W"
+                lit = {l: sum(1 for v in lanes[l] if v == "W") for l in range(8)}
+                logp("FRAME-BITS b=%d epoch=%d lit/lane=%s" % (b, epoch, ",".join(str(lit[l]) for l in range(8))))
+                logp("LATCH " + " | ".join("L%d:%s" % (l + 1, ",".join(lane_tag(v) for v in lanes[l])) for l in range(8)))
+                await send(writer, {"ok": True, "id": epoch})
+                continue
             if opcode != 1:
                 continue
             m = json.loads(payload.decode())
@@ -80,7 +109,19 @@ async def ws_session(reader, writer):
             i = m.get("id", 0)
             if cmd == "hello":
                 logp("HELLO build=" + str(m.get("build", "")))
-                await send(writer, {"ok": True, "id": i, "fw": "poc_survey", "px": state["npx"]})
+                await send(writer, {"ok": True, "id": i, "fw": "poc_survey",
+                                    "px": state["npx"], "nStr": state["nStr"],
+                                    "nPerStr": state["nPerStr"]})
+            elif cmd == "cfg":
+                # direct JSON cfg channel (bench convenience): nStr/nPerStr box-side
+                nS = int(m.get("nStr", state["nStr"]))
+                nPs = int(m.get("nPerStr", state["nPerStr"]))
+                if 1 <= nS <= 8:
+                    state["nStr"] = nS
+                if 1 <= nPs <= N_PX:
+                    state["nPerStr"] = nPs
+                logp("CFG nStr=%d nPerStr=%d" % (state["nStr"], state["nPerStr"]))
+                await send(writer, {"ok": True, "id": i})
             elif cmd == "npx":
                 n = int(m.get("n", 0))
                 if 1 <= n <= 200:
@@ -90,14 +131,32 @@ async def ws_session(reader, writer):
                 else:
                     await send(writer, {"err": "range", "id": i})
             elif cmd == "frame":
-                paint = apply_paint(m.get("p", []), m.get("b", 160))
-                logp("LATCH " + " ".join(paint))
+                p = m.get("p", [])
+                b = m.get("b", 160)
+                paint1: list[str | None] = []
+                for i2 in range(N_PX):
+                    s = p[i2] if i2 < len(p) else None
+                    if s is None or s == "0":
+                        paint1.append("black")
+                    elif s == "W":
+                        paint1.append("white@" + str(b))
+                    else:
+                        r, g, bl = int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16)
+                        paint1.append(str(r * int(b) // 255) + "," + str(g * int(b) // 255) + "," + str(bl * int(b) // 255))
+                for l in range(8):                 # single-string: all lanes mirror
+                    lanes[l] = paint1 if state["nStr"] <= 1 else ([None] * N_PX if l else paint1)
+                logp("LATCH " + " | ".join("L%d:%s" % (l + 1, ",".join(lane_tag(v) for v in lanes[l])) for l in range(8)))
                 await send(writer, {"ok": True, "id": i})
             elif cmd == "all":
-                paint = apply_paint(["W"] * N_PX, m.get("b", 160))
-                logp("LATCH " + " ".join(paint))
+                b = m.get("b", 160)
+                paint1: list[str | None] = ["W"] * N_PX
+                for l in range(8):
+                    lanes[l] = paint1
+                logp("LATCH " + " | ".join("L%d:%s" % (l + 1, ",".join(lane_tag(v) for v in lanes[l])) for l in range(8)))
                 await send(writer, {"ok": True, "id": i})
             elif cmd == "black":
+                for l in range(8):
+                    lanes[l] = ["off"] * N_PX
                 logp("LATCH all black")
                 await send(writer, {"ok": True, "id": i})
             elif cmd == "logc":
@@ -122,6 +181,15 @@ async def ws_session(reader, writer):
                 if d.startswith("CFG="):
                     cfg = d[4:]
                     d = ""
+                    try:
+                        j = json.loads(cfg)
+                        if isinstance(j.get("nStr"), int) and 1 <= j["nStr"] <= 8:
+                            state["nStr"] = j["nStr"]     # mirroring the firmware's box-side apply
+                        if isinstance(j.get("nPerStr"), int) and 1 <= j["nPerStr"] <= N_PX:
+                            state["nPerStr"] = j["nPerStr"]
+                        logp("CFG nStr=%d nPerStr=%d" % (state["nStr"], state["nPerStr"]))
+                    except Exception:
+                        pass
                 await send(writer, {"ok": True, "id": i, "drv": d, "cfg": cfg, "evid": 0})
             else:
                 logp("UNKNOWN cmd " + str(cmd))

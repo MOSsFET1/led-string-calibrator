@@ -62,7 +62,7 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14P-1922";
+const BUILD = "S14P-1923";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -86,8 +86,12 @@ const CFG = {
                       // estimate vs the burst master, warp the stored frame
                       // back (bilinear), ship measured shifts in BSTATS
   // --- S14J CWC-form burst (master + 18 planes, NO off frame) ---
+  // --- S14P-1923 multi-string rig (plan §6): hello nStr/nPerStr mirror the
+  //     box CFG channel; cwcN clamps to nStr*nPerStr so global LED ids 0..
+  //     cwcN-1 stay on the rig ---
   cwc: 1,             // 1 = CWC-form burst (the survey). 0 = all-on movement burst.
-  cwcN: 200,          // LEDs mapped to codewords 0..cwcN-1 (10-1600)
+  cwcN: 200,          // global LED ids mapped to codewords 0..cwcN-1 (10-1600),
+                      // clamped to nStr*nPerStr at burst start
   cwcSettle: 100,     // ms paint-ack -> grab (holeGap floor lesson: <70 flaky)
   // --- in-page position decode gates (console cwc_pos_decode recipe;
   //     plan §10 round params: amp >= 60/plane; margin re-themed 30 Sep) ---
@@ -156,6 +160,17 @@ function applyCfg(j) {
   for (const k in o) if (k in CFG && typeof o[k] === 'number' && isFinite(o[k])) {
     CFG[k] = o[k]; touched.push(k + '=' + o[k]);
   }
+  // S14P-1923: the rig keys are NOT page-CFG entries — the box owns them and
+  // hello carries them, but a mid-session CFG must retarget the rig WITHOUT a
+  // reconnect (the console re-CFGs between bursts). Apply + clamp here too.
+  if (typeof o.nStr === 'number' && isFinite(o.nStr)) {
+    const v = Math.max(1, Math.min(8, o.nStr | 0));
+    if (v !== window._nStr) { window._nStr = v; touched.push('nStr=' + v); }
+  }
+  if (typeof o.nPerStr === 'number' && isFinite(o.nPerStr)) {
+    const v = Math.max(1, Math.min(200, o.nPerStr | 0));
+    if (v !== window._nPerStr) { window._nPerStr = v; touched.push('nPerStr=' + v); }
+  }
   if (touched.length) { log('cfg ' + touched.join(',')); showCfg(); }
 }
 function showCfg() { $('cfgline').textContent =
@@ -164,6 +179,15 @@ function showCfg() { $('cfgline').textContent =
   ' bComp=' + CFG.bComp + ' cwc=' + CFG.cwc + ' cwcN=' + CFG.cwcN + ' cwcSettle=' + CFG.cwcSettle +
   ' amp=' + CFG.cwcAmpGate + ' margin=' + CFG.cwcMarginGate +
   ' cwcTestMode=' + CFG.cwcTestMode + ' cwcTestLed=' + CFG.cwcTestLed; }
+
+// S14P-1923 multi-string rig (plan §6): hello carries the box's nStr/nPerStr;
+// global LED id j => string j/nPerStr, pixel j%nPerStr. Decode/burst paths read
+// these live (the console can re-CFG per burst) — no cached copies.
+function rigCap() { return (window._nStr | 0) * (window._nPerStr | 0); }   // rig LED capacity
+function paintCap() {                       // LED ids this burst maps to codes
+  const rc = rigCap();
+  return rc > 0 ? Math.min(rigCap(), CFG.cwcN | 0 || 200) : (CFG.cwcN | 0 || 200);
+}
 
 // ---------------- log ring (page-side only; download button) ---------------
 const LOG_MAX_LINES = 400;
@@ -206,9 +230,11 @@ function connectWS() {
     let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
     if (m.px !== undefined && m.fw === 'poc_survey') {          // hello reply:
       window._npx = m.px;                                       // string length
+      window._nStr = Math.max(1, Math.min(8, m.nStr | 0 || 1));    // rig strings (S14P-1923)
+      window._nPerStr = Math.max(1, Math.min(200, m.nPerStr | 0 || 200));  // per-string length
       const inp = $('npxin');
-      if (!inp.dataset.user) inp.value = m.px;                  // box default,
-      log('box hello fw=' + m.fw + ' px=' + m.px);              // field wins if edited
+      if (!inp.dataset.user) inp.value = m.nPerStr | 0 || m.px;   // box default,
+      log('box hello fw=' + m.fw + ' px=' + m.px + ' nStr=' + window._nStr + ' nPerStr=' + window._nPerStr);
       setButtons();
     }
     if (m.id !== undefined && pending.has(m.id)) {
@@ -546,6 +572,29 @@ setInterval(() => { if (camReady && !scanning) idleFrame(); }, 100);
 // ---------------- box paint helpers ---------------------------------------
 async function paint(cmdObj) { await sendCmd(cmdObj, { tries: 2, timeout: 2500 }); }
 
+// S14P-1923 (plan §6/§8): CWC paints ride ONE binary WS message per plane.
+// Shape (exact 206 B): [0]='B' [1]=ver=1 [2]=b [3]=flags=0 [4..5]=u16 LE
+// epoch [6..205]=bit-plane, 1600 bits, bit j = global LED id j (LSB-first
+// per byte: (data[6+(j>>3)]>>(j&7))&1). Bit set = white at b, clear = black.
+// The box acks via the normal latch path carrying this epoch — sendCmd's
+// id-matched ack map resolves it exactly like a JSON cmd ack.
+function frameBitsPaint(bitsOrNull, b, epoch) {
+  return new Promise((resolve, reject) => {
+    if (!wsOpen || !window._ws || window._ws.readyState !== 1) { reject(new Error('ws down')); return; }
+    const msg = new Uint8Array(206);
+    msg[0] = 0x42;                          // 'B'
+    msg[1] = 1;                             // ver
+    msg[2] = b & 255;                       // brightness
+    msg[3] = 0;                             // flags
+    msg[4] = epoch & 255; msg[5] = (epoch >> 8) & 255;   // u16 LE epoch
+    if (bitsOrNull) msg.set(bitsOrNull, 6); // 200 B payload
+    const id = epoch;                       // ack matcher key
+    const timer = setTimeout(() => { pending.delete(id); reject(new Error('ack timeout frame-bits')); }, 2500);
+    pending.set(id, { resolve, reject, timer });
+    window._ws.send(msg);
+  });
+}
+
 // ---------------- survey run ----------------------------------------------
 // The old accent/hole survey (per-LED diffs, S1-S13) is REMOVED (27 Sep).
 // Survey returns as the CWC decode run: Burst captures the 19-frame CWC
@@ -776,17 +825,24 @@ async function benchRun() {
       log('E cwc: codeword bank missing');
     } else if (cwcMode) {
       const testMode = (CFG.cwcTestMode | 0) === 1;
-      const nL = Math.max(10, Math.min(200, CFG.cwcN | 0 || 150));
-      const cb = Math.max(20, Math.min(255, CFG.bBurstB | 0 || 150));
+      const nL = Math.max(10, Math.min(paintCap(), CFG.cwcN | 0 || 150));
+      // per-STRING polyfuse budget (the 2 A-hold rule, page-side mirror of
+      // the firmware's fuseClampB): a paint lights <= nPerStr px of ANY one
+      // string, so the clamp depends on nPerStr — NOT on the number of
+      // strings (each string has its own fuse; the rig total rides the
+      // firmware's FastLED supply limiter).
+      const maxB = Math.min(255, Math.floor(255000 / (Math.max(1, window._nPerStr) * 14.2)));
+      const cb = Math.max(20, Math.min(maxB, CFG.bBurstB | 0 || 150));
       const testLed = Math.max(0, Math.min(nL - 1, CFG.cwcTestLed | 0 || 0));
       log((testMode ? 'cwc test: ' : 'cwc burst: ') +
-          'primer(1s) -> 18 planes -> master(fast), ' + nL + ' leds, b=' + cb +
+          'primer(1s) -> 18 frame-bits planes -> master(fast), ' + nL +
+          ' leds (rig ' + rigCap() + '), b=' + cb + (cb < (CFG.bBurstB | 0 || 150) ? ' (clamped)' : '') +
           (testMode ? ', led=' + testLed : ''));
       const grabPlane = () => grabTimeout().then(() => lumaOf(procCx.getImageData(0, 0, W, H)));
       const planes = [];
       for (let p = 0; p < 18; p++) {
         if (abortFlag) break;
-        await paint(cwcPlanePaint(p, nL, cb));
+        await frameBitsPaint(cwcPlanePaint(p, nL, cb), cb, ++cmdId);   // ONE binary WS message per plane
         const settle = p === 0 ? 1000 : settleClamp(CFG.cwcSettle);
         const tS = Date.now();
         while (Date.now() - tS < settle) await sleep(10);
@@ -829,13 +885,15 @@ async function benchRun() {
             + CFG.cwcGuardStep + 'px on ' + badStep + ' plane(s): ' + flagged.join(' '));
       const dec = cwcDecode(cwcMst, planes, chain, nL);
       log('decode: ' + dec.nSites + ' px masked, ' + dec.sites.length + ' sites confirmed' +
-          ' (amp>=' + CFG.cwcAmpGate + ', margin>=' + CFG.cwcMarginGate + ')');
+          ' (amp>=' + CFG.cwcAmpGate + ', margin>=' + CFG.cwcMarginGate +
+          ', rig ' + window._nStr + 'x' + window._nPerStr + ')');
       cwcShowResults(cwcMst, dec, testMode ? 'test led ' + testLed : 'cwc burst'
           + ((badConf || badRem || badStep) ? ' — MOTION FLAGGED, unreliable' : ''));
       if (testMode) log('test LED ' + testLed + ' codeword bits: ' + cwcBits(testLed, nL).join(','));
       cwcStats = { build: BUILD, n: planes.length, comp: 0,
                    testMode: testMode ? 1 : 0, testLed,
                    testBits: testMode ? cwcBits(testLed, nL) : undefined,
+                   nStr: window._nStr, nPerStr: window._nPerStr,   // S14P-1923: rig shape rides the stats line
                    chain: chain.map((s, k) => ({ k, dx: +s.dx.toFixed(2), dy: +s.dy.toFixed(2), conf: +s.conf.toFixed(3) })),
                    decode: { ampGate: CFG.cwcAmpGate, marginGate: CFG.cwcMarginGate, suppress: CFG.cwcSuppress,
                              sitesMasked: dec.nSites, confirmed: dec.sites.length, conflicts: dec.conflicts.length,
@@ -868,7 +926,7 @@ async function benchRun() {
           await sendCmd({ cmd: 'logc', d: 'CWCDEC ' + jS.slice(i, i + 1200) }, { tries: 2, timeout: 2000 });
           await sleep(30);
         }
-        await sendCmd({ cmd: 'logc', d: 'CWCDECS ' + JSON.stringify({ ampGate: CFG.cwcAmpGate, marginGate: CFG.cwcMarginGate, suppress: CFG.cwcSuppress, sitesMasked: dec.nSites, confirmed: dec.sites.length, conflicts: dec.conflicts.length, k: dec.k.map(v => +v.toFixed(3)) }) }, { tries: 2, timeout: 2000 });
+        await sendCmd({ cmd: 'logc', d: 'CWCDECS ' + JSON.stringify({ ampGate: CFG.cwcAmpGate, marginGate: CFG.cwcMarginGate, suppress: CFG.cwcSuppress, sitesMasked: dec.nSites, confirmed: dec.sites.length, conflicts: dec.conflicts.length, k: dec.k.map(v => +v.toFixed(3)), strings: window._nStr, perString: window._nPerStr }) }, { tries: 2, timeout: 2000 });
       }
       // NO benchPull here: the shared S14L auto-ship at benchRun's end
       // ships the store once (a local call double-shipped the 19 frames —
@@ -1101,11 +1159,21 @@ function cwcBit(led, plane) {
   return window.CWC_CODES_9OF18[led].split(',').some(v => +v === plane) ? 1 : 0;
 }
 function cwcPlanePaint(p, nLeds, b) {
-  // WS payload: array of "W" / null per LED — fits the box recv limit at
-  // nLeds 200 (~1.2 KB); the 1600-px scaling step is NOT this build.
-  const arr = new Array(nLeds);
-  for (let i = 0; i < nLeds; i++) arr[i] = cwcBit(i, p) ? 'W' : null;
-  return { cmd: 'frame', p: arr, b };
+  // S14P-1923: CWC planes ride the binary frame-bits message class (one 206 B
+  // WS message per plane — JSON p[]-arrays would not scale to 1600 ids). The
+  // payload is a 200-byte bit-plane: bit j = global LED id j, LSB-first per
+  // byte, ON where LED j's codeword contains plane p. Primer (p = null) =
+  // ALL bits set. Returns the 200 B payload; benchRun wraps it with the
+  // frame-bits header via frameBitsPaint().
+  const bits = new Uint8Array(200);       // fresh each call (no leakage between planes)
+  if (p === null) bits.fill(255);         // primer = every rig LED white
+  else {
+    const bank = cwcBankBits(nLeds);
+    for (let j = 0; j < nLeds; j++) {
+      if (bank[j * 18 + p]) bits[j >> 3] |= (1 << (j & 7));
+    }
+  }
+  return bits;
 }
 
 // ---------------- CWC bank bits (parsed once) + chain + in-page decode -----
@@ -1285,7 +1353,8 @@ function cwcDecode(masterL, planes, chain, nL) {
   for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
     if (mb[y * W + x] >= MASK_THR) pts.push(y * W + x);
   const nS = pts.length;
-  if (!nS) return { sites: [], nSites: 0, k: kk, chain };
+  if (!nS) return { sites: [], nSites: 0, k: kk, chain, conflicts: [] };
+  const nPs = (window._nPerStr | 0) || nL;   // per-string length (string breaks)
   const bits = cwcBankBits(nL);
   const codeInt = new Uint32Array(nL);
   const popc = (v) => { let c = 0; while (v) { v &= v - 1; c++; } return c; };
@@ -1339,6 +1408,11 @@ function cwcDecode(masterL, planes, chain, nL) {
   const bestS = new Float32Array(nS).fill(-1e9);
   const argI = new Int32Array(nS);
   const sc = new Float32Array(nS);
+  // S14P-1923: the score/fold loops are ID-INDEXED (0..nL-1 = GLOBAL ids
+  // across all strings — bank order is the global id order), so argmax is
+  // naturally string-aware. The downstream ID-neighbour rules (serpentine
+  // midpoint gate, conflict audit, suppression) each treat the string break
+  // themselves: id j's neighbours are j±1 only WITHIN string (j/nPs).
   for (let i = 0; i < nL; i++) {
     sc.fill(0);
     for (let p = 0; p < 18; p++) {
@@ -1366,17 +1440,30 @@ function cwcDecode(masterL, planes, chain, nL) {
     if (margin < CFG.cwcMarginGate) continue;
     const x = pts[j] % W, y = (pts[j] / W) | 0;
     out.push({ x, y, led: i, amp: +amp.toFixed(1), margin: +margin.toFixed(1) });
+    // S14P-1923: the suppression window stays a SQUARE, but it must NOT eat
+    // the next string's LEDs at a string break. String s owns ids
+    // [s*nPerStr, (s+1)*nPerStr); suppress only accepted sites of the SAME
+    // string. (The box paints string s on lane s — plane content differs per
+    // lane — so neighbours across a break are different codewords' pixels.)
     const R = Math.max(0, CFG.cwcSuppress | 0);
+    const sOwn = (i / nPs) | 0;                       // this LED's string
     const x0 = Math.max(0, x - R), x1 = Math.min(W - 1, x + R);
     const y0 = Math.max(0, y - R), y1 = Math.min(H - 1, y + R);
     for (let jj = 0; jj < nS; jj++) {
       const xx = pts[jj] % W, yy = (pts[jj] / W) | 0;
-      if (xx >= x0 && xx <= x1 && yy >= y0 && yy <= y1) used[jj] = 1;
+      if (xx >= x0 && xx <= x1 && yy >= y0 && yy <= y1) {
+        const c = argI[jj];
+        if (((c / nPs) | 0) === sOwn) used[jj] = 1;   // same-string only
+      }
     }
   }
   // strongest-site-per-codeword dedup (console-validated 30 Sep): one
   // physical string active -> any codeword claiming 2+ sites has ghost
   // skirts; keep max amp. Zero true-site cost (20-25/150-156 all kept).
+  // S14P-1923: per-STRING scope (nStr>1): a multi-site claim on string s is
+  // still a bloom ghost; claims on DIFFERENT strings are DIFFERENT LEDs with
+  // DIFFERENT codewords — the ids already differ, so the per-led map is
+  // inherently string-scoped. nStr<=1 keeps the global per-led behaviour.
   const byled = {};
   for (const s of out) {
     const cur = byled[s.led];
@@ -1384,10 +1471,13 @@ function cwcDecode(masterL, planes, chain, nL) {
   }
   const sites = Object.values(byled);
   // lightweight spatial audit: flag close-but-different-ID pairs for operator review
+  // (S14P-1923: the ID-neighbour rule operates WITHIN a string — ids on
+  // different strings are unrelated; the audit must not flag them)
   const conflicts = [];
   for (let a = 0; a < sites.length; a++) {
     for (let b = a + 1; b < sites.length; b++) {
       const sa = sites[a], sb = sites[b];
+      if (((sa.led / nPs) | 0) !== ((sb.led / nPs) | 0)) continue;   // different strings
       if (Math.hypot(sa.x - sb.x, sa.y - sb.y) < 6 && Math.abs(sa.led - sb.led) > 5) {
         conflicts.push({ a: sa.led, b: sb.led, d: +Math.hypot(sa.x - sb.x, sa.y - sb.y).toFixed(2) });
       }
