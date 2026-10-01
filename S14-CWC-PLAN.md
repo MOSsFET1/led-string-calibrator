@@ -582,3 +582,51 @@ timing path:
    blocks + in-page cloud, harness-validated (mock box + headless
    Chromium extended with the capture state machine), tripod then
    handheld.
+
+## 12. Implementation status (02 Oct 2026, S14P-1923)
+
+Frame-bits replaces JSON paints for CWC rigs — with CFG `nStr=8,
+nPerStr=200` (1600 LEDs) a single JSON paint cannot reach the box: it
+must ride the new WS BINARY command `frame-bits` (client→box, exactly
+206 B: magic 'B', ver 1, brightness byte, flags byte, u16 LE epoch,
+then a 1600-bit plane, bit j = LED global id j, LSB-first per byte;
+lane = j/nPerStr, px = j%nPerStr; ids ≥ nStr·nPerStr ignored;
+off-rig lanes/tails forced black; per-lane write, NO mirroring;
+malformed → `{"err":"frame-bits shape"}`). The ack is the normal JSON
+latch-ack echoing the message's u16 epoch. Full current-state detail —
+build box/page/QA stamps, per-string polyfuse clamp, hello shape,
+build cycle, open work — lives in `HANDOFF-S14P.md`; this section
+records what the plan's earlier sections look like as-built.
+
+- **§6 nStr/nPerStr note: IMPLEMENTED.** CFG keys `nStr` (1–8) /
+  `nPerStr` (1–200) applied box-side AND page-side (mid-session
+  re-CFG ok); sCfg budget widened 128→640 B (real max CFG is 413
+  chars; verifier `tools/verify_s12_cfg.py`); hello reply now =
+  `{"ok":true,"id":N,"fw":"poc_survey","px":nPx,"nStr":nStr,
+  "nPerStr":nPerStr}`; per-string polyfuse clamp on frame-bits
+  brightness (maxB = max(20, floor(255·2/(nPerStr·0.0142)))), byte-
+  identical to the old fuseClampB at nPerStr=200.
+- **§1/§2 capture protocol: SUPERSEDED-IN-PRACTICE (page as-built).
+  Correction to §1 as written:** there is NO all-off reference frame
+  anywhere in the burst and P00 is not an all-on primer — the primer
+  IS coded plane P00 itself, a 50%-on plane (exactly N/2 LEDs lit)
+  HELD 1,000 ms for AE settle; P01..P17 follow at 100 ms settle each
+  (floor 70, CFG `cwcSettle`); the reference is a fast all-ON master
+  (JSON `all`) grabbed with only 70 ms of flush before AE re-meters;
+  decode diffs planes vs THAT master. 19 frames = 18 coded planes +
+  master. The "off reference frame is DROPPED" paragraph stands; the
+  "p00 all-on AE-settle" reading of §1 does not match the page.
+- **QA: bit-exact multi-string PASS** (mock box + fake camera,
+  `tools/cdp_1904_check.py`, exit 0): burst-3 case CFG nStr=8
+  nPerStr=25 (200 ids across 8 virtual strings) — 18 frame-bits
+  latches, every plane exactly N/2 lit rig-wide, and bit-exact
+  per-lane proof (LED 57 = display L3 pixel 7; its latch sequence
+  matched codeword 000110010111110100 across all 18 planes).
+- **Real-rig round: PENDING.** All 8-string behaviour above is
+  QA-verified on the mock only; the real 8×200 rig has not been shot
+  yet. First real round: CFG nStr=8 nPerStr=200, reload, confirm
+  header stamp + hello nStr/nPerStr in a STAT, one burst, decode,
+  conflict audit. Handheld S14P-1922 reference: phone 193/200, 5
+  spatial conflicts flagged (a26/b115, a28/b117, a77/b103, a78/b102,
+  a147/b160), chain conf 0.777–0.900, no motion flag; 1917-era
+  baselines phone 190/200, console 195/200.
