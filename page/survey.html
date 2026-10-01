@@ -62,7 +62,7 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14P-1919";
+const BUILD = "S14P-1922";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -96,7 +96,7 @@ const CFG = {
                       // 30 Sep: 11.8 lowest genuine margin on the flagged
                       // handheld run; strongest-site dedup bounds stolen-site
                       // ghosts
-  cwcSuppress: 1,     // per-LED suppression radius in px after greedy accept
+  cwcSuppress: 1,     // per-LED suppression radius in px after greedy accept (3 px window)
   cwcMaskThr: 150,    // candidate sites: blurred-master luma >= this.
                       // DO NOT raise to 175: edge/shallow-angle LEDs
                       // (documented 20-25 and 150-156 class) sit at 184-191.
@@ -1267,32 +1267,22 @@ function cwcDecode(masterL, planes, chain, nL) {
   const MASK_THR = (CFG.cwcMaskThr | 0) || 150; // must default to console default (150), not 175
   const mMed = Math.max(histMedian(masterL), 1);
   const kk = planes.map((pl) => histMedian(pl) / mMed);
-  // 1918: mask blur = separable 5-tap Gaussian matching console cv2.GaussianBlur((5,5), 1.2)
-  // 1D kernel = [0.085629, 0.242668, 0.343406, 0.242668, 0.085629] (sum=1)
-  const GAUSS5 = [0.08562916, 0.24266760, 0.34340648, 0.24266760, 0.08562916];
-  const gauss5 = (f) => {
+  // 1921: revert to original double 3-tap box blur; sweep shows it matches
+  // the best Gaussian within ~0.4 LEDs mean and is simpler code.
+  const blur3 = (f) => {
     const t = new Float32Array(f.length), o = new Float32Array(f.length);
-    for (let y = 0; y < H; y++) {
-      for (let x = 2; x < W - 2; x++) {
-        const r = y * W;
-        t[r + x] = GAUSS5[0] * f[r + x - 2] + GAUSS5[1] * f[r + x - 1] +
-                   GAUSS5[2] * f[r + x]     + GAUSS5[3] * f[r + x + 1] +
-                   GAUSS5[4] * f[r + x + 2];
-      }
+    for (let y = 0; y < H; y++) for (let x = 1; x < W - 1; x++) {
+      const r = y * W;
+      t[r + x] = (f[r + x - 1] + f[r + x] + f[r + x + 1]) / 3;
     }
-    for (let y = 2; y < H - 2; y++) {
-      for (let x = 2; x < W - 2; x++) {
-        const r = y * W;
-        o[r + x] = GAUSS5[0] * t[(y - 2) * W + x] + GAUSS5[1] * t[(y - 1) * W + x] +
-                   GAUSS5[2] * t[y * W + x]     + GAUSS5[3] * t[(y + 1) * W + x] +
-                   GAUSS5[4] * t[(y + 2) * W + x];
-      }
+    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+      o[y * W + x] = (t[(y - 1) * W + x] + t[y * W + x] + t[(y + 1) * W + x]) / 3;
     }
     return o;
   };
-  const mb = gauss5(masterL);
+  const mb = blur3(blur3(masterL));
   const pts = [];
-  for (let y = 2; y < H - 2; y++) for (let x = 2; x < W - 2; x++)
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
     if (mb[y * W + x] >= MASK_THR) pts.push(y * W + x);
   const nS = pts.length;
   if (!nS) return { sites: [], nSites: 0, k: kk, chain };
@@ -1311,8 +1301,14 @@ function cwcDecode(masterL, planes, chain, nL) {
   // bilinear-resample every plane at its OWN float shift (1911: direct
   // per-plane registration), then fold the gain in-place:
   // sig[p][y,x] = masterL[y,x] - k_p * bilinear(plane_p, x+dx, y+dy)
+  // 1921 fix: score-time full-res NCC refine around the decimated seed
+  // before bilinear sampling; console parity proved 30 Sep on handheld runs.
+  const refinedChain = chain.map((c, p) => {
+    const r = nccRefine(masterL, planes[p], Math.round(c.dx), Math.round(c.dy));
+    return { dx: c.dx + (r.dx - Math.round(c.dx)), dy: c.dy + (r.dy - Math.round(c.dy)), conf: c.conf };
+  });
   const sig = planes.map((pl, p) => {
-    const tdx = chain[p].dx, tdy = chain[p].dy;
+    const tdx = refinedChain[p].dx, tdy = refinedChain[p].dy;
     const sh = new Float32Array(W * H);
     for (let y = 0; y < H; y++) {
       const fy = y + tdy;

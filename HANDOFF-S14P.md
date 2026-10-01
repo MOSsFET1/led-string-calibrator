@@ -6,12 +6,31 @@
 
 ## Current build
 
-- Firmware on box: **S14P-1919**
-- Page BUILD string: **S14P-1919**
-- `tools/cdp_1904_check.py` expects: **S14P-1919**
-- Box is flashed with S14P-1919 and waiting for phone.
+- Firmware on box: **S14P-1922** (flashed 02 Oct, upload hash-verified,
+  min_spiffs, 1,322,190 B = 67%)
+- Page BUILD string: **S14P-1922**
+- `tools/cdp_1904_check.py` expects: **S14P-1922**
+- Boot banner says S14P-1922 (banner string was stale at 1921 — fixed same day).
 
-Always confirm the page header and a `STAT` log line match before running.
+## S14P-1922 first handheld round (02 Oct 06:44, daemon run1)
+
+- Phone telemetry: **confirmed 193/200, 5 spatial conflicts flagged
+  (a26/b115, a28/b117, a77/b103, a78/b102, a147/b160)**, chain conf
+  0.777–0.900 across all 18 registers, exp pinned 300.03, aem continuous,
+  no motion flag (smooth drift dx≈6 px). vs S14P-1917 baseline phone
+  190/200; console 195/200. ACCEPTED: within 2 of console parity, +3 on
+  the phone baseline, conflict audit doing its job at suppress R=1.
+- Captured via persistent bench daemon (runs/daemon/), LOGA armed;
+  run1 frames decoded to runs/daemon/runs/run1/ (JPEGs local-only, not
+  for GitHub per operator rule).
+
+## What changed since 1919
+
+1. **S14P-1922** — page decode now calls `nccRefine()` at score time
+   (±4 px, stride 2, full-res) before bilinear sampling, matching
+   `tools/cwc_pos_decode.py`; page-simulation harness verified page-vs-
+   console ±1 LED per run, +0.20 LEDs ensemble mean (reports/page-
+   simulation-s14p-1922.md).
 
 ## What changed since 1911
 
@@ -116,6 +135,28 @@ Always confirm the page header and a `STAT` log line match before running.
 2. Update `tools/cdp_1904_check.py` expected stamp.
 3. `python3 firmware/tools/pack_page.py`
 4. `arduino-cli compile --fqbn "esp32:esp32:esp32c6:CDCOnBoot=cdc,PartitionScheme=min_spiffs" firmware/poc_survey`
+   `PartitionScheme=min_spiffs is MANDATORY` — never compile bare:
+   `esp32:esp32:esp32c6` selects the default partition (app cap 1,310,720 B)
+   and this firmware is ~1.33 MB → 101% "Sketch too big". That is a command
+   artifact, not code growth (see "Flash-size fact" below).
 5. `arduino-cli upload --fqbn ... -p /dev/ttyACM0 firmware/poc_survey`
 6. Verify boot banner; restart serial capture reader (flash resets port).
 7. Oliver reloads phone; confirm page header + WS open.
+
+## Flash-size fact (01 Oct, verified — resolves the "101%" scare)
+
+- Standing scheme `min_spiffs`: app cap = 0x1E0000 = 1,966,080 B (core
+  3.3.11 `tools/partitions/min_spiffs.csv`). Verified compile of the
+  S14P-1922 tree on this scheme: `Sketch uses 1322190 bytes (67%)`, exit 0.
+- A bare `esp32:esp32:esp32c6` compile (default partition, app cap
+  0x140000 = 1,310,720 B) gives `Sketch uses 1331528 bytes (101%)` —
+  reproduced byte-exact. The scratch-era HANDOFF-S14P-1922-SIZE ran the
+  bare command, hence its "flash-blocked" premise and its huge_app
+  "workaround"; huge_app (app 0x300000 = 3,145,728 B, no OTA, no SPIFFS)
+  is NOT needed — min_spiffs holds the sketch at 67% with ~644 KB headroom.
+- Real sketch growth since the 66% era is modest: S13L (Sep 24)
+  1,297,088 B → now 1,322,190 B = +25,102 B of CWC feature work (page
+  blob +11.4 KB gz ≈ +14 KB flash; C++ +9.7 KB → ~1.5 KB compiled; rest
+  ELF/packing). A bare-default compile squeaked by at 99% back then and
+  fails only because of that +25 KB — on the worked axis (min_spiffs)
+  nothing ever left the 65–67% band.

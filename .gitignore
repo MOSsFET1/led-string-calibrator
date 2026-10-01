@@ -11,4 +11,6 @@ __pycache__/
 
 # scratch
 *.log
-.DS_Store
+.DS_Storeruns/daemon/runs/run1/*.jpg
+runs/qa-1904/*.png
+runs/**/led_overlay.png
