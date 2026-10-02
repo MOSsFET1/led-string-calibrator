@@ -1,12 +1,18 @@
-# Handover — S14P-1928 (02 Oct)
+# Handover — S14P-1928 (02 Oct) — SUPERSEDED by the S14R era
 
-> Former `HANDOFF-S14Q.md` retired 30 Sep night; old content lives in git
-> (commit `21c5c56`) if needed. This file reflects the 01 Oct → 02 Oct
-> live round sequence ending at **S14P-1928**. The 12-of-24 era is
-> designated **S14R-0000** (operator decision 02 Oct) — a new R-line,
-> next build after S14P-1928; see S14-CWC-PLAN.md §13.
+> **RE-STAMP 03 Oct: the live handoff era is S14R.** This file is now the
+> CLOSED P-line record ending at **S14P-1928**; everything "Current build"
+> below describes a box already superseded by the committed, QA-PASS
+> **S14R-0002** (flash pending — the box still runs S14P-1928 until the
+> parent's flash). The S14R round-by-round record (0000 Golay bank switch,
+> 0001 operator-UI round, 0002 brightness calibration) lives in
+> S14-CWC-PLAN.md **§15**; the separate S14R handoff doc is authored by the
+> main session. Former `HANDOFF-S14Q.md` retired 30 Sep night; old content
+> lives in git (commit `21c5c56`) if needed. Original scope: the 01 Oct →
+> 02 Oct live round sequence ending at **S14P-1928**; the 12-of-24 era was
+> designated **S14R-0000** here (operator decision 02 Oct) and is now BUILT.
 
-## Current build
+## Current build (HISTORICAL — superseded by S14R-0002, not yet flashed)
 
 - Firmware on box: **S14P-1928** (flashed 02 Oct, hash-verified,
   min_spiffs, banner `=== poc_survey S14P-1928: capture-only bursts +
@@ -303,9 +309,12 @@ LEDs ensemble mean (reports/page-simulation-s14p-1922.md).
    installed shorter lengths), reload, confirm header stamp + hello
    nStr/nPerStr in a STAT, one burst (capture-only or decode mode),
    decode, conflict audit (see Validation boundary above).
-4. **S14R-0000 (12-of-24 era)** — designated, NOT started: Golay
-   subcode bank (2576 codewords, d_min 8) + what a 24-plane burst
-   costs in choreography/AE; first build after S14P-1928.
+4. **S14R-0000 (12-of-24 era)** — designated, NOT started
+   *(SUPERSEDED 02/03 Oct: BUILT — S14R-0000 bank swapped + verified,
+   0001 operator-UI + exposure round, 0002 brightness calibration + QA
+   PASS; full record S14-CWC-PLAN.md §15; real-rig 0002 round pending
+   the flash)*: Golay subcode bank (2576 codewords, d_min 8) + what a
+   24-plane burst costs in choreography/AE.
 5. **Phone-side 1600-id display practicalities** — the result view boxes
    200 ids fine; how a 1600-id map should render/select on the phone is
    an open UI question.
@@ -340,7 +349,10 @@ LEDs ensemble mean (reports/page-simulation-s14p-1922.md).
 8. **Page-side drv?-stall self-recovery** — still open (B119 class,
    S14P-1925 note).
 
-## How to continue this session
+## How to continue this session *(SUPERSEDED 03 Oct — the active build is
+S14R-0002, QA-PASS, NOT YET FLASHED; the flash + first real 0002 round are
+the next actions, and continue-instructions now come from the S14R handoff
+doc / plan §15. Kept unedited as the P-line-era recipe.)*
 
 1. Confirm page shows `S14P-1928` and WS open. If the box's HTTPS is
    dead (`mbedtls_ssl_setup -0x7F00` storm in the daemon log), apply
@@ -369,6 +381,10 @@ LEDs ensemble mean (reports/page-simulation-s14p-1922.md).
    flags and the suppress radius (`cwcSuppress`).
 
 ## Repo state
+
+*(RE-STAMP 03 Oct — superseded: origin/main has ADVANCED through the
+S14R era to **3f22c2a**; the P-line statement below is the state as of
+the 1928 close.)*
 
 - Branch `main` AT origin/main = **6b554b2** — S14P-1928 committed and
   PUSHED. (Older notes saying b461654 / "local commits unpushed at
