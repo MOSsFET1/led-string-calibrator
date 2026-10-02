@@ -22,3 +22,6 @@ runs/daemon/runs/*/truncated_backup/
 runs/daemon/runs/*/morning_0843_backup/
 runs/qa-1904/*.png
 runs/**/led_overlay.png
+
+# morning-era run1 preservation dirs (all backups): imagery local-only
+runs/daemon/runs/run1/morning_*_backup*/
