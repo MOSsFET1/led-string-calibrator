@@ -63,7 +63,7 @@ window._onload = Date.now();      // S14P-1926 probe: boot ran (fresh context ma
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14P-1926";
+const BUILD = "S14P-1927";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -91,22 +91,28 @@ const CFG = {
   //     box CFG channel; cwcN clamps to nStr*nPerStr so global LED ids 0..
   //     cwcN-1 stay on the rig ---
   cwc: 1,             // 1 = CWC-form burst (the survey). 0 = all-on movement burst.
-  cwcN: 200,          // global LED ids mapped to codewords 0..cwcN-1 (10-1600),
-                      // clamped to nStr*nPerStr at burst start
+  cwcN: 1600,         // S14P-1927: default = the FULL RIG (8x200); still clamped
+                      // to nStr*nPerStr at burst start, so partial/bench rigs
+                      // map just the ids they have (global leds 10..1600 range)
   cwcSettle: 100,     // ms paint-ack -> grab (holeGap floor lesson: <70 flaky)
-  // --- in-page position decode gates (console cwc_pos_decode recipe;
-  //     plan §10 round params: amp >= 60/plane; margin re-themed 30 Sep) ---
-  cwcAmpGate: 60,     // min per-codeword amplitude (stacksig score / 9)
-  cwcMarginGate: 10,  // min d6 margin (score minus best confusable competitor)
+  // --- in-page position decode gates (console cwc_pos_decode recipe) ---
+  // S14P-1927: PROMOTED DEFAULTS — sweep-validated 02 Oct across 5 handheld
+  // sets — gains on every set, zero total regressions; suppress stays 1,
+  // fullres on.
+  cwcAmpGate: 40,     // min per-codeword amplitude (stacksig score / 9);
+                      // sweep-validated 02 Oct across 5 handheld sets (was 60)
+  cwcMarginGate: 6,   // min d6 margin (score minus best confusable competitor);
+                      // sweep-validated 02 Oct across 5 handheld sets (was 10;
                       // 30 Sep: 11.8 lowest genuine margin on the flagged
-                      // handheld run; strongest-site dedup bounds stolen-site
-                      // ghosts
+                      // handheld run — strongest-site dedup bounds stolen-site
+                      // ghosts)
   cwcSuppress: 1,     // per-LED suppression radius in px after greedy accept (3 px window)
-  cwcMaskThr: 150,    // candidate sites: blurred-master luma >= this.
+  cwcMaskThr: 100,    // candidate sites: blurred-master luma >= this;
+                      // sweep-validated 02 Oct across 5 handheld sets (was 150).
                       // DO NOT raise to 175: edge/shallow-angle LEDs
                       // (documented 20-25 and 150-156 class) sit at 184-191.
                       // 30 Sep: 150 validated offline on tripod + flagged
-                      // handheld run at amp 60/marg 10; codeword-103 phantom
+                      // handheld run; codeword-103 phantom
                       // re-measured amp ~40 at current margins — revisit if
                       // gates change (sweep history: 200 excluded the
                       // shallow-angle edge cores of leds 20-25 + tail 150-156
@@ -1377,7 +1383,7 @@ function cwcDecode(masterL, planes, chain, nL) {
   // luma >= CFG.cwcMaskThr. Greedy accept best-score-first; amp + d6-margin
   // gates; 7 px suppression; then STRONGEST-SITE-PER-CODEWORD dedup (with
   // only one physical string active, multi-site claims are ghosts).
-  const MASK_THR = (CFG.cwcMaskThr | 0) || 150; // must default to console default (150), not 175
+  const MASK_THR = (CFG.cwcMaskThr | 0) || 100; // S14P-1927: default 100 (sweep-validated 02 Oct across 5 handheld sets); never 175
   const mMed = Math.max(histMedian(masterL), 1);
   const kk = planes.map((pl) => histMedian(pl) / mMed);
   // 1921: revert to original double 3-tap box blur; sweep shows it matches

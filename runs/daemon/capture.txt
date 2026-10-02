@@ -4021,3 +4021,5 @@
 [10:40:16] [LOGA] persistent arm ON
 [10:40:16] >> CMD CFG={"cwc":1,"cwcN":1600,"nStr":8,"nPerStr":200,"cwcSuppress":1,"cwcMaskThr":100,"cwcAmpGate":40,"cwcMarginGate":6}
 [10:40:17] [CFG] nStr=8 nPerStr=200 queued: {"cwc":1,"cwcN":1600,"nStr":8,"nPerStr":200,"cwcSuppress":1,"cwcMaskThr":100,"cwcAmpGate":40,"cwcMarginGate":6}
+[10:56:49] === daemon start ===
+[10:56:49] [LOGA] persistent arm ON

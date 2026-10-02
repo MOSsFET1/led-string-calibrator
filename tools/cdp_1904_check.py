@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""S14P-1926 pre-flash QA: mock box + headless Chromium + fake camera.
+"""S14P-1927 pre-flash QA: mock box + headless Chromium + fake camera.
 Validates the REAL page end-to-end before an ESP32 flash:
-  1. build stamp == S14P-1926
+  1. build stamp == S14P-1927
   2. CFG (cwc=1, cwcN=10) + BURST via mock drv? directives
   3. burst runs: 18 frame-bits planes + master, bench store ships 19 frames
   4. direct registration log line present (chain, no crash)
@@ -14,10 +14,10 @@ Validates the REAL page end-to-end before an ESP32 flash:
      logs + per-lane frame-bits mapping exercised (LED 57 = display L3,
      pixel 7: its codeword's ON-plane pattern must appear EXACTLY in the
      lane-3 latch sequence across the 18 consecutive frame-bits messages).
-  9. S14P-1926 replay path: a rig CFG queued while the page is already up
-     converges ('cfg: rig 8x25 from box' + window._cfgRig snapshot); a page
-     RELOAD (fresh hello, no new directive) REPLAYS the still-held cfg into
-     the fresh context — reconverges idempotently, no rig-mismatch error.
+  9. S14P-1926 replay path (kept in 1927): a rig CFG queued while the page is
+     already up converges ('cfg: rig 8x25 from box' + window._cfgRig snapshot);
+     a page RELOAD (fresh hello, no new directive) REPLAYS the still-held cfg
+     into the fresh context — reconverges idempotently, no rig-mismatch error.
 
 PASS = hard checks 1-6 pass; 7 exercises without a NEW 'E ' error;
        8 completes with decode log + exact per-lane mapping sequence match;
@@ -33,7 +33,7 @@ BASE = TOOLS.parent
 RUN = BASE / "runs" / "qa-1904"
 import urllib.request as u
 
-STAMP = "S14P-1926"
+STAMP = "S14P-1927"
 
 
 def err_lines(logtxt, exclude_motion=True):
@@ -115,6 +115,11 @@ async def main():
             print("chain:", chain_ln)
             dec_ln = await wait_log(ws, "decode:", tries=90)
             print("decode:", dec_ln)
+            # S14P-1927: burst-1 now runs the FULL 8x200 default rig (page cwcN
+            # 1600, mock box defaults nStr=8) — nL=1600 still maps onto the
+            # 18-plane/1600-led codeword bank, so the 19-frame shape is
+            # unchanged; only the decode semantics moved (mock fake camera
+            # lights only its painted lamps -> sites confirm against LED ids).
             ship_ln = await wait_log(ws, "bench pull done", tries=90)
             print("ship:", ship_ln)
             logtxt = await cdp_eval(ws, "document.getElementById('log').textContent")
@@ -169,7 +174,10 @@ async def main():
                     break
                 await asyncio.sleep(1)
             print("burst 2 released:", not busy)
-            # ---- burst 3: multi-string rig (nStr=8 x nPerStr=25 = 200 ids) ----
+            # ---- burst 3: multi-string rig (explicit CFG 8x25 = 200 ids) ----
+            # S14P-1927: burst-3 stays the EXPLICIT narrow CFG (nStr=8,
+            # nPerStr=25) — unchanged despite the compiled defaults moving to
+            # 8x200; its assertions are shape-explicit, not default-driven.
             cfg3 = dict(cfg, cwcN=200, nStr=8, nPerStr=25)
             boxlog_at_b3 = len((TOOLS / "mock_box.log").read_text().splitlines())
             (TOOLS / "mock_directives.txt").write_text("CFG=" + json.dumps(cfg3) + "\nBURST\n")
@@ -288,9 +296,9 @@ async def main():
             multi_ok = (bool(rig_ln) and dec3_ok and hello3_ok and ship3_ok
                         and not errs3 and seq_ok and sums_ok and fb_seen >= 18
                         and len(led_planes) == 9)
-            # S14P-1926: check 9 — the reload (fresh hello) converged to the
-            # still-queued rig cfg with NO new directive, and the apply was
-            # visible ('cfg: rig 8x25 from box').
+            # S14P-1927: check 9 (the S14P-1926 replay, kept) — the reload
+            # (fresh hello) converged to the still-queued rig cfg with NO new
+            # directive, and the apply was visible ('cfg: rig 8x25 from box').
             replay_ok = bool(ctx9 and conv9 and from_box9 and guard9_ok)
             print("\nRESULT:", "PASS" if (hard_ok and multi_ok and replay_ok) else "FAIL")
             print(f"  frames 19/19: {n_frames == 19}; stats<4096B: {stats_ok}; "
@@ -299,7 +307,7 @@ async def main():
             print(f"  multi-string: rig line {bool(rig_ln)}; decode rig-tagged {dec3_ok}; "
                   f"hello 8x25 {hello3_ok}; ship strings-8 {ship3_ok}; errors {len(errs3)}; "
                   f"lane-map {seq_ok}; lit-sum {sums_ok}")
-            print(f"  S14P-1926 replay: fresh-ctx {ctx9}; reconverged {conv9}; "
+            print(f"  S14P-1927 replay (check 9): fresh-ctx {ctx9}; reconverged {conv9}; "
                   f"from-box logged {from_box9 or from_box9c}; clean {guard9_ok} "
                   f"(cfg queued while page up, then a reload replays the held cfg)")
             return 0 if (hard_ok and multi_ok and replay_ok) else 1

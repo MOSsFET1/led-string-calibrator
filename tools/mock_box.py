@@ -28,7 +28,8 @@ DIRV = BASE / "tools/mock_directives.txt"
 LOGF = BASE / "tools/mock_box.log"
 
 N_PX = 200                 # per-lane capacity (matches the firmware N_PX)
-state = {"npx": N_PX, "nStr": 1, "nPerStr": 200, "build": ""}
+state = {"npx": N_PX, "nStr": 8, "nPerStr": 200, "build": ""}   # S14P-1927: mirror
+                                            # the firmware defaults (full 8x200 rig)
 s_cfg = ""                 # CFG=<json> slot (mirror of the firmware sCfg)
 s_cfg_replay = 2           # S14P-1926 replay credits (boot arms 2, hello re-arms)
 lanes: list[list[str | None]] = [[None] * N_PX for _ in range(8)]   # last latched content per lane
