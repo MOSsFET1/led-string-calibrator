@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""S14P-1928 pre-flash QA: mock box + headless Chromium + fake camera.
+"""S14R-0000 pre-flash QA: mock box + headless Chromium + fake camera.
 Validates the REAL page end-to-end before an ESP32 flash:
-  1. build stamp == S14P-1928
+  1. build stamp == S14R-0000
   2. CFG (cwc=1, cwcN=10) + BURST via mock drv? directives
-  3. burst runs: 18 frame-bits planes + master, bench store ships 19 frames
+  3. burst runs: 24 frame-bits planes + master, bench store ships 25 frames
   4. direct registration log line present (chain, no crash)
   5. in-page decode ran (sitesMasked/confirmed logged; CWCDEC chunks ship)
   6. result canvas (static master + site boxes) exists and is non-blank;
@@ -13,17 +13,17 @@ Validates the REAL page end-to-end before an ESP32 flash:
      over 8 virtual strings), one burst; assert burst completes + decode
      logs + per-lane frame-bits mapping exercised (LED 57 = display L3,
      pixel 7: its codeword's ON-plane pattern must appear EXACTLY in the
-     lane-3 latch sequence across the 18 consecutive frame-bits messages).
+     lane-3 latch sequence across the 24 consecutive frame-bits messages).
   9. S14P-1926 replay path (kept): a rig CFG queued while the page is
      already up converges ('cfg: rig 8x25 from box' + window._cfgRig snapshot);
      a page RELOAD (fresh hello, no new directive) REPLAYS the still-held cfg
      into the fresh context — reconverges idempotently, no rig-mismatch error.
-  10. S14P-1928 capture-only bursts + manual bulk send: chkCapOnly ON -> TWO
+  10. S14R-0000 capture-only bursts + manual bulk send: chkCapOnly ON -> TWO
      bursts prime/paint/settle/grab as usual ('cwc capture:' start lines,
-     19 frames each) but ACCUMULATE 38 frames in benchStore with ZERO decode
+     25 frames each) but ACCUMULATE 50 frames in benchStore with ZERO decode
      (no chain/decode/result-view lines), ZERO CWCDEC/CWCSTATS and ZERO
      auto-ship (no FRAME/FJPEG logc traffic); Burst re-enables promptly after
-     each burst. Then 'Send frames (all)' (btnSendFrames) ships ALL 38 in one
+     each burst. Then 'Send frames (all)' (btnSendFrames) ships ALL 50 in one
      benchPull (FRAME/FJPEG traffic appears, pull completes, buttons
      re-enable; benchPull is non-destructive — the store KEEPS its frames,
      cleared only at the next decode-mode burst start).
@@ -32,7 +32,7 @@ PASS = hard checks 1-6 pass; 7 exercises without a NEW 'E ' error;
        8 completes with decode log + exact per-lane mapping sequence match;
        9 replay + mismatch-guard + reload-convergence all behave as logged;
        10 capture mode accumulates without decode/ship + manual bulk send
-       ships 38 with no new 'E ' errors.
+       ships 50 with no new 'E ' errors.
 Run with the venv python (websockets dep): see README tooling line."""
 import asyncio, base64, json, os, re, sys, time
 from pathlib import Path
@@ -44,7 +44,7 @@ BASE = TOOLS.parent
 RUN = BASE / "runs" / "qa-1904"
 import urllib.request as u
 
-STAMP = "S14P-1928"
+STAMP = "S14R-0000"
 
 
 def err_lines(logtxt, exclude_motion=True):
@@ -126,9 +126,9 @@ async def main():
             print("chain:", chain_ln)
             dec_ln = await wait_log(ws, "decode:", tries=90)
             print("decode:", dec_ln)
-            # S14P-1928: burst-1 runs the FULL 8x200 default rig (page cwcN
+            # S14R-0000: burst-1 runs the FULL 8x200 default rig (page cwcN
             # 1600, mock box defaults nStr=8) — nL=1600 still maps onto the
-            # 18-plane/1600-led codeword bank, so the 19-frame shape is
+            # 24-plane/1600-led Golay bank, so the 25-frame shape is
             # unchanged; only the decode semantics moved (mock fake camera
             # lights only its painted lamps -> sites confirm against LED ids).
             ship_ln = await wait_log(ws, "bench pull done", tries=90)
@@ -186,7 +186,7 @@ async def main():
                 await asyncio.sleep(1)
             print("burst 2 released:", not busy)
             # ---- burst 3: multi-string rig (explicit CFG 8x25 = 200 ids) ----
-            # S14P-1928: burst-3 stays the EXPLICIT narrow CFG (nStr=8,
+            # S14R-0000: burst-3 stays the EXPLICIT narrow CFG (nStr=8,
             # nPerStr=25) — unchanged despite the compiled defaults moving to
             # 8x200; its assertions are shape-explicit, not default-driven.
             cfg3 = dict(cfg, cwcN=200, nStr=8, nPerStr=25)
@@ -269,7 +269,7 @@ async def main():
             print(f"replay: ctx {ctx9}; from-box {from_box9 or from_box9c}; "
                   f"rig snapshot {snap9 or conv9}; guard clean {len(no_err9) == 0}")
             # ---- per-lane bit mapping in the MOCK BOX ----
-            # burst 3 paints 18 consecutive frame-bits planes (P00 is plane 0
+            # burst 3 paints 24 consecutive frame-bits planes (P00 is plane 0
             # held 1 s — no separate primer message). Probe LED 57:
             # lane = 57/25 = 2 -> L3 (display), pixel = 57%25 = 7. Its
             # codeword's ON-plane pattern must appear EXACTLY as the L3
@@ -277,13 +277,13 @@ async def main():
             # bit j -> (lane, px) = (j/nPerStr, j%nPerStr) AND the LSB-first
             # byte packing through the REAL page encoder.
             cw_txt = (BASE / "page" / "survey.html").read_text()
-            mbank = re.search(r"window\.CWC_CODES_9OF18 = \[(.*?)\];", cw_txt, re.S)
+            mbank = re.search(r"window\.CWC_CODES_12OF24 = \[(.*?)\];", cw_txt, re.S)
             codes = re.findall(r'"([0-9,]+)"', mbank.group(1)) if mbank else []
             LED_ID, LANE_COL, PX = 57, 2, 7            # id 57 -> L3(display) px 7
             led_planes = codes[LED_ID].split(",") if len(codes) > LED_ID else []
             blines = (TOOLS / "mock_box.log").read_text().splitlines()[boxlog_at_b3:]
             fb_seen, px_seq, sums_ok = 0, [], True
-            expect = ["1" if str(p) in led_planes else "0" for p in range(18)]
+            expect = ["1" if str(p) in led_planes else "0" for p in range(24)]
             pending_fb = None
             for l in blines:
                 if l.startswith("FRAME-BITS"):
@@ -298,23 +298,23 @@ async def main():
                         if sum(lit) != 100:            # every plane = exactly N/2 = 100 ON rig-wide
                             sums_ok = False
                     pending_fb = None
-            seq_ok = px_seq[:18] == expect
+            seq_ok = px_seq[:24] == expect
             print(f"frame-bits latches: {fb_seen}; led{LED_ID} codeword planes: {led_planes} "
-                  f"({len(led_planes)}/9); L{LANE_COL+1}px{PX} latch seq: {''.join(px_seq[:18])}")
+                  f"({len(led_planes)}/12); L{LANE_COL+1}px{PX} latch seq: {''.join(px_seq[:24])}")
             print(f"per-lane mapping: seq match {seq_ok}; per-plane lit sum 100: {sums_ok}")
-            hard_ok = (n_frames == 19 and stats_ok and chain_ln and dec_ln
+            hard_ok = (n_frames == 25 and stats_ok and chain_ln and dec_ln
                        and "NO CANVAS" not in info and not errs and cwcdec_ok and not errs2)
             multi_ok = (bool(rig_ln) and dec3_ok and hello3_ok and ship3_ok
-                        and not errs3 and seq_ok and sums_ok and fb_seen >= 18
-                        and len(led_planes) == 9)
-            # S14P-1928: check 9 (the S14P-1926 replay, kept) — the reload
+                        and not errs3 and seq_ok and sums_ok and fb_seen >= 24
+                        and len(led_planes) == 12)
+            # S14R-0000: check 9 (the S14P-1926 replay, kept) — the reload
             # (fresh hello) converged to the still-queued rig cfg with NO new
             # directive, and the apply was visible ('cfg: rig 8x25 from box').
             replay_ok = bool(ctx9 and conv9 and from_box9 and guard9_ok)
 
-            # ================= check 10: S14P-1928 capture-only + bulk send ==
+            # ================= check 10: S14R-0000 capture-only + bulk send ==
             # STAGE B: chkCapOnly ON -> TWO bursts keep the full capture
-            # choreography (1 s P00 primer + per-plane settles + 18 planes +
+            # choreography (1 s P00 primer + per-plane settles + 24 planes +
             # fast master) but ACCUMULATE 38 frames in benchStore with.ZERO
             # decode (no chain/decode/result view), ZERO CWCDEC/CWCSTATS and
             # ZERO auto-ship (no pull-file traffic at all); Burst re-enables
@@ -330,7 +330,7 @@ async def main():
             async def c10_burst_and_settle(rno):
                 (TOOLS / "mock_directives.txt").write_text("BURST\n")
                 print(f"burst C10-{rno} (capture mode) queued")
-                cap_ln = await wait_log(ws, f"captured: r{rno} 19 frames", tries=90)
+                cap_ln = await wait_log(ws, f"captured: r{rno} 25 frames", tries=90)
                 end = False
                 for _ in range(90):
                     bb = await cdp_eval(ws, "JSON.stringify({r:benchRunning,u:benchUploading,s:scanning})")
@@ -369,7 +369,7 @@ async def main():
             errs10b = [l for l in err_lines(logtxt10) if l not in errsB0]
             print(f"stage B: 'cwc capture:' starts {capstart10} (want 2); accumulated "
                   f"{[l[-40:] for l in capacc]}; store-labels-all-cwc {lab_ok10}; "
-                  f"frame-bits paints {fb10} (want 36 = 2x18 planes); "
+                  f"frame-bits paints {fb10} (want 48 = 2x24 planes); "
                   f"no result canvas {nores10}; pull traffic {len(newpull.splitlines())} lines")
             print("stage B decode-stack lines (want []):", nodec if nodec else "none")
             print("stage B new errors (want none):", errs10b if errs10b else "none")
@@ -408,32 +408,32 @@ async def main():
             # (S14P-1902) or page reload. Capture mode's run must therefore
             # keep the 38 frames after the manual send (re-send is a re-ship;
             # the operator's protection is the clear-on-next-decode-burst).
-            print(f"stage C: FRAME {n_frames10}/38 (r1 {r1_f}, r2 {r2_f}), FJPEG {n_fjpeg10},"
+            print(f"stage C: FRAME {n_frames10}/50 (r1 {r1_f}, r2 {r2_f}), FJPEG {n_fjpeg10},"
                   f" FEND {n_fend10}, CWCSTATS {n_cwcstats10} (want 0); released {end3};"
                   f" post-ship state {st3}")
             print("stage C new errors (want none):", errs10c if errs10c else "none")
             cap_ok = bool(cap1_ln and cap2_ln and end1 and end2 and end3
                           and lat1 is not None and lat1 < 4.0 and lat2 is not None and lat2 < 4.0
-                          and st1 == '{"n":19,"run":1}' and st2c == '{"n":38,"run":2}'
+                          and st1 == '{"n":25,"run":1}' and st2c == '{"n":50,"run":2}'
                           and lab_ok10 == 'true'
                           and capstart10 == 2 and len(capacc) == 2
                           and len(newpull.splitlines()) == 0      # no auto-ship, no logc at all
-                          and not nodec and nores10 == 'true' and fb10 == 36
-                          and n_frames10 == 38 and n_fjpeg10 > 0 and n_fend10 == 38
-                          and r1_f == 19 and r2_f == 19 and n_cwcstats10 == 0
+                          and not nodec and nores10 == 'true' and fb10 == 48
+                          and n_frames10 == 50 and n_fjpeg10 > 0 and n_fend10 == 50
+                          and r1_f == 25 and r2_f == 25 and n_cwcstats10 == 0
                           and not errs10b and not errs10c)
             print("\nRESULT:", "PASS" if (hard_ok and multi_ok and replay_ok and cap_ok) else "FAIL")
-            print(f"  frames 19/19: {n_frames == 19}; stats<4096B: {stats_ok}; "
+            print(f"  frames 25/25: {n_frames == 25}; stats<4096B: {stats_ok}; "
                   f"chain logged: {bool(chain_ln)}; decode logged: {bool(dec_ln)}; "
                   f"canvas: {'NO CANVAS' not in info}; CWCDEC {n_cwcdec} {cwcdec_ok}")
             print(f"  multi-string: rig line {bool(rig_ln)}; decode rig-tagged {dec3_ok}; "
                   f"hello 8x25 {hello3_ok}; ship strings-8 {ship3_ok}; errors {len(errs3)}; "
                   f"lane-map {seq_ok}; lit-sum {sums_ok}")
-            print(f"  S14P-1928 replay (check 9): fresh-ctx {ctx9}; reconverged {conv9}; "
+            print(f"  S14R-0000 replay (check 9): fresh-ctx {ctx9}; reconverged {conv9}; "
                   f"from-box logged {from_box9 or from_box9c}; clean {guard9_ok} "
                   f"(cfg queued while page up, then a reload replays the held cfg)")
-            print(f"  S14P-1928 capture-only (check 10): starts {capstart10}x, store 38 after 2 bursts, "
-                  f"decode skipped {not nodec and nores10 == 'true'}, no auto-ship, bulk send 38+re-enable; "
+            print(f"  S14R-0000 capture-only (check 10): starts {capstart10}x, store 50 after 2 bursts, "
+                  f"decode skipped {not nodec and nores10 == 'true'}, no auto-ship, bulk send 50+re-enable; "
                   f"errors {len(errs10b) + len(errs10c)}")
             return 0 if (hard_ok and multi_ok and replay_ok and cap_ok) else 1
     finally:

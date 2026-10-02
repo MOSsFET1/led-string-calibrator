@@ -70,7 +70,7 @@ def build_scores(run):
     kbgs = [float(np.median(mw)) / max(float(np.median(rw)), 1.0)
             for rw, mw in zip(regd, mb_reg)]
     stacksig = np.stack([mw - k * rw for rw, mw, k in zip(regd, mb_reg, kbgs)])
-    codes = json.load(open(BASE / 'codewords_9of18.json'))
+    codes = json.load(open(BASE / 'codewords_12of24.json'))
     codes = codes['codes'] if isinstance(codes, dict) else codes
     N = min(200, len(codes))
     bits = np.zeros((N, 18), dtype=np.int16)

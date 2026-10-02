@@ -99,7 +99,7 @@ def main():
     frames = decode_run(run, 'cwc')
     planes = {int(f['label'].split(':p')[1]): f['img'] for f in frames if ':p' in f['label']}
     masts = [f for f in frames if 'master' in f['label']]
-    if not masts or len(planes) < 18:
+    if not masts or len(planes) < 24:
         print(f'INCOMPLETE: master {len(masts)}, planes {len(planes)}')
         return 1
     masterL = luma(masts[0]['img'])
@@ -131,10 +131,10 @@ def main():
     print(f'site mask: {int(mask.sum())} px (of {H*W})')
 
     # ---- bank + signs ----
-    codes = json.load(open(BASE / 'codewords_9of18.json'))
+    codes = json.load(open(BASE / 'codewords_12of24.json'))   # S14R-0000
     codes = codes['codes'] if isinstance(codes, dict) else codes
     N = min(args.n, len(codes))
-    bits = np.zeros((N, 18), dtype=np.int8)
+    bits = np.zeros((N, 24), dtype=np.int8)
     for i in range(N):
         for p in codes[i]:
             bits[i][p] = 1
@@ -147,7 +147,7 @@ def main():
     argi = np.zeros(len(mids), np.int32)
     for i in range(N):
         sc = np.zeros(len(mids), np.float32)
-        for p in range(18):
+        for p in range(24):
             tdx, tdy, _ = tot[p]
             # master sampled at s + tot_p  (site + shift), plane likewise
             yy = np.clip(sy + tdy, 0, H - 1)
@@ -190,19 +190,19 @@ def main():
         if used[j] or not lmax[j]:
             continue
         i = int(argi[j])
-        amp = float(best[j]) / 9.0
-        cand = np.where(Dfull[i] >= 6)[0]
+        amp = float(best[j]) / 12.0
+        cand = np.where(Dfull[i] >= 8)[0]
         y, x = int(sy[j]), int(sx[j])
         # competitor score AT THIS SITE (recompute per candidate)
         sc_site = np.zeros(N, np.float32)
         for c in cand:
             s = 0.0
-            for p in range(18):
+            for p in range(24):
                 tdx, tdy, _ = tot[p]
                 yyc = min(H - 1, max(0, y + tdy)); xxc = min(W - 1, max(0, x + tdx))
                 s += sign[c, p] * (masterL[yyc, xxc] - k[p] * planeL[p][yyc, xxc])
             sc_site[c] = s
-        margin = (float(best[j]) - float(sc_site[cand].max())) / 9.0
+        margin = (float(best[j]) - float(sc_site[cand].max())) / 12.0
         if amp < args.amp_gate or margin < args.margin_gate:
             continue
         used[j] = True

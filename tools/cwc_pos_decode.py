@@ -11,7 +11,7 @@ shift[p] = ncc(mD, dec(plane_p)); the §10d parabolic sub-peak (S14 plan
 §10d, page cwcNccPeakMargin) is unchanged — formula, clamps, interior/
 boundary and conditioning-guard behaviour identical to 1910.
 
-Inputs: a pulled CWC run dir (master + 18 planes).
+Inputs: a pulled CWC run dir (master + 24 planes, S14R-0000 12-of-24).
 Outputs: <run>/ledpos.json (per confirmed LED: cx, cy, amp, amp_margin) and
          <run>/led_overlay.png (12 px box + id on the master frame).
 
@@ -35,12 +35,12 @@ sampled at the plane's integer direct shift (k_p = per-plane median gain,
 integer sample-at like the page — NO warpAffine; the old float-warp path was
 sign-inverted vs the page convention and doubled handheld residuals).
 Signed profile: positive = LED OFF in that plane at that site; per-LED score
-= Σ_p sign[i,p] × stacksig[p] (sign +1 OFF, −1 ON); amp = score/9.
-Codeword bank prefix property: first-150 d_min = 6 → the identity gate
-requires a d6 margin (score minus best non-confusable competitor > gate).
+= Σ_p sign[i,p] × stacksig[p] (sign +1 OFF, −1 ON); amp = score/12.
+Codeword bank prefix property: the 12-of-24 Golay bank keeps d_min 8 →
+the identity gate requires a d8 margin (score minus competitor > gate).
 
-Usage: venv python3 cwc_pos_decode.py <run_dir> [--amp-gate 60]
-       [--margin-gate 10] [--peak-margin 0.05] [--save-overlay]
+Usage: venv python3 cwc_pos_decode.py <run_dir> [--amp-gate 40]
+       [--margin-gate 6] [--peak-margin 0.05] [--save-overlay]
        [--save-json]
 """
 import argparse, json, math, sys
@@ -53,14 +53,13 @@ sys.path.insert(0, str(BASE))
 from offline_hole_verify import decode_run  # noqa: E402
 
 # Final S14P-1911 default set (mirrors the page CFG knobs, same NAMES):
-CWC_MASK_THR = 150       # cwcMaskThr  — master blur luma = candidate LED site;
+CWC_MASK_THR = 100       # cwcMaskThr  — master blur luma = candidate LED site;
                          # 175 -> 150 decided on run s14p-1910-handheld-3
                          # (edge-on cores 50/155/179-class sit 143-172 under
                          # mask 175; mask 150 is what took handheld r3 to
                          # 197/200 = the tripod gate). Phantom watch below.
-CWC_AMP_GATE = 60        # cwcAmpGate   — unchanged (per-plane mean score)
-CWC_MARGIN_GATE = 10     # cwcMarginGate — 25 -> 10 on run-3 evidence (LED27
-                         # margin 11.8 = the last fold-crowded true site)
+CWC_AMP_GATE = 40        # cwcAmpGate   — the 02 Oct sweep promoted set
+CWC_MARGIN_GATE = 6      # cwcMarginGate — the 02 Oct sweep promoted set
 CWC_NCC_PEAK_MARGIN = 0.05   # cwcNccPeakMargin — §10d conditioning floor,
                          # CONF-UNITS form, IDENTICAL to 1910 (tripod
                          # per-axis margins min 0.17/0.25; the 1908
@@ -273,11 +272,11 @@ def main():
     ap.add_argument('--tag', default='cwc')
     ap.add_argument('--n', type=int, default=200)
     ap.add_argument('--amp-gate', type=float, default=CWC_AMP_GATE,
-                    help='page knob cwcAmpGate (final set: 60)')
+                    help='page knob cwcAmpGate (02 Oct promoted set: 40)')
     ap.add_argument('--margin-gate', type=float, default=CWC_MARGIN_GATE,
-                    help='page knob cwcMarginGate (final set: 10)')
+                    help='page knob cwcMarginGate (02 Oct promoted set: 6)')
     ap.add_argument('--mask-thr', type=float, default=CWC_MASK_THR,
-                    help='page knob cwcMaskThr (final set: 150)')
+                    help='page knob cwcMaskThr (02 Oct promoted set: 100)')
     ap.add_argument('--peak-margin', type=float, default=CWC_NCC_PEAK_MARGIN,
                     help='§10d sub-peak conditioning floor, conf units '
                          '(page knob cwcNccPeakMargin)')
@@ -294,8 +293,8 @@ def main():
     frames = decode_run(run, args.tag)
     planes = {int(f['label'].split(':p')[1]): f['img'] for f in frames if ':p' in f['label']}
     masts = [f for f in frames if 'master' in f['label']]
-    if not masts or len(planes) < 18:
-        print(f'INCOMPLETE: master {len(masts)}, planes {len(planes)}')
+    if not masts or len(planes) < 24:
+        print(f'INCOMPLETE (S14R: want 24): master {len(masts)}, planes {len(planes)}')
         return 1
     master = masts[0]['img']
     mlum = np.asarray(master, dtype=np.float32).max(axis=2).astype(np.float32)
@@ -321,7 +320,7 @@ def main():
     # per-plane stacksig EXACTLY like the page cwcDecode: bilinear resampling
     # of the RAW plane at the plane's DIRECT float shift (no warp copies);
     # k_p from the page's histMedian (page-parity per-plane gain)
-    stacksig = np.empty((18, H, W), np.float32)
+    stacksig = np.empty((24, H, W), np.float32)
     kbgs = []
     mmed = hist_median(mlum)
     for j, p in enumerate(sorted(planeL)):
@@ -337,10 +336,10 @@ def main():
         kbgs.append(kp)
         stacksig[j] = mlum - kp * sh
 
-    codes = json.load(open(BASE / 'codewords_9of18.json'))
+    codes = json.load(open(BASE / 'codewords_12of24.json'))   # S14R-0000 Golay bank
     codes = codes['codes'] if isinstance(codes, dict) else codes
     N = min(args.n, len(codes))
-    bits = np.zeros((N, 18), dtype=np.int16)
+    bits = np.zeros((N, 24), dtype=np.int16)
     for i in range(N):
         for p in codes[i]:
             bits[i][p] = 1
@@ -366,11 +365,11 @@ def main():
         if not mask[y, x] or used[y, x]:
             continue
         i = int(argi[y, x])
-        amp = float(best[y, x]) / 9.0
+        amp = float(best[y, x]) / 12.0
         row = Dfull[i]
-        cand = np.where(row >= 6)[0]
+        cand = np.where(row >= 8)[0]
         s2 = float(sc[cand, y, x].max())
-        margin = (float(best[y, x]) - s2) / 9.0
+        margin = (float(best[y, x]) - s2) / 12.0
         if amp < args.amp_gate or margin < args.margin_gate:
             continue
         used[max(0, y - SUPPRESS // 2): y + SUPPRESS // 2 + 1,

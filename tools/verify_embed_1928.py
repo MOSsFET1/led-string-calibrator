@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""S14P-1928 build-chain verifier: embedded page blob == gzipped page byte-exact."""
+"""S14R-0000 build-chain verifier: embedded page blob == gzipped page byte-exact."""
 import gzip, base64, re
 from pathlib import Path
 base = Path(__file__).resolve().parents[1]
@@ -15,6 +15,8 @@ mlen = re.search(r'PAGE_GZ_LEN = (\d+)', ino)
 print('embed roundtrip byte-exact (decompressed blob == page):', gzip.decompress(raw) == html)
 print('PAGE_GZ_LEN:', mlen.group(1) if mlen else '?', 'actual fresh gzip:', len(gz))
 served = gzip.decompress(raw).decode()
-print('served stamp S14P-1928:', 'S14P-1928' in served)
+print('served stamp S14R-0000:', 'S14R-0000' in served)
 print('served ids present:', 'chkCapOnly' in served and 'btnSendFrames' in served)
 print('served fixed close present:', 'end non-capture CWC decode branch' in served)
+print('served bank is 12OF24:', 'window.CWC_CODES_12OF24 = [' in served)
+print('served bank retired (no 9OF18):', 'CWC_CODES_9OF18' not in served)

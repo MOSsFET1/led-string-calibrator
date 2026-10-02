@@ -21,7 +21,7 @@ import serial
 from PIL import Image
 
 PORT = '/dev/ttyACM0'
-WANT_FENDS = 19   # master + 18 planes
+WANT_FENDS = 25   # master + 24 planes (S14R-0000)
 
 
 def main():
@@ -150,9 +150,9 @@ def main():
     ok = [l for l, _ in labels]
     print(f'DONE frames={frames} fends={fends} decoded={len(ok)} -> {fp}')
     have = sorted(int(l.split(':p')[1]) for l in ok if ':p' in l)
-    missing = [p for p in range(18) if p not in have]
+    missing = [p for p in range(24) if p not in have]
     nmaster = len([l for l in ok if l.endswith('master')])
-    print(f'planes {len([p for p in have if 0 <= p < 18])}/18, '
+    print(f'planes {len([p for p in have if 0 <= p < 24])}/24, '
           f'master {nmaster}/1'
           + (f'  MISSING: {missing}' if missing or nmaster == 0 else ''))
     if len(ok) < WANT_FENDS:

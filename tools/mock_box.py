@@ -11,6 +11,7 @@ SCAN/ABRT/CFG=<json> lines in tools/mock_directives.txt, served in drv?)
 S14P-1923: speaks frame-bits (the binary per-lane paint class) + hello
 carries nStr/nPerStr. Per-lane LATCH log lines ('L1/L2/...') prove the
 per-lane bit mapping (lane = j/nPerStr, pixel = j%nPerStr, LSB-first).
+S14R-0000: frame-bits messages are 230 B (24-plane Golay bank).
 
 S14P-1926: the mock mirrors the firmware's idempotent-replayable CFG
 channel — hello arms a 2-credit replay window, a fresh CFG= re-arms it,
@@ -108,7 +109,11 @@ async def ws_session(reader, writer):
                 logp("WS CLOSE")
                 break
             if opcode == 2:                       # BINARY: frame-bits
-                if ln != 206 or payload[0] != 0x42 or payload[1] != 1:
+                # S14R-0000: 24-plane Golay bank -> the message is exactly
+                # 246 B (was 206 B in the 18-plane 9-of-18 era), header
+                # unchanged: [0]='B' [1]=ver(1) [2]=b [3]=flags [4..5]=u16 LE
+                # epoch [6..245] = 1920-bit plane, bit j = LED id j LSB-first.
+                if ln != 246 or payload[0] != 0x42 or payload[1] != 1:
                     logp("BAD FRAME-BITS len=%d tag=%r" % (ln, payload[:2]))
                     await send(writer, {"err": "frame-bits shape", "id": 0})
                     continue
