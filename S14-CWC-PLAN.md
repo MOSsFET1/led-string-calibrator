@@ -748,11 +748,14 @@ diagnosed.
    (today's 5 rounds ran nStr=2 at cwcN=400 box-perspective).
 4. **Phone 1600-id result-view UI** — how a 1600-id map should
    render/select is still open (200-id boxes fine).
-5. **Test-LED demo** — RAN AND COMPLETED, 14:38–14:39 under S14P-1928:
-   mechanical end-to-end PASS, but the decode over-claimed on a
-   partial rig (cwcN 600 > installed) — verdict, honesty note and the
-   operator's no-new-UI decision recorded in §14 below.
-6. **ledcloud/2 §8 export tool** — CWCDECS carries the §8 field
+6. **Test-LED demo** — RAN AND COMPLETED, 14:38–14:39 under S14P-1928:
+   mechanical end-to-end PASS. See HANDOFF-S14P.md open item 6 for the
+   02-Oct-evening operator-corrected interpretation (strings 1-3 connected;
+   bank-cap gap produced claims to id 1570; sub-600 confirms substantially
+   real; decode domain clamp = standing fix). Operator decision (verbatim):
+   no new one-LED-lighting UI — the existing all-on button already shows
+   where to cut a string.
+7. **ledcloud/2 §8 export tool** — CWCDECS carries the §8 field
    names; the converter is still not built (console verdicts stay
    authoritative for cloud export).
 
