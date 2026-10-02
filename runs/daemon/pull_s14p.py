@@ -8,7 +8,7 @@ import serial
 
 PORT = '/dev/ttyACM0'
 BAUD = 115200
-run_dir = Path('/home/nellie/projects/led-display/POC LED survey/runs/s14p-tripod-led0')
+run_dir = Path('/home/nellie/projects/led-display/poc_survey/runs/images/s14p-tripod-led0')
 run_dir.mkdir(parents=True, exist_ok=True)
 fp = run_dir / 'cwc_frames.txt'
 
