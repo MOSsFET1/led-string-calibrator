@@ -1,0 +1,10 @@
+{
+ "t": "154.507",
+ "label": "cwc:r2:p03",
+ "W": 406,
+ "H": 720,
+ "exp": "",
+ "wire_ts": "20:31:59",
+ "fend_ts": "20:32:03",
+ "provenance": "wire capture.txt >=20:30 (S14R-0001 iphone burst r2)"
+}

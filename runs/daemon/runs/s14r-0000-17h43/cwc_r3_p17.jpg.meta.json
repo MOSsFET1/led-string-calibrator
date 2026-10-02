@@ -1,0 +1,10 @@
+{
+ "t": "288.970",
+ "label": "cwc:r3:p17",
+ "W": 406,
+ "H": 720,
+ "exp": "",
+ "wire_ts": "17:43:57",
+ "fend_ts": "17:44:01",
+ "provenance": "wire capture.txt >=17:42 (S14R-0000 round-2, operator-aimed, 328/31)"
+}
