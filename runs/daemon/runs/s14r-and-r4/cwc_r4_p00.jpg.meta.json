@@ -1,0 +1,10 @@
+{
+ "t": "185.673",
+ "label": "cwc:r4:p00",
+ "W": 406,
+ "H": 720,
+ "exp": "exp=500.05 aem=continuous ev=-1 fd=0.00",
+ "wire_ts": "18:07:52",
+ "fend_ts": "18:07:55",
+ "provenance": "wire capture.txt >=17:56 (S14R-0000 android burst r4)"
+}
