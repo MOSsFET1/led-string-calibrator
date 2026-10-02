@@ -1,0 +1,182 @@
+[
+ {
+  "plane": 0,
+  "dx": 2.172,
+  "dy": 9.516,
+  "conf": 0.9409,
+  "refinedX": false,
+  "refinedY": false,
+  "marginX": 0.006,
+  "marginY": 0.0255
+ },
+ {
+  "plane": 1,
+  "dx": 0.0,
+  "dy": 9.516,
+  "conf": 0.9698,
+  "refinedX": true,
+  "refinedY": false,
+  "marginX": 0.0567,
+  "marginY": 0.0359
+ },
+ {
+  "plane": 2,
+  "dx": 2.172,
+  "dy": 7.516,
+  "conf": 0.943,
+  "refinedX": false,
+  "refinedY": false,
+  "marginX": 0.0302,
+  "marginY": 0.011
+ },
+ {
+  "plane": 3,
+  "dx": 2.0,
+  "dy": 6.344,
+  "conf": 0.9398,
+  "refinedX": false,
+  "refinedY": false,
+  "marginX": 0.0031,
+  "marginY": 0.0242
+ },
+ {
+  "plane": 4,
+  "dx": 2.172,
+  "dy": 7.344,
+  "conf": 0.9435,
+  "refinedX": false,
+  "refinedY": false,
+  "marginX": 0.0152,
+  "marginY": 0.0263
+ },
+ {
+  "plane": 5,
+  "dx": 2.172,
+  "dy": 7.516,
+  "conf": 0.9259,
+  "refinedX": false,
+  "refinedY": false,
+  "marginX": 0.0095,
+  "marginY": 0.0042
+ },
+ {
+  "plane": 6,
+  "dx": 0.0,
+  "dy": 7.344,
+  "conf": 0.9629,
+  "refinedX": false,
+  "refinedY": false,
+  "marginX": 0.0478,
+  "marginY": 0.0331
+ },
+ {
+  "plane": 7,
+  "dx": 1.053,
+  "dy": 7.344,
+  "conf": 0.9668,
+  "refinedX": true,
+  "refinedY": false,
+  "marginX": 0.0501,
+  "marginY": 0.04
+ },
+ {
+  "plane": 8,
+  "dx": 0.0,
+  "dy": 6.344,
+  "conf": 0.9614,
+  "refinedX": false,
+  "refinedY": false,
+  "marginX": 0.0438,
+  "marginY": 0.0214
+ },
+ {
+  "plane": 9,
+  "dx": 0.0,
+  "dy": 5.344,
+  "conf": 0.9537,
+  "refinedX": false,
+  "refinedY": false,
+  "marginX": 0.0428,
+  "marginY": 0.006
+ },
+ {
+  "plane": 10,
+  "dx": 0.007,
+  "dy": 4.172,
+  "conf": 0.9629,
+  "refinedX": true,
+  "refinedY": false,
+  "marginX": 0.0508,
+  "marginY": 0.0196
+ },
+ {
+  "plane": 11,
+  "dx": 1.0,
+  "dy": 4.172,
+  "conf": 0.9477,
+  "refinedX": false,
+  "refinedY": false,
+  "marginX": 0.0221,
+  "marginY": 0.0277
+ },
+ {
+  "plane": 12,
+  "dx": 1.0,
+  "dy": 4.172,
+  "conf": 0.9458,
+  "refinedX": false,
+  "refinedY": false,
+  "marginX": 0.0224,
+  "marginY": 0.0269
+ },
+ {
+  "plane": 13,
+  "dx": -0.043,
+  "dy": 4.172,
+  "conf": 0.9769,
+  "refinedX": true,
+  "refinedY": false,
+  "marginX": 0.0586,
+  "marginY": 0.0447
+ },
+ {
+  "plane": 14,
+  "dx": 0.002,
+  "dy": 4.172,
+  "conf": 0.9712,
+  "refinedX": true,
+  "refinedY": false,
+  "marginX": 0.058,
+  "marginY": 0.0353
+ },
+ {
+  "plane": 15,
+  "dx": 1.0,
+  "dy": 4.172,
+  "conf": 0.9493,
+  "refinedX": false,
+  "refinedY": false,
+  "marginX": 0.0282,
+  "marginY": 0.0294
+ },
+ {
+  "plane": 16,
+  "dx": 2.172,
+  "dy": 4.172,
+  "conf": 0.9402,
+  "refinedX": false,
+  "refinedY": false,
+  "marginX": 0.0068,
+  "marginY": 0.0207
+ },
+ {
+  "plane": 17,
+  "dx": -0.045,
+  "dy": 1.0,
+  "conf": 0.9656,
+  "refinedX": true,
+  "refinedY": false,
+  "marginX": 0.0508,
+  "marginY": 0.0226
+ }
+]
