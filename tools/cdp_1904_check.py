@@ -33,6 +33,13 @@ Validates the REAL page end-to-end before an ESP32 flash:
      (bStr1..bStr8) apply an operator nStr override mid-session AND a box
      CFG nStr still drives the rig (the burst row mirrors the box shape);
      Survey button and Keep-screen-on button are GONE.
+  12. S14R-0002 brightness probe (bProbe): a PROBE directive runs the
+     standalone calibration loop — per-step {L, P90, clipPct, histMed}
+     telemetry, CWCSTATS '"probeOnly":true' + BSTATS bright/probeIters ship
+     through the pull, rig returns to BLACK. A burst with bProbe=1 fires
+     ONLY after the probe completes and the fixed settle hold elapses
+     ('probe done:' precedes 'cwc burst:' by >= ~1.5 s) and paints its
+     planes at the probe-chosen brightness (b= matches bright=).
 
 PASS = hard checks 1-6 pass; 7 exercises without a NEW 'E ' error;
        8 completes with decode log + exact per-lane mapping sequence match;
@@ -40,7 +47,9 @@ PASS = hard checks 1-6 pass; 7 exercises without a NEW 'E ' error;
        10 capture mode accumulates without decode/ship + manual bulk send
        ships 50 with no new 'E ' errors;
        11 Burst-under-camera + 8 string buttons (press applies, box cfg
-       still wins) + Survey/wake buttons removed.
+       still wins) + Survey/wake buttons removed;
+       12 probe telemetry ships and the burst is probe+settle gated with
+       the burst painted at the probe brightness.
 Run with the venv python (websockets dep): see README tooling line."""
 import asyncio, base64, json, os, re, sys, time
 from pathlib import Path
@@ -48,11 +57,37 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from cdp_once_ship import cdp_call, cdp_eval, wait_log, CHROME, PORT, URL, TOOLS  # noqa
 
+
+async def cdp_eval(ws, expr, mid=100):
+    # LOCAL SHIELD: a burst's renderer (swiftshader grabs) can stall
+    # Runtime.evaluate > the shared 20 s timeout — one stall killed a run
+    # outright. 120 s turns a stall into a wait; healthy evals resolve in ms.
+    # Body is IDENTICAL to cdp_once_ship.cdp_eval (same unwrap, same
+    # error path) — only the timeout differs (120 s vs 20 s).
+    r = await cdp_call(ws, mid, "Runtime.evaluate",
+                       {"expression": expr, "returnByValue": True,
+                        "awaitPromise": False}, timeout=120)
+    res = r.get("result", {})
+    if res.get("subtype") == "error":
+        raise RuntimeError("eval: " + res.get("description", "?"))
+    return res.get("value")
+
+
+async def wait_log(ws, needle, tries=90):
+    # Same loop as cdp_once_ship.wait_log but rides the 120 s shield above.
+    for _ in range(tries):
+        await asyncio.sleep(1)
+        txt = await cdp_eval(ws, "document.getElementById('log').textContent")
+        lines = [l for l in (txt or "").split("\n") if needle in l or l.strip().startswith("E ")]
+        if lines:
+            return lines[-1]
+    return None
+
 BASE = TOOLS.parent
 RUN = BASE / "runs" / "qa-1904"
 import urllib.request as u
 
-STAMP = "S14R-0001"
+STAMP = "S14R-0002"
 
 
 def err_lines(logtxt, exclude_motion=True):
@@ -158,8 +193,11 @@ async def main():
                                 and not ui0.get("wake")
                                 and ui0.get("capLabel") == 'Capture only')
             # ---- burst 1: normal CWC mode (single-string, unchanged shape) ----
+            # S14R-0002: bProbe=0 for the SHAPED burst checks (deterministic
+            # 25-frame shape + timing); the probe itself is exercised in
+            # check 12 (mock camera + PROBE directive + probe-gated burst).
             cfg = {"cwc": 1, "cwcN": 10, "cwcSettle": 100, "bBurstB": 150,
-                   "bBurstHold": 800, "bComp": 0, "cwcTestMode": 0}
+                   "bBurstHold": 800, "bComp": 0, "cwcTestMode": 0, "bProbe": 0}
             (TOOLS / "mock_directives.txt").write_text("CFG=" + json.dumps(cfg) + "\nBURST\n")
             print("burst 1 queued")
             chain_ln = await wait_log(ws, "chain totals", tries=60)
@@ -371,6 +409,112 @@ async def main():
             ui_ok = bool(ui_layout_ok and press_ok and press3_ok and box_row_ok
                          and ui0.get("bstr8"))
 
+            # ================= check 12: S14R-0002 brightness probe =========
+            # The probe BEFORE a burst (bProbe=1): with the mock fake camera
+            # the lamp-core detector sees the mock's white lamps, so the probe
+            # loop must (a) log 'probe it' steps with core P90/clip/histMed
+            # telemetry, (b) fire the burst ONLY after the probe completes and
+            # the fixed 2 s settle hold elapses (probe-done line precedes the
+            # burst-start line in the page log), and (c) paint the burst planes
+            # at the probe's chosen brightness ('b=' in the burst line equals
+            # the probe-chosen level, and every FRAME-BITS b= matches it).
+            # A PROBE directive (no burst) must ship CWCSTATS-probeOnly/BSTATS
+            # telemetry through the pull and return the rig to BLACK.
+            # Timing rule asserted: burst-start line appears AFTER
+            # 'probe done:'; probe-done -> burst-start gap >= ~1.5 s (the
+            # settle hold; mock clock jitter tolerated).
+            # ---- 12a: PROBE directive alone (telemetry-only probe) ----
+            pull_txt12 = (TOOLS / "mock_log_pull.txt").read_text()
+            mark12 = len(pull_txt12)
+            boxlog_mark12 = len((TOOLS / "mock_box.log").read_text().splitlines())
+            cfg12 = dict(cfg, bProbe=0)
+            (TOOLS / "mock_directives.txt").write_text("CFG=" + json.dumps(cfg12) + "\nPROBE\n")
+            print("check 12a (PROBE directive) queued")
+            pr_ln = await wait_log(ws, "probe it1", tries=60)
+            pr_done = await wait_log(ws, "probe complete:", tries=60)
+            busy12 = True
+            for _ in range(60):
+                bb = await cdp_eval(ws, "JSON.stringify({r:benchRunning,u:benchUploading,s:scanning,p:benchPulling})")
+                if bb == '{"r":false,"u":false,"s":false,"p":false}':
+                    busy = False; busy = False
+                    break
+                await asyncio.sleep(1)
+            pull12 = (TOOLS / "mock_log_pull.txt").read_text()[mark12:]
+            has_cwcstats12 = any(l.startswith("CWCSTATS ") and '"probeOnly":true' in l
+                                 for l in pull12.splitlines())
+            has_bstats12 = any(l.startswith("BSTATS ") and '"bright":' in l and '"probeIters":'
+                               for l in pull12.splitlines() if not l.startswith("BSTATS {}"))
+            black_latch12 = "LATCH all black" in (TOOLS / "mock_box.log").read_text()[boxlog_mark12:]
+            steps12 = json.loads(next((l[len("CWCSTATS "):] for l in pull12.splitlines()
+                                       if l.startswith("CWCSTATS ") and '"probeOnly":true' in l), "{}")
+                                  ).get("probeSteps", [])
+            probe_steps_shape = bool(steps12) and all(
+                set(("L", "P90", "clipPct", "histMed")) <= set(st) for st in steps12)
+            probe_only_ok = bool(pr_ln and pr_done and has_cwcstats12 and has_bstats12
+                                 and black_latch12 and probe_steps_shape and not busy)
+            print(f"probe-only: line {bool(pr_ln)}; complete {bool(pr_done)}; "
+                  f"CWCSTATS probeOnly {has_cwcstats12}; BSTATS bright {has_bstats12}; "
+                  f"black {black_latch12}; steps-shape {probe_steps_shape}; steps {len(steps12)}")
+            # ---- 12b: burst WITH the probe enabled (probe-gated burst) ----
+            bl_mark12 = len((TOOLS / "mock_box.log").read_text().splitlines())
+            logB12 = await cdp_eval(ws, "document.getElementById('log').textContent")
+            cfg12b = dict(cfg, bProbe=1, bProbeDelayMs=300, bProbeIters=2)
+            (TOOLS / "mock_directives.txt").write_text("CFG=" + json.dumps(cfg12b) + "\nBURST\n")
+            print("check 12b (probe -> settle -> burst) queued")
+            done12 = await wait_log(ws, "probe done: bright=", tries=90)
+            # 'cwc burst:' matches STALE burst-1/3 lines still in the 400-line
+            # ring — poll for a 'cwc burst:' line NEWER than done12 instead.
+            burst12 = None
+            ts_done = None
+            if done12:
+                m = re.search(r"t\s*([0-9.]+)", done12)
+                ts_done = float(m.group(1)) if m else None
+            for _ in range(90):
+                await asyncio.sleep(1)
+                txt = await cdp_eval(ws, "document.getElementById('log').textContent")
+                for l in (txt or "").split("\n"):
+                    if "cwc burst:" in l:
+                        m2 = re.search(r"t\s*([0-9.]+)", l)
+                        if m2 and ts_done is not None and float(m2.group(1)) > ts_done:
+                            burst12 = l
+                            break
+                if burst12 or not done12:
+                    break
+            # verify ORDER + gap: probe done BEFORE burst start, >=1.5 s apart
+            order_ok = False; settle_gap_ok = False; bright_match = False
+            if done12 and burst12:
+                # page timestamps are 't' + padStart(6) + ... ('t  123.4') —
+                # extract straight off the line by regex; the old split(" ",1)
+                # re-parse returned an EMPTY second token when the pad is 2
+                #+ spaces (t < 100 s), so search() got 't ' with no digits,
+                #+ .group(1) threw every time and the gate read False x3.
+                mtd = re.search(r"t\s*([0-9.]+)", done12)
+                mtb = re.search(r"t\s*([0-9.]+)", burst12)
+                try:
+                    td = float(mtd.group(1)); tb = float(mtb.group(1))
+                    order_ok = td < tb
+                    settle_gap_ok = (tb - td) >= 1.5
+                    mb = re.search(r"bright=(\d+)", done12)
+                    mcb = re.search(r"\bb=(\d+)", burst12)
+                    bright_match = bool(mb and mcb and mb.group(1) == mcb.group(1))
+                except Exception:
+                    pass
+            end12 = False
+            for _ in range(90):
+                bb = await cdp_eval(ws, "JSON.stringify({r:benchRunning,u:benchUploading,s:scanning})")
+                if bb == '{"r":false,"u":false,"s":false}':
+                    end12 = True; break
+                await asyncio.sleep(1)
+            bl12 = (TOOLS / "mock_box.log").read_text().splitlines()[bl_mark12:]
+            fb_brights = set(l.split("b=")[1].split(" ")[0] for l in bl12
+                             if l.startswith("FRAME-BITS"))
+            logtxt12 = await cdp_eval(ws, "document.getElementById('log').textContent")
+            errs12 = [l for l in err_lines(logtxt12) if l not in (errs or []) and l not in (errs3 or [])
+                      and not (logB12 or "").count(l)]
+            probe_burst_ok = bool(done12 and burst12 and order_ok and settle_gap_ok
+                                  and bright_match and end12 and not errs12)
+            print(f"probe->burst: order {order_ok}; settle gap {settle_gap_ok}; "
+                  f"bright match {bright_match}; released {end12}; errors {len(errs12)}")
             # ================= check 10: S14R-0001 capture-only + bulk send ==
             # STAGE B: chkCapOnly ON -> TWO bursts keep the full capture
             # choreography (1 s P00 primer + per-plane settles + 24 planes +
@@ -386,10 +530,24 @@ async def main():
             errsB0 = err_lines(logB0)                 # baseline for new-error diff
             cap_on = await cdp_eval(ws, "document.getElementById('chkCapOnly').checked = true; 'set'")
             print("check 10 stage B: chkCapOnly", cap_on)
-            async def c10_burst_and_settle(rno):
+            # S14R-0002 ordering: check 12b's probe-gated burst runs BEFORE this
+            # stage, auto-ships 25 frames and RETAINS them (S14P-1902 ships are
+            # non-destructive; capture mode never clears), and its decode run
+            # leaves ITS #cwcResult canvas up — capture mode must add NO new
+            # one (asserted by a data-qa DOM marker, not by absence). The old
+            # literals (store 0/run 1, 50 frames, canvas null) predate check 12.
+            st0 = json.loads(await cdp_eval(ws, "JSON.stringify({n:benchStore.length,run:benchRunNo})"))
+            rtag1, rtag2 = st0["run"] + 1, st0["run"] + 2
+            want_st1 = json.dumps({"n": st0["n"] + 25, "run": rtag1}, separators=(",", ":"))
+            want_st2 = json.dumps({"n": st0["n"] + 50, "run": rtag2}, separators=(",", ":"))
+            want_frames10 = st0["n"] + 50
+            mark10 = await cdp_eval(ws, "(c => { if (!c) return 'none';"
+                                        " c.setAttribute('data-qa','r12b'); return 'tagged'; })"
+                                        "(document.getElementById('cwcResult'))")
+            async def c10_burst_and_settle(rtag):
                 (TOOLS / "mock_directives.txt").write_text("BURST\n")
-                print(f"burst C10-{rno} (capture mode) queued")
-                cap_ln = await wait_log(ws, f"captured: r{rno} 25 frames", tries=90)
+                print(f"burst C10-r{rtag} (capture mode) queued")
+                cap_ln = await wait_log(ws, f"captured: r{rtag} 25 frames", tries=90)
                 end = False
                 for _ in range(90):
                     bb = await cdp_eval(ws, "JSON.stringify({r:benchRunning,u:benchUploading,s:scanning})")
@@ -403,13 +561,13 @@ async def main():
                     await asyncio.sleep(0.25)
                 return cap_ln, end, lat
             (TOOLS / "mock_directives.txt").write_text("")   # stage B needs NO cfg
-            cap1_ln, end1, lat1 = await c10_burst_and_settle(1)
+            cap1_ln, end1, lat1 = await c10_burst_and_settle(rtag1)
             st1 = await cdp_eval(ws, "JSON.stringify({n:benchStore.length, run:benchRunNo})")
             print(f"capture burst 1: end {end1}; bBurst re-enabled "
                   f"{lat1 is not None and f'{lat1:.2f}s' or 'NEVER'}; store/run {st1}")
             # NO auto-ship between bursts: the pull file must gain NOTHING
             newpull1 = (TOOLS / "mock_log_pull.txt").read_text()[pull_mark:]
-            cap2_ln, end2, lat2 = await c10_burst_and_settle(2)
+            cap2_ln, end2, lat2 = await c10_burst_and_settle(rtag2)
             st2c = await cdp_eval(ws, "JSON.stringify({n:benchStore.length, run:benchRunNo})")
             print(f"capture burst 2: end {end2}; bBurst re-enabled "
                   f"{lat2 is not None and f'{lat2:.2f}s' or 'NEVER'}; store/run {st2c}")
@@ -421,15 +579,19 @@ async def main():
                                             or "CWCDEC" in l or "MOTION WARNING" in l)]
             capstart10 = sum(1 for l in newlog10 if "cwc capture:" in l)
             capacc = [l for l in newlog10 if "captured: r" in l]
-            nores10 = await cdp_eval(ws, "String(document.getElementById('cwcResult') === null)")
             lab_ok10 = await cdp_eval(ws, "JSON.stringify(benchStore.every(f => f.label.startsWith('cwc:r')))")
             bl10 = (TOOLS / "mock_box.log").read_text().splitlines()[boxlog_markB:]
             fb10 = sum(1 for l in bl10 if l.startswith("FRAME-BITS"))
             errs10b = [l for l in err_lines(logtxt10) if l not in errsB0]
+            # Capture adds NO NEW result canvas: the ONLY #cwcResult allowed is
+            # the pre-tagged one from check 12b (capture never touches it).
+            nores10 = await cdp_eval(ws, "(c => c ? c.getAttribute('data-qa') === 'r12b' : true)"
+                                        "(document.getElementById('cwcResult'))")
+            print(f"stage B: result canvas only-r12b {nores10}")
             print(f"stage B: 'cwc capture:' starts {capstart10} (want 2); accumulated "
                   f"{[l[-40:] for l in capacc]}; store-labels-all-cwc {lab_ok10}; "
                   f"frame-bits paints {fb10} (want 48 = 2x24 planes); "
-                  f"no result canvas {nores10}; pull traffic {len(newpull.splitlines())} lines")
+                  f"result canvas only-r12b {nores10}; pull traffic {len(newpull.splitlines())} lines")
             print("stage B decode-stack lines (want []):", nodec if nodec else "none")
             print("stage B new errors (want none):", errs10b if errs10b else "none")
             # STAGE C: manual bulk send — the EXISTING benchPull over the
@@ -450,8 +612,9 @@ async def main():
                 if l.startswith("FRAME "):
                     try: fmeta.append(json.loads(l[len("FRAME "):]))
                     except Exception: pass
-            r1_f = sum(1 for m in fmeta if str(m.get("label", "")).startswith("cwc:r1:"))
-            r2_f = sum(1 for m in fmeta if str(m.get("label", "")).startswith("cwc:r2:"))
+            f_rtag1 = sum(1 for m in fmeta if str(m.get("label", "")).startswith(f"cwc:r{rtag1}:"))
+            f_rtag2 = sum(1 for m in fmeta if str(m.get("label", "")).startswith(f"cwc:r{rtag2}:"))
+            f_retained = len(fmeta) - f_rtag1 - f_rtag2
             n_frames10 = sum(1 for l in pullC.splitlines() if l.startswith("FRAME "))
             n_fjpeg10 = sum(1 for l in pullC.splitlines() if l.startswith("FJPEG "))
             n_fend10 = sum(1 for l in pullC.splitlines() if l.startswith("FEND"))
@@ -467,19 +630,21 @@ async def main():
             # (S14P-1902) or page reload. Capture mode's run must therefore
             # keep the 38 frames after the manual send (re-send is a re-ship;
             # the operator's protection is the clear-on-next-decode-burst).
-            print(f"stage C: FRAME {n_frames10}/50 (r1 {r1_f}, r2 {r2_f}), FJPEG {n_fjpeg10},"
+            print(f"stage C: FRAME {n_frames10}/{want_frames10} (retained-from-12b {f_retained},"
+                  f" r{rtag1} {f_rtag1}, r{rtag2} {f_rtag2}), FJPEG {n_fjpeg10},"
                   f" FEND {n_fend10}, CWCSTATS {n_cwcstats10} (want 0); released {end3};"
                   f" post-ship state {st3}")
             print("stage C new errors (want none):", errs10c if errs10c else "none")
             cap_ok = bool(cap1_ln and cap2_ln and end1 and end2 and end3
                           and lat1 is not None and lat1 < 4.0 and lat2 is not None and lat2 < 4.0
-                          and st1 == '{"n":25,"run":1}' and st2c == '{"n":50,"run":2}'
+                          and st1 == want_st1 and st2c == want_st2
                           and lab_ok10 == 'true'
                           and capstart10 == 2 and len(capacc) == 2
                           and len(newpull.splitlines()) == 0      # no auto-ship, no logc at all
-                          and not nodec and nores10 == 'true' and fb10 == 48
-                          and n_frames10 == 50 and n_fjpeg10 > 0 and n_fend10 == 50
-                          and r1_f == 25 and r2_f == 25 and n_cwcstats10 == 0
+                          and not nodec and nores10 is True and fb10 == 48
+                          and n_frames10 == want_frames10 and n_fjpeg10 > 0
+                          and n_fend10 == n_frames10
+                          and f_rtag1 == 25 and f_rtag2 == 25 and n_cwcstats10 == 0
                           and not errs10b and not errs10c)
             print("\nRESULT:", "PASS" if (hard_ok and multi_ok and replay_ok and cap_ok and ui_ok) else "FAIL")
             print(f"  frames 25/25: {n_frames == 25}; stats<4096B: {stats_ok}; "
@@ -494,10 +659,14 @@ async def main():
             print(f"  S14R-0001 replay (check 9): fresh-ctx {ctx9}; reconverged {conv9}; "
                   f"from-box logged {from_box9 or from_box9c}; clean {guard9_ok} "
                   f"(cfg queued while page up, then a reload replays the held cfg)")
-            print(f"  S14R-0001 capture-only (check 10): starts {capstart10}x, store 50 after 2 bursts, "
-                  f"decode skipped {not nodec and nores10 == 'true'}, no auto-ship, bulk send 50+re-enable; "
+            print(f"  S14R-0001 capture-only (check 10): starts {capstart10}x, store +50 over 2 bursts, "
+                  f"decode skipped {not nodec and nores10}, no auto-ship, bulk send {n_frames10}+re-enable; "
                   f"errors {len(errs10b) + len(errs10c)}")
-            return 0 if (hard_ok and multi_ok and replay_ok and cap_ok and ui_ok) else 1
+            print(f"  S14R-0002 probe (check 12): probe-only telemetry {probe_only_ok}; "
+                  f"probe->settle->burst gate {probe_burst_ok} (order+gap+brightness match)")
+            probe_ok = bool(probe_only_ok and probe_burst_ok)
+            return 0 if (hard_ok and multi_ok and replay_ok and cap_ok and ui_ok
+                         and probe_ok) else 1
     finally:
         proc.kill()
         mock.kill()

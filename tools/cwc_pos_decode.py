@@ -58,6 +58,24 @@ CWC_MASK_THR = 100       # cwcMaskThr  — master blur luma = candidate LED site
                          # (edge-on cores 50/155/179-class sit 143-172 under
                          # mask 175; mask 150 is what took handheld r3 to
                          # 197/200 = the tripod gate). Phantom watch below.
+# S14R-0002 ADAPTIVE MASK RULE (calibrated on the 14-burst S14R corpora,
+# tools/tuning_s14r0002.json): the candidate mask threshold relaxes on DARK
+# views — thr = min(CWC_MASK_THR, max(CWC_MASK_FLOOR, CWC_MASK_K*histMed)).
+# Evidence (identical CLI machinery, gates 40/6, fullres-rad 4):
+#   s14r-and-r4 (histMed 74.5, the dark view whose 77 mask-class misses had
+#   master blob peaks 136): thr 100 -> 83.4 = 492 -> 514 confirmed, +22 all
+#   within 12 px of the confirmed cloud, -0.
+#   s14r-and-r2 / s14r-ios-r2 (histMed 100.5 / 152.5): rule saturates at 100,
+#   decoded sets byte-identical (429 / 440).
+#   s14r-and-r5 (histMed 83.5 -> thr 93.5): 387 -> 386 — hairline site 398
+#   (blur 100.9 at its claim, amp 44.5, margin 6.9) loses an argmax contest
+#   once softer neighbours enter the candidate set; documented cost, same
+#   class as the base-gate 3-4% interference misses.
+#   Floor 45 stays far under every corpora site (lowest confirmed blur 100);
+#   mask 80 @ amp 25 was already validated ±1 in the and-round report.
+CWC_MASK_ADAPTIVE = 1    # 0 = fixed CWC_MASK_THR (S14P-1927 behaviour)
+CWC_MASK_K = 1.12        # thr multiplier on the master histMedian
+CWC_MASK_FLOOR = 45      # never mask below this blurred luma
 CWC_AMP_GATE = 40        # cwcAmpGate   — the 02 Oct sweep promoted set
 CWC_MARGIN_GATE = 6      # cwcMarginGate — the 02 Oct sweep promoted set
 CWC_NCC_PEAK_MARGIN = 0.05   # cwcNccPeakMargin — §10d conditioning floor,
@@ -277,6 +295,14 @@ def main():
                     help='page knob cwcMarginGate (02 Oct promoted set: 6)')
     ap.add_argument('--mask-thr', type=float, default=CWC_MASK_THR,
                     help='page knob cwcMaskThr (02 Oct promoted set: 100)')
+    ap.add_argument('--mask-adaptive', type=int, default=CWC_MASK_ADAPTIVE,
+                    help='S14R-0002: 1 = adaptive mask on dark views '
+                         '(thr = min(mask-thr, max(mask-floor, mask-k*histMed))), '
+                         '0 = fixed mask-thr (S14P-1927 behaviour)')
+    ap.add_argument('--mask-k', type=float, default=CWC_MASK_K,
+                    help='adaptive mask multiplier on the master histMedian')
+    ap.add_argument('--mask-floor', type=float, default=CWC_MASK_FLOOR,
+                    help='adaptive mask floor (never mask below this luma)')
     ap.add_argument('--peak-margin', type=float, default=CWC_NCC_PEAK_MARGIN,
                     help='§10d sub-peak conditioning floor, conf units '
                          '(page knob cwcNccPeakMargin)')
@@ -352,7 +378,17 @@ def main():
     argi = sc.argmax(axis=0)
 
     mb = cv2.GaussianBlur(mlum, (5, 5), 1.2)
-    mask = mb >= args.mask_thr
+    # S14R-0002 adaptive mask: relax the candidate threshold on DARK views;
+    # bright views saturate at --mask-thr (identical to the S14P-1927 rule).
+    mmed_hm = hist_median(mlum)
+    if args.mask_adaptive:
+        eff_thr = min(float(args.mask_thr),
+                      max(float(args.mask_floor), args.mask_k * mmed_hm))
+        print(f'adaptive mask: histMed {mmed_hm} -> eff thr {eff_thr:.1f} '
+              f'(fixed {args.mask_thr}, k {args.mask_k}, floor {args.mask_floor})')
+    else:
+        eff_thr = float(args.mask_thr)
+    mask = mb >= eff_thr
     Dfull = (bits[:N][:, None, :] != bits[:N][None, :, :]).sum(-1)
 
     ledpos = []

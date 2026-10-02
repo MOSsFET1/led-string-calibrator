@@ -1,0 +1,62 @@
+{
+  "_readme": "S14R-0002 tunable constants, calibrated from the 14-burst S14R corpora (runs/daemon/runs/{s14r-0000-16h16,s14r-0000-17h43,s14r-and-r2..r5,s14r-ios-r1..r7}); see reports/s14r-0002-*.md for the A/B evidence. Page + firmware read these as compiled defaults; the serial CFG channel can override the page keys live.",
+  "build": "S14R-0002",
+  "date": "2026-10-02",
+  "brightness_probe": {
+    "objective": "predicted per-lamp burst amp headroom = P90 of lamp-core pixels (5x5 core max) minus local background ring median during the solid-ON probe \u2014 drive lamp cores to the JUST-BELOW-CLIP knee (saturated cores strangle amp; starved cores waste SNR)",
+    "startL": 120,
+    "stepMin": 24,
+    "maxIters": 3,
+    "adjust": "multiplicative L_new = L * targetP90 / measuredP90 (clamped to \u00b11.5x per step)",
+    "coreP90Min": 235,
+    "coreP90Max": 250,
+    "clipMaxPct": 5.0,
+    "onPctP": 90,
+    "stepDelayMs": 2000,
+    "waitSettleMs": 2000,
+    "telemetry": "BSTATS per probe step {L, P90, clipPct, histMed} + final {bright, histMed, clipPct, probeIters}",
+    "corpus_calibration": {
+      "note": "all 14 S14R bursts overdrove: lamp-core clipPct 17.1-56.0% (bBurstB 150 fixed), coreP90 = 255 everywhere \u2014 the [235,250]/<=5% knee band is the calibrated NEW ground the probe aims at, not an observed-corpora regime; frame-p95 band 225-245 retained as the exposure-class sanity check",
+      "lampCoreClipPct_byRun": {
+        "s14r-0000-16h16": 47.84,
+        "s14r-0000-17h43": 34.41,
+        "s14r-and-r2": 27.68,
+        "s14r-and-r3": 45.9,
+        "s14r-and-r4": 44.05,
+        "s14r-and-r5": 41.68,
+        "s14r-ios-r1": 33.01,
+        "s14r-ios-r2": 50.42,
+        "s14r-ios-r3": 37.52,
+        "s14r-ios-r4": 17.11,
+        "s14r-ios-r5": 39.31,
+        "s14r-ios-r6": 23.67,
+        "s14r-ios-r7": 55.99
+      },
+      "headP90_coreP90_minus_bgMed": {
+        "s14r-and-r4": 164.0,
+        "s14r-ios-r4": 88.0,
+        "s14r-ios-r7": 75.2
+      }
+    }
+  },
+  "adaptive_mask": {
+    "rule": "thr = min(cwcMaskThr, max(maskFloor, maskK * histMed(master)))",
+    "maskK": 1.12,
+    "maskFloor": 45,
+    "evidence": {
+      "s14r-and-r4 (dark view, histMed 74.5)": "thr 100->83.4: 492->514 confirmed, +22, -0",
+      "s14r-and-r5 (histMed 83.5)": "thr 93.5: 387->386 (hairline site 398 blur 100.9 amp 44.5 flips argmax; documented cost)",
+      "s14r-and-r2 / ios-r2 (histMed 100.5/152.5)": "thr saturates at 100: identical counts 429/440 (+0/-0)"
+    }
+  },
+  "exposure": {
+    "androidEvBiasBurstStart": -3,
+    "iosPoi": "no evBias; POI tap + flash feedback + re-assert each burst"
+  },
+  "bstats_keys_added": [
+    "bright",
+    "histMed",
+    "clipPct",
+    "probeIters"
+  ]
+}
