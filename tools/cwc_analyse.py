@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CWC-form burst analysis (19-frame protocol: master + 18 planes, NO off
+"""CWC-form burst analysis (25-frame protocol: master + 24 planes, NO off
 frame). Reads a run dir produced by s14_bench.py pull:
 
   <run>/cwc_frames.txt   (FRAME/FJPEG chunks, labels 'cwc:master' / 'cwc:pNN')
@@ -14,7 +14,7 @@ Checks, in order:
   5. pile-up image: sum of registered (master - plane) diffs -> hole detector
      (offline_hole_verify.detect_holes, the S13-mirror) -> per-LED point set
   6. per-LED weight check: holes-in-(master-plane_p) count per LED should
-     average 9 (weight 9 of 18); spread is the first decode-readiness metric
+     average 12 (weight 12 of 24); spread is the first decode-readiness metric
   7. TEST MODE (cwcTestMode=1): single-LED bit read via master×gain,
      backwards registration (plane->master), zero-error target
 
@@ -29,7 +29,7 @@ BASE = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE))
 from offline_hole_verify import decode_run, luma, detect_holes  # noqa: E402
 
-NPLANES = 18
+NPLANES = 24
 
 
 def load_frames(run_dir: Path):
@@ -81,7 +81,7 @@ def main():
     master, planes = load_frames(run)
     print(f"frames: master {len(master)}, planes {sorted(planes)}")
     if not master or len(planes) < NPLANES:
-        print('INCOMPLETE: need master + 18 planes (missing:',
+        print('INCOMPLETE: need master + 24 planes (missing:',
               sorted(set(range(NPLANES)) - set(planes)), ')')
         return 1
 
@@ -160,12 +160,12 @@ def main():
         test_led = args.test_led if args.test_led is not None else stats.get('testLed', 0)
         test_bits = stats.get('testBits', [])
         print(f'\n=== TEST MODE: LED {test_led} bit read ===')
-        print(f'Expected bits (9 of 18): {test_bits}')
+        print(f'Expected bits (12 of 24): {test_bits}')
 
         # Codeword -> expected ON/OFF planes. Bank format: dict with
-        # 'codes' = list of int-lists (tools/codewords_9of18.json); the page's
-        # embedded CWC_CODES_9OF18 is the same codes as "p,p,.." strings.
-        codewords_path = BASE / 'codewords_9of18.json'
+        # 'codes' = list of int-lists (tools/codewords_12of24.json); the page's
+        # embedded CWC_CODES_12OF24 is the same codes as "p,p,.." strings.
+        codewords_path = BASE / 'codewords_12of24.json'
         expected_on_planes = set()
         if codewords_path.exists():
             with open(codewords_path) as f:
@@ -200,12 +200,12 @@ def main():
         # LED and read some other codeword. Every candidate site is scored
         # against the test LED's codeword; the best site's read is the
         # verdict, and on the mirrored-strings rig BOTH twin sites of the
-        # test LED reading it exactly (18/18) is the expected PASS shape.
+        # test LED reading it exactly (24/24) is the expected PASS shape.
         # Registration per plane: the 1904 page's chained totals when
         # shipped (backwards seed chain), else the direct per-plane
         # phase correlate (rows[]) — pre-1904 captures stay analysable.
         chain = stats.get('chain') or []
-        if len(chain) == 18:
+        if len(chain) == 24:
             print('registration: page chained totals (S14P-1904 backwards chain)')
             rowmap = {int(s['k']): (s['dx'], s['dy'], s['conf']) for s in chain
                       if isinstance(s, dict)}
@@ -216,8 +216,8 @@ def main():
         # robust): cores at 254/250 + bounded mid-blobs at 224/200. GATE-RUN
         # LESSON (30 Sep): a single 200 threshold merged SKIRTS into giant
         # components — "best site" sat mid-skirt at master luma 21 and read
-        # a coin-flip 9/18; but a flat 254 misses LED cores that sit in a
-        # near-saturated zone (good sites read 18/18 with blurred luma only
+        # a coin-flip 12/24; but a flat 254 misses LED cores that sit in a
+        # near-saturated zone (good sites read 24/24 with blurred luma only
         # 231/236). Ladder = both: big comps only from the top thresholds,
         # small comps (bounded area) also from the low thresholds.
         mlum_img = luma(mimg).astype(np.float32)
@@ -269,7 +269,7 @@ def main():
         scored.sort(key=lambda t: t[0])
         print(f'sites scored with LED {test_led} codeword: {len(scored)}')
         for e_n, xy, _ in scored[:4]:
-            print(f'  site ({xy[0]:.0f},{xy[1]:.0f}): {18-e_n}/18')
+            print(f'  site ({xy[0]:.0f},{xy[1]:.0f}): {24-e_n}/24')
         errs, led_xy, rn = scored[0]
         print(f'best site ({led_xy[0]:.0f},{led_xy[1]:.0f}); '
               f'master luma there {mlum_img[int(round(led_xy[1])), int(round(led_xy[0]))]:.0f}')
@@ -289,7 +289,7 @@ def main():
         else:
             print('WARNING: empty ON or OFF set — bimodal check vacuous')
         verdict = 'PASS' if errs == 0 else f'FAIL ({errs} bit errors)'
-        print(f'\nTEST MODE VERDICT: {verdict} — {18-errs}/18 bits correct')
+        print(f'\nTEST MODE VERDICT: {verdict} — {24-errs}/24 bits correct')
         twins = [(xy, e_n) for e_n, xy, _ in scored if e_n == 0]
         if errs == 0 and len(twins) > 1:
             print(f'  twin-site PASS: {len(twins)} sites read LED {test_led} exactly '

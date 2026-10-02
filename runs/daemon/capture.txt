@@ -9523,3 +9523,13 @@
 [14:40:26] [PHONE-LOG] end (persistent arm stays)
 [14:49:10] E (1259589) esp-tls-mbedtls: read error :-0x0050
 [14:49:10] E (1259590) esp-tls-mbedtls: read error :-0x0050
+[14:55:14] E (1623287) esp-tls-mbedtls: mbedtls_ssl_handshake returned -0x7780
+[14:55:14] E (1623287) esp_https_server: esp_tls_create_server_session failed, 0x7780
+[14:55:14] E (1623290) httpd: httpd_accept_conn: session creation failed
+[14:55:16] E (1625714) esp-tls-mbedtls: read error :-0x0050
+[14:55:16] E (1625714) esp-tls-mbedtls: read error :-0x0050
+[15:06:19] E (2288351) esp-tls-mbedtls: mbedtls_ssl_handshake returned -0x7780
+[15:06:19] E (2288351) esp_https_server: esp_tls_create_server_session failed, 0x7780
+[15:06:19] E (2288354) httpd: httpd_accept_conn: session creation failed
+[15:06:22] E (2291691) esp-tls-mbedtls: read error :-0x0050
+[15:06:22] E (2291691) esp-tls-mbedtls: read error :-0x0050

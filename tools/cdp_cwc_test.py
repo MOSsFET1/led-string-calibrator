@@ -86,7 +86,7 @@ async def main():
             st = await cdp_eval(ws, "JSON.stringify({ws:document.getElementById('wsst').textContent,"
                                     "cam:document.getElementById('camst').textContent,"
                                     "bld:document.getElementById('bl2').textContent,"
-                                    "codes:window.CWC_CODES_9OF18 && window.CWC_CODES_9OF18.length,"
+                                    "codes:window.CWC_CODES_12OF24 && window.CWC_CODES_12OF24.length,"
                                     "nscripts:document.querySelectorAll('script').length,"
                                     "slen:document.querySelector('script').textContent.length,"
                                     "bankHits:(document.querySelector('script').textContent.match(/CWC_CODES/g)||[]).length,"
