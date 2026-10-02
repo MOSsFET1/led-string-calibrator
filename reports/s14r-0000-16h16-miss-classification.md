@@ -143,3 +143,19 @@ baseline confirm until amp15 (−3). Recovery targets match the instrument's pre
 
 *Evidence artifacts: /tmp/invest_s14r/ (evidence.json, mech.json, sweep_out.json, phone_decode.json;
 per-plane scoring ran only inside subprocesses; no (ids,H,W) tensor in-kernel).*
+
+---
+
+## CORRECTION (02 Oct evening — superseded by the round-2 audit)
+
+The amp-25 "gate relaxation" numbers in this report (+97 at amp 25, +106 at amp 20, +132 at amp 15/margin 3) were computed
+against DETECTION COUNT ONLY. The round-2 impostor-position audit
+(reports/s14r-0000-17h43-aimed-round-decode-and-fixpath-verification.md) re-audited this round's surviving sweep data:
+43-59% of the relaxed-gate "recoveries" were impostor placements (far-orphan sites >6 px from any registered lamp, amp ~1-2,
+placed on background between real lamps). TRUE near-site gains for this round: amp25 +33, amp20 +34, amp15/3 +32.
+
+The exposure law as stated ("amp ~ 0.54*(255-wall)") was measured at this round's exposure (exp=699.97); the exposure-
+parameterised form is amp ~ k_per-plane*(255-wall) with k 0.538 @ exp 700, 0.97 @ exp 200 (round-2, AE-shortened).
+
+Do not adopt gate relaxation without the position guard (site within ~6 px of the registered lamp + <=5 px dedup of
+confirmed-lamp claims). With the guard, true gains remain large and clean; without it, phantom placements inflate them.
