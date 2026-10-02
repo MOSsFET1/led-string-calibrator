@@ -23,6 +23,8 @@
   #log{height:280px;overflow-y:auto;background:#0a0a0a;border:1px solid #333;
        border-radius:6px;font:11px/1.45 monospace;padding:6px;white-space:pre-wrap}
   #cfgline{font:11px monospace;color:#889;margin:4px 0}
+  #burstRow{margin:6px 0}       /* S14R-0001: Burst directly under the camera */
+  #strRow button{min-width:34px;padding:6px 8px}  /* one-press string count */
 </style>
 </head>
 <body>
@@ -34,6 +36,8 @@
   </div>
   <video id="vid" playsinline muted autoplay></video>
   <canvas id="cam" width="640" height="360"></canvas>
+  <!-- S14R-0001 (operator UI): Burst sits DIRECTLY UNDER the camera image -->
+  <div id="burstRow"><button id="bBurst" disabled>Burst</button></div>
   <div id="strip">…</div>
   <div id="cfgline">cfg: —</div>
   <div style="display:flex;gap:8px;align-items:center;margin:4px 0">
@@ -42,17 +46,23 @@
            style="width:80px;background:#1a1a1a;color:#dde;border:1px solid #444;border-radius:4px;padding:4px 6px">
     <span style="font-size:11px;color:#889">(box default applied on connect)</span>
   </div>
+  <!-- S14R-0001 (operator UI): one row, 8 buttons = one-press string count.
+       The BOX CFG path (nStr in CFG JSON via drv? replay) still owns
+       automated runs — these apply an operator override mid-session. -->
+  <div id="strRow" style="display:flex;gap:5px;align-items:center;margin:4px 0">
+    <label style="font-size:13px">Strings:</label>
+    <button id="bStr1">1</button><button id="bStr2">2</button><button id="bStr3">3</button>
+    <button id="bStr4">4</button><button id="bStr5">5</button><button id="bStr6">6</button>
+    <button id="bStr7">7</button><button id="bStr8">8</button>
+  </div>
   <div id="btns">
-    <button id="bSurvey" disabled>Survey</button>
     <button id="bAbort" disabled>Abort</button>
     <button id="bAll" disabled>All-on</button>
     <button id="bOff" disabled>Off</button>
     <input id="chkCapOnly" type="checkbox" style="vertical-align:middle"> <label for="chkCapOnly"
-      style="font-size:11px;color:#889;vertical-align:middle">Capture only (no decode/auto-send)</label>
-    <button id="bBurst" disabled>Burst</button>
+      style="font-size:11px;color:#889;vertical-align:middle">Capture only</label>
     <button id="btnSendFrames" disabled>Send frames (all)</button>
     <button id="bLog" disabled>Download log</button>
-    <button id="bWake">Keep screen on</button>
   </div>
   <div id="log"></div>
 </div>
@@ -66,7 +76,7 @@ window._onload = Date.now();      // S14P-1926 probe: boot ran (fresh context ma
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14R-0000";
+const BUILD = "S14R-0001";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -146,6 +156,13 @@ const CFG = {
                           // degraded handheld med 0.045 -> refused there)
   cwcAeLock: 0,        // best-effort: lock AE after master+p00 (manual exposure)
                        // Android may support it; iOS Safari has no manual AE.
+  // --- S14R-0001 exposure levers (round-1: ON planes clip at 255, so only
+  //     exposure-down widens modulation depth on bright walls) ---
+  cwcPoi: 1,           // 1 = tap on the camera view sets pointsOfInterest
+                       // (AE/AFF meter there; iOS HONOURS POI, unlike evBias).
+                       // The chosen POI is re-applied at each burst start.
+  cwcPoiX: 0.5,        // fallback normalized POI (CFG-settable; 0..1, view fx)
+  cwcPoiY: 0.5,        // fallback normalized POI (0..1, view fy)
 };
 // sticky bench settings across reloads of the SAME build. A new BUILD
 // starts at the shipped defaults — r4's phone kept margin 25 after 1911
@@ -176,6 +193,7 @@ function applyCfg(j) {
   if (typeof o.nStr === 'number' && isFinite(o.nStr)) {
     const v = Math.max(1, Math.min(8, o.nStr | 0));
     if (v !== window._nStr) { window._nStr = v; touched.push('nStr=' + v); }
+    drawStrRow();      // S14R-0001: the string-count row mirrors the box shape
   }
   if (typeof o.nPerStr === 'number' && isFinite(o.nPerStr)) {
     const v = Math.max(1, Math.min(200, o.nPerStr | 0));
@@ -367,7 +385,8 @@ function startCamera() {
       camCv.width = W; camCv.height = H;   // display = processing aspect, no squash
       camReady = true; frameIdx = 0;
       $('camst').textContent = 'Cam: live'; $('camst').className = 'st ok';
-      applyEvBias();
+      applyEvBias(); _evLastApplied =
+        (typeof CFG.evBias === 'number' && isFinite(CFG.evBias)) ? CFG.evBias : -1;
       pump();
     })
     .catch((e) => {
@@ -389,6 +408,34 @@ function applyEvBias() {
         .then(() => log('ev bias ' + target)).catch((e) => log('ev bias failed'));
     } else log('ev: not exposed (iOS expected)');
   } catch (e) { log('ev probe failed'); }
+}
+// S14R-0001 exposure fixes (round-1: 191/277 misses were amp<40 WITH healthy
+// codeword evidence — ON planes clip at 255 so only exposure-down widens the
+// modulation depth; iOS ignores exposureCompensation but HONOURS
+// pointsOfInterest).
+// applyEvBiasAtBurst: re-apply the CFG evBias AT BURST START when it CHANGED
+// since the camera-ready application (it previously ran exactly once at
+// camera-ready, so a mid-session CFG evBias never took effect).
+let _evLastApplied = null;
+function applyEvBiasAtBurst() {
+  const v = (typeof CFG.evBias === 'number' && isFinite(CFG.evBias)) ? CFG.evBias : -1;
+  if (v === _evLastApplied) return;          // unchanged -> no constraint spam
+  _evLastApplied = v;
+  if (videoTrack) applyEvBias();
+}
+async function applyPoi() {
+  // Aim AE/AFF at the operator-chosen point. iOS Safari honours
+  // pointsOfInterest (unlike evBias); Android Chrome accepts it too.
+  if (!videoTrack) return false;
+  try {
+    const caps = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+    if (!caps || !caps.pointsOfInterest) return false;
+    const fx = Math.max(0, Math.min(1, CFG.cwcPoiX || 0.5));
+    const fy = Math.max(0, Math.min(1, CFG.cwcPoiY || 0.5));
+    await videoTrack.applyConstraints({ advanced: [{ pointsOfInterest: { x: fx, y: fy } }] });
+    log('poi ' + fx.toFixed(2) + ',' + fy.toFixed(2));
+    return true;
+  } catch (e) { log('poi failed: ' + (e && e.message || e)); return false; }
 }
 async function lockAeAfterP00() {
   // Best-effort AE lock after the all-on primer (p00). Only freeze the
@@ -646,7 +693,6 @@ function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
 // ---------------- buttons --------------------------------------------------
 function setButtons() {
-  $('bSurvey').disabled = true;      // returns as the CWC decode run
   $('bAll').disabled = !wsOpen || scanning;
   $('bOff').disabled = !wsOpen || scanning;
   $('bAbort').disabled = !scanning;
@@ -658,6 +704,28 @@ function setButtons() {
   $('btnSendFrames').disabled = !wsOpen || benchRunning || benchUploading ||
                                 benchStore.length === 0;
   $('bLog').disabled = logRing.length === 0;
+  drawStrRow();
+}
+// S14R-0001 (operator UI): one-press string-count buttons. They are an
+// OPERATOR OVERRIDE of the page's live rig shape; the box CFG channel
+// (nStr in CFG JSON via the drv? replay) remains the automated path and
+// still retargets these (applyCfg -> window._nStr -> drawStrRow refreshes
+// the pressed state, so the row always mirrors the live shape).
+function drawStrRow() {
+  const cur = ((window._nStr | 0) || 1);
+  for (let s = 1; s <= 8; s++) {
+    const b = $('bStr' + s);
+    if (!b) continue;
+    b.classList.toggle('on', s === cur);
+  }
+}
+async function setStr(s) {
+  const v = Math.max(1, Math.min(8, s | 0));
+  if (v === (window._nStr | 0)) { drawStrRow(); return; }
+  window._nStr = v;
+  window._saveCfg && window._saveCfg();
+  log('strings -> ' + v + ' (nPerStr ' + (window._nPerStr | 0) + ', rig ' + rigCap() + ')');
+  drawStrRow();
 }
 async function manualAll() { await paint({ cmd: 'all', b: CFG.allB }).catch((e) => log('E ' + e.message)); log('all-on ' + CFG.allB); }
 async function manualOff() { await paint({ cmd: 'black' }).catch((e) => log('E ' + e.message)); log('off'); }
@@ -877,6 +945,13 @@ async function benchRun() {
     // comp mode no longer grabs a separate black all-on at burst start.)
     window._saveCfg && window._saveCfg();   // persist bench CFG
     const comp = CFG.bComp | 0;
+    // S14R-0001: exposure levers take effect at every burst start —
+    // applyEvBias once ran only at camera-ready, so a mid-session CFG
+    // evBias never reached the camera (round-1 finding). Re-applied here
+    // only when the CFG value changed; POI (the iOS-honoured lever) is
+    // re-asserted every burst.
+    applyEvBiasAtBurst();
+    applyPoi();
     // S14J CWC form: holeGap floor lesson (<70 ms paint->grab lands inside
     // the camera pipeline floor) — clamp the plane settle, never skip it.
     const settleClamp = (ms) => Math.max(70, ms | 0 || 70);
@@ -1236,15 +1311,30 @@ async function pollDrv() {
 setInterval(pollDrv, 1500);
 
 // ---------------- button handlers (BOOT-CALL SAFE: defined before boot) ----
-$('bSurvey').onclick = () => surveyRun();
 $('bAbort').onclick = () => { abortFlag = true; log('abort requested'); };
 $('bAll').onclick = manualAll;
 $('bOff').onclick = manualOff;
 $('bLog').onclick = logPull;
+// S14R-0001 (operator UI): one-press string count 1..8 — operator override
+// of the live rig shape; the box's CFG nStr path still owns automated runs.
+for (let s = 1; s <= 8; s++) $('bStr' + s).onclick = () => setStr(s);
 // Burst (bench): fires the compensated burst with the standing CFG bench
 // params (bBurstN/gap/hold/B + bComp). Same code path the console's BURST
 // directive drives — just operator-triggered, no serial round-trip.
 $('bBurst').onclick = () => benchRun();
+// S14R-0001 (iOS-validated exposure lever): tap the camera view -> AE/AFF
+// metering aims there (pointsOfInterest). iOS ignores exposureCompensation
+// but honours POI; the tapped point is re-asserted at every burst start.
+$('cam').addEventListener('pointerdown', (e) => {
+  if ((CFG.cwcPoi | 0) !== 1 || scanning) return;
+  const r = e.currentTarget.getBoundingClientRect();
+  const fx = Math.max(0, Math.min(1, (e.clientX - r.left) / Math.max(1, r.width)));
+  const fy = Math.max(0, Math.min(1, (e.clientY - r.top) / Math.max(1, r.height)));
+  CFG.cwcPoiX = +fx.toFixed(3); CFG.cwcPoiY = +fy.toFixed(3);
+  window._saveCfg && window._saveCfg();
+  log('poi tap ' + fx.toFixed(2) + ',' + fy.toFixed(2));
+  applyPoi();
+});
 // S14P-1928 'Send frames (all)': MANUAL bulk ship — the EXISTING benchPull()
 // over the whole accumulating store (every capture burst since the page
 // loaded, in one go). Post-ship the store KEEPS the frames (cleared only at
@@ -1612,7 +1702,7 @@ function cwcShowResults(masterL, dec, caption) {
   cx2.putImageData(im, 0, 0);
   const counts = {};
   for (const s of dec.sites) counts[s.led] = (counts[s.led] || 0) + 1;
-  cx2.font = 'bold 13px monospace';   // S14P-1925: bumped from 10px for chip legibility
+  cx2.font = 'bold 10px monospace';   // S14R-0001: 13->10px (-25%-ish, operator)
   for (const s of dec.sites) {
     const multi = counts[s.led] > 1;
     // 1908: label chips -30% (font 14→10, chip 15→11); site-box stroke
@@ -1623,13 +1713,14 @@ function cwcShowResults(masterL, dec, caption) {
     cx2.strokeRect(s.x - 6, s.y - 6, 13, 13);
     // S14P-1925: label chip BESIDE the box (right side, vertically centred);
     // mirrored to the box's left if it would clip the frame's right edge.
+    // S14R-0001: chip 2 px closer to the box; box stays 13x13 at ±6.
     const txt = String(s.led);
     const tw2 = cx2.measureText(txt).width;
     const cw = tw2 + 4;
-    let centreX = s.x + 6 + cw / 2 + 4;              // box right + chip half + 4 px gap
-    if (centreX + cw / 2 > W - 2) centreX = s.x - 6 - cw / 2 - 4;   // mirror left
+    let centreX = s.x + 6 + cw / 2 + 2;              // box right + chip half + 2 px gap
+    if (centreX + cw / 2 > W - 2) centreX = s.x - 6 - cw / 2 - 2;   // mirror left
     cx2.fillStyle = 'rgba(0,0,0,0.3)';
-    cx2.fillRect(centreX - cw / 2, s.y - 5.5, cw, 11);
+    cx2.fillRect(centreX - cw / 2, s.y - 4.5, cw, 9);
     // pure-white glyphs over a 2 px black stroke — digits read on any bg:
     cx2.lineWidth = 2;
     cx2.strokeStyle = '#000';

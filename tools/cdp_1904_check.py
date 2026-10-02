@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""S14R-0000 pre-flash QA: mock box + headless Chromium + fake camera.
+"""S14R-0001 pre-flash QA: mock box + headless Chromium + fake camera.
 Validates the REAL page end-to-end before an ESP32 flash:
-  1. build stamp == S14R-0000
+  1. build stamp == S14R-0001
   2. CFG (cwc=1, cwcN=10) + BURST via mock drv? directives
   3. burst runs: 24 frame-bits planes + master, bench store ships 25 frames
   4. direct registration log line present (chain, no crash)
@@ -18,21 +18,29 @@ Validates the REAL page end-to-end before an ESP32 flash:
      already up converges ('cfg: rig 8x25 from box' + window._cfgRig snapshot);
      a page RELOAD (fresh hello, no new directive) REPLAYS the still-held cfg
      into the fresh context — reconverges idempotently, no rig-mismatch error.
-  10. S14R-0000 capture-only bursts + manual bulk send: chkCapOnly ON -> TWO
-     bursts prime/paint/settle/grab as usual ('cwc capture:' start lines,
-     25 frames each) but ACCUMULATE 50 frames in benchStore with ZERO decode
-     (no chain/decode/result-view lines), ZERO CWCDEC/CWCSTATS and ZERO
-     auto-ship (no FRAME/FJPEG logc traffic); Burst re-enables promptly after
-     each burst. Then 'Send frames (all)' (btnSendFrames) ships ALL 50 in one
-     benchPull (FRAME/FJPEG traffic appears, pull completes, buttons
-     re-enable; benchPull is non-destructive — the store KEEPS its frames,
-     cleared only at the next decode-mode burst start).
+  10. S14R-0001 capture-only bursts + manual bulk send (unchanged from
+     1928's check): chkCapOnly ON -> TWO bursts prime/paint/settle/grab as
+     usual ('cwc capture:' start lines, 25 frames each) but ACCUMULATE 50
+     frames in benchStore with ZERO decode (no chain/decode/result-view
+     lines), ZERO CWCDEC/CWCSTATS and ZERO auto-ship (no FRAME/FJPEG logc
+     traffic); Burst re-enables promptly after each burst. Then 'Send frames
+     (all)' (btnSendFrames) ships ALL 50 in one benchPull (FRAME/FJPEG
+     traffic appears, pull completes, buttons re-enable; benchPull is
+     non-destructive — the store KEEPS its frames, cleared only at the next
+     decode-mode burst start).
+  11. S14R-0001 operator UI: Burst button directly under the camera canvas
+     (burstRow is the canvas's next sibling); 8 one-press string buttons
+     (bStr1..bStr8) apply an operator nStr override mid-session AND a box
+     CFG nStr still drives the rig (the burst row mirrors the box shape);
+     Survey button and Keep-screen-on button are GONE.
 
 PASS = hard checks 1-6 pass; 7 exercises without a NEW 'E ' error;
        8 completes with decode log + exact per-lane mapping sequence match;
        9 replay + mismatch-guard + reload-convergence all behave as logged;
        10 capture mode accumulates without decode/ship + manual bulk send
-       ships 50 with no new 'E ' errors.
+       ships 50 with no new 'E ' errors;
+       11 Burst-under-camera + 8 string buttons (press applies, box cfg
+       still wins) + Survey/wake buttons removed.
 Run with the venv python (websockets dep): see README tooling line."""
 import asyncio, base64, json, os, re, sys, time
 from pathlib import Path
@@ -44,7 +52,7 @@ BASE = TOOLS.parent
 RUN = BASE / "runs" / "qa-1904"
 import urllib.request as u
 
-STAMP = "S14R-0000"
+STAMP = "S14R-0001"
 
 
 def err_lines(logtxt, exclude_motion=True):
@@ -117,6 +125,38 @@ async def main():
             ok = STAMP in st and "live" in st and "open" in st
             if not ok:
                 print("FAIL: page state", st); return 1
+            # ---- check 11 (S14R-0001 operator UI): layout + press-applies ----
+            ui = await cdp_eval(ws, "(() => {"
+                " const cam = document.getElementById('cam');"
+                " const row = document.getElementById('burstRow');"
+                " const nxt = cam && cam.nextElementSibling;"
+                " for (let s = 1; s <= 8; s++)"
+                "   if (!document.getElementById('bStr' + s))"
+                "     return JSON.stringify({under: false, survey: false, wake: false,"
+                "                           capLabel: 'MISSING', bstr8: false});"
+                " const lbl = document.querySelector('label[for=chkCapOnly]');"
+                " return JSON.stringify({under: nxt === row,"
+                "   survey: !!document.getElementById('bSurvey'),"
+                "   wake: !!document.getElementById('bWake'),"
+                "   capLabel: lbl ? lbl.textContent : '?',"
+                "   bstr8: !!document.getElementById('bStr8')});"
+                " })()")
+            print("UI layout:", ui)
+            ui0 = json.loads(ui)
+            # one-press override: press 3 -> live nStr 3 + pressed state, then 8 back
+            await cdp_eval(ws, "document.getElementById('bStr3').click(); 'x'")
+            p3 = await cdp_eval(ws, "JSON.stringify({n: window._nStr,"
+                                    " on: document.getElementById('bStr3').classList.contains('on'),"
+                                    " off: document.getElementById('bStr8').classList.contains('on')})")
+            print("UI press 3:", p3)
+            await cdp_eval(ws, "document.getElementById('bStr8').click(); 'x'")
+            p8 = await cdp_eval(ws, "JSON.stringify({n: window._nStr})")
+            j3, j8 = json.loads(p3), json.loads(p8)
+            press_ok = (j3.get("n") == 3 and j3.get("on") and not j3.get("off")
+                        and j8.get("n") == 8)
+            ui_layout_ok = bool(ui0.get("under") and not ui0.get("survey")
+                                and not ui0.get("wake")
+                                and ui0.get("capLabel") == 'Capture only')
             # ---- burst 1: normal CWC mode (single-string, unchanged shape) ----
             cfg = {"cwc": 1, "cwcN": 10, "cwcSettle": 100, "bBurstB": 150,
                    "bBurstHold": 800, "bComp": 0, "cwcTestMode": 0}
@@ -126,7 +166,7 @@ async def main():
             print("chain:", chain_ln)
             dec_ln = await wait_log(ws, "decode:", tries=90)
             print("decode:", dec_ln)
-            # S14R-0000: burst-1 runs the FULL 8x200 default rig (page cwcN
+            # S14R-0001: burst-1 runs the FULL 8x200 default rig (page cwcN
             # 1600, mock box defaults nStr=8) — nL=1600 still maps onto the
             # 24-plane/1600-led Golay bank, so the 25-frame shape is
             # unchanged; only the decode semantics moved (mock fake camera
@@ -186,11 +226,18 @@ async def main():
                 await asyncio.sleep(1)
             print("burst 2 released:", not busy)
             # ---- burst 3: multi-string rig (explicit CFG 8x25 = 200 ids) ----
-            # S14R-0000: burst-3 stays the EXPLICIT narrow CFG (nStr=8,
+            # S14R-0001: burst-3 stays the EXPLICIT narrow CFG (nStr=8,
             # nPerStr=25) — unchanged despite the compiled defaults moving to
             # 8x200; its assertions are shape-explicit, not default-driven.
             cfg3 = dict(cfg, cwcN=200, nStr=8, nPerStr=25)
             boxlog_at_b3 = len((TOOLS / "mock_box.log").read_text().splitlines())
+            # S14R-0001: press 3 FIRST — the queued box CFG below must WIN the
+            # rig shape back (box CFG stays authoritative for automated runs)
+            await cdp_eval(ws, "document.getElementById('bStr3').click(); 'x'")
+            pr3 = await cdp_eval(ws, "JSON.stringify({n: window._nStr,"
+                                    " on: document.getElementById('bStr3').classList.contains('on')})")
+            print("UI pre-burst3 press 3:", pr3)
+            press3_ok = json.loads(pr3).get("n") == 3 and json.loads(pr3).get("on")
             (TOOLS / "mock_directives.txt").write_text("CFG=" + json.dumps(cfg3) + "\nBURST\n")
             print("burst 3 (multi-string rig 8x25) queued")
             cfg3_ln = await wait_log(ws, "nStr=8,nPerStr=25", tries=30)
@@ -216,6 +263,13 @@ async def main():
             dec3_ok = "rig 8x25" in (logtxt3 or "")          # decode line carries the rig shape
             hello3 = await cdp_eval(ws, "JSON.stringify({nStr:window._nStr, nPerStr:window._nPerStr})")
             hello3_ok = hello3 == '{"nStr":8,"nPerStr":25}'
+            # S14R-0001: after the box cfg applied, the row must mirror 8
+            strrow3 = await cdp_eval(ws, "(() => { const on = [];"
+                " for (let s = 1; s <= 8; s++)"
+                "  if (document.getElementById('bStr' + s).classList.contains('on')) on.push(s);"
+                " return JSON.stringify(on); })()")
+            box_row_ok = strrow3 == '[8]'
+            print("UI row after box cfg:", strrow3)
             ship3_ok = '"strings":8,"perString":25' in (TOOLS / "mock_log_pull.txt").read_text()
             print("multi-string: decode logged:", dec3_ok, "| hello:", hello3,
                   "| ship carries strings/perString:", ship3_ok,
@@ -307,12 +361,17 @@ async def main():
             multi_ok = (bool(rig_ln) and dec3_ok and hello3_ok and ship3_ok
                         and not errs3 and seq_ok and sums_ok and fb_seen >= 24
                         and len(led_planes) == 12)
-            # S14R-0000: check 9 (the S14P-1926 replay, kept) — the reload
+            # S14R-0001: check 9 (the S14P-1926 replay, kept) — the reload
             # (fresh hello) converged to the still-queued rig cfg with NO new
             # directive, and the apply was visible ('cfg: rig 8x25 from box').
             replay_ok = bool(ctx9 and conv9 and from_box9 and guard9_ok)
 
-            # ================= check 10: S14R-0000 capture-only + bulk send ==
+            # S14R-0001: check 11 verdict — layout + presses + box cfg still
+            # owns the rig (press-3 was overridden by the queued CFG nStr 8).
+            ui_ok = bool(ui_layout_ok and press_ok and press3_ok and box_row_ok
+                         and ui0.get("bstr8"))
+
+            # ================= check 10: S14R-0001 capture-only + bulk send ==
             # STAGE B: chkCapOnly ON -> TWO bursts keep the full capture
             # choreography (1 s P00 primer + per-plane settles + 24 planes +
             # fast master) but ACCUMULATE 38 frames in benchStore with.ZERO
@@ -422,20 +481,23 @@ async def main():
                           and n_frames10 == 50 and n_fjpeg10 > 0 and n_fend10 == 50
                           and r1_f == 25 and r2_f == 25 and n_cwcstats10 == 0
                           and not errs10b and not errs10c)
-            print("\nRESULT:", "PASS" if (hard_ok and multi_ok and replay_ok and cap_ok) else "FAIL")
+            print("\nRESULT:", "PASS" if (hard_ok and multi_ok and replay_ok and cap_ok and ui_ok) else "FAIL")
             print(f"  frames 25/25: {n_frames == 25}; stats<4096B: {stats_ok}; "
                   f"chain logged: {bool(chain_ln)}; decode logged: {bool(dec_ln)}; "
                   f"canvas: {'NO CANVAS' not in info}; CWCDEC {n_cwcdec} {cwcdec_ok}")
+            print(f"  S14R-0001 UI (check 11): burst-under-cam {ui_layout_ok and ui0.get('under')}; "
+                  f"press-applies {press_ok}; box-cfg-wins {press3_ok and box_row_ok}; "
+                  f"survey/wake removed {not ui0.get('survey') and not ui0.get('wake')}")
             print(f"  multi-string: rig line {bool(rig_ln)}; decode rig-tagged {dec3_ok}; "
                   f"hello 8x25 {hello3_ok}; ship strings-8 {ship3_ok}; errors {len(errs3)}; "
                   f"lane-map {seq_ok}; lit-sum {sums_ok}")
-            print(f"  S14R-0000 replay (check 9): fresh-ctx {ctx9}; reconverged {conv9}; "
+            print(f"  S14R-0001 replay (check 9): fresh-ctx {ctx9}; reconverged {conv9}; "
                   f"from-box logged {from_box9 or from_box9c}; clean {guard9_ok} "
                   f"(cfg queued while page up, then a reload replays the held cfg)")
-            print(f"  S14R-0000 capture-only (check 10): starts {capstart10}x, store 50 after 2 bursts, "
+            print(f"  S14R-0001 capture-only (check 10): starts {capstart10}x, store 50 after 2 bursts, "
                   f"decode skipped {not nodec and nores10 == 'true'}, no auto-ship, bulk send 50+re-enable; "
                   f"errors {len(errs10b) + len(errs10c)}")
-            return 0 if (hard_ok and multi_ok and replay_ok and cap_ok) else 1
+            return 0 if (hard_ok and multi_ok and replay_ok and cap_ok and ui_ok) else 1
     finally:
         proc.kill()
         mock.kill()
