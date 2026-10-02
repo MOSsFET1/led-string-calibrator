@@ -76,7 +76,7 @@ window._onload = Date.now();      // S14P-1926 probe: boot ran (fresh context ma
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14R-0001";
+const BUILD = "S14R-0002";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -163,6 +163,33 @@ const CFG = {
                        // The chosen POI is re-applied at each burst start.
   cwcPoiX: 0.5,        // fallback normalized POI (CFG-settable; 0..1, view fx)
   cwcPoiY: 0.5,        // fallback normalized POI (0..1, view fy)
+  // --- S14R-0002 pre-burst BRIGHTNESS PROBE (the headline feature) --------
+  // OBJECTIVE: predicted per-lamp burst amp headroom = P90 of lamp-core
+  // pixels (5x5 core max) MINUS local background ring median — drive lamp
+  // cores to the JUST-BELOW-CLIP knee (saturated cores strangle amp at
+  // (255 - OFF_lamp); starved cores waste SNR). Calibrated on the 14-burst
+  // corpora (tools/tuning_s14r0002.json): every historical burst overdrove
+  // (lamp-core clip 17-56% at bBurstB 150), so the knee band is new ground.
+  bProbe: 1,           // 1 = run the brightness probe before every CWC burst
+  bProbeStart: 120,    // first all-ON level tried
+  bProbeStep: 24,      // legacy step (the active adjustment is multiplicative)
+  bProbeIters: 3,      // max probe iterations (2-3 per directive)
+  bProbePct: 90,       // lamp-core percentile used as the ON-peak metric
+  bProbeMin: 235,      // lamp-core P90 target band low (just-below-clip knee)
+  bProbeMax: 250,      // target band high (>= coreClip knee at 252)
+  bProbeClipHi: 5.0,   // lamp-pixel clip fraction % ceiling (cores >= 252)
+  bProbeCoreMinLuma: 170, // blurred luma a pixel must clear to count as a lamp core
+  bProbeDelayMs: 2000, // probe iterations ~2 s apart so the AE re-converges
+                       // between steps (measured: within-burst drift <= 5 luma
+                       // units AFTER settling; racing the AE breaks plane k)
+  waitSettleMs: 2000,  // after the final level: HOLD, wait 2 s, then burst
+  // --- S14R-0002 adaptive mask threshold (r4-corpus A/B validated) --------
+  // thr = min(cwcMaskThr, max(maskFloor, maskK * histMed(master))): the
+  // dark-view mask-class losses (77 ids at and-r4, wall med 21.5) drop with
+  // a frame-relative floor while bright views saturate at cwcMaskThr.
+  cwcMaskAdaptive: 1,  // 0 = fixed cwcMaskThr (S14P-1927 behaviour)
+  cwcMaskK: 1.12,      // thr multiplier on master histMed
+  cwcMaskFloor: 45,    // never mask below this luma (floor guard)
 };
 // sticky bench settings across reloads of the SAME build. A new BUILD
 // starts at the shipped defaults — r4's phone kept margin 25 after 1911
@@ -218,8 +245,11 @@ function applyCfg(j) {
 function showCfg() { $('cfgline').textContent =
   'cfg: allB=' + CFG.allB + ' evBias=' + CFG.evBias +
   ' mergeR=' + CFG.mergeR +
+  ' bProbe=' + CFG.bProbe + ' bBurstB=' + CFG.bBurstB +
   ' bComp=' + CFG.bComp + ' cwc=' + CFG.cwc + ' cwcN=' + CFG.cwcN + ' cwcSettle=' + CFG.cwcSettle +
   ' amp=' + CFG.cwcAmpGate + ' margin=' + CFG.cwcMarginGate +
+  ' maskAd=' + CFG.cwcMaskAdaptive + ' maskK=' + CFG.cwcMaskK +
+  ' poi=' + CFG.cwcPoi +
   ' cwcTestMode=' + CFG.cwcTestMode + ' cwcTestLed=' + CFG.cwcTestLed; }
 
 // S14P-1923 multi-string rig (plan §6): hello carries the box's nStr/nPerStr;
@@ -413,11 +443,18 @@ function applyEvBias() {
 // codeword evidence — ON planes clip at 255 so only exposure-down widens the
 // modulation depth; iOS ignores exposureCompensation but HONOURS
 // pointsOfInterest).
-// applyEvBiasAtBurst: re-apply the CFG evBias AT BURST START when it CHANGED
-// since the camera-ready application (it previously ran exactly once at
-// camera-ready, so a mid-session CFG evBias never took effect).
+// S14R-0002: platform split. iOS: NO evBias at all (operator directive — iOS
+// Safari never exposed it and the dead constraint spam is gone; POI is the
+// iOS lever). Android: re-apply the CFG evBias AT BURST START
+// (dir D: -3 stops), then VERIFY the applied state — exposure state must
+// become verifiable via BSTATS (the 0001 finding: exp='' made the POI era
+// unverifiable from metadata).
 let _evLastApplied = null;
 function applyEvBiasAtBurst() {
+  // iOS gate: exposureCompensation was never exposed on iPhone (0001 wire
+  // evidence) — skip the constraint entirely there.
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent || '');
+  if (isIOS) { _evLastApplied = 'ios-none'; return; }   // POI owns iOS exposure
   const v = (typeof CFG.evBias === 'number' && isFinite(CFG.evBias)) ? CFG.evBias : -1;
   if (v === _evLastApplied) return;          // unchanged -> no constraint spam
   _evLastApplied = v;
@@ -434,6 +471,12 @@ async function applyPoi() {
     const fy = Math.max(0, Math.min(1, CFG.cwcPoiY || 0.5));
     await videoTrack.applyConstraints({ advanced: [{ pointsOfInterest: { x: fx, y: fy } }] });
     log('poi ' + fx.toFixed(2) + ',' + fy.toFixed(2));
+    // S14R-0002: VISIBLE feedback — blink a crosshair on the view for 4 s at
+    // the exact point the camera was told to meter (the 0001 finding: taps
+    // produced no pixel-measurable change and the operator saw nothing).
+    _poiMarker = { fx, fy, at: Date.now() };
+    // POI accepted/failed + the live exp settings ride every capture; the
+    // burst-start exp line makes "did the tap do anything" answerable.
     return true;
   } catch (e) { log('poi failed: ' + (e && e.message || e)); return false; }
 }
@@ -557,7 +600,32 @@ function drawDriftTrail() {
   cx.fillText(t.text, x0, 6 + 14);
   cx.restore();
 }
+// iOS honours POI, not exposureCompensation — show the operator WHERE the
+// AE is metering (S14R-0001 finding: taps produced no measurable exposure
+// change and no feedback, so the feature was unverifiable from pixels).
+let _poiMarker = null;              // {fx, fy, at} of the latest applied POI
+function drawPoiMarker() {
+  if (!camReady) return;
+  camCx.drawImage($('vid'), 0, 0, W, H);
+  drawDriftTrail();               // persistent drift trail (survives redraws)
+  if (!_poiMarker) return;
+  const age = Date.now() - _poiMarker.at;
+  if (age > 4000) { _poiMarker = null; return; }       // marker lives 4 s
+  const x = _poiMarker.fx * W, y = _poiMarker.fy * H;
+  const blink = (age % 1000) < 500;
+  camCx.save();
+  camCx.lineWidth = 2;
+  camCx.strokeStyle = blink ? 'rgba(255,255,0,0.95)' : 'rgba(255,180,0,0.55)';
+  camCx.beginPath(); camCx.arc(x, y, 14, 0, Math.PI * 2); camCx.stroke();
+  camCx.beginPath(); camCx.moveTo(x - 22, y); camCx.lineTo(x - 8, y);
+  camCx.moveTo(x + 8, y); camCx.lineTo(x + 22, y);
+  camCx.moveTo(x, y - 22); camCx.lineTo(x, y - 8);
+  camCx.moveTo(x, y + 8); camCx.lineTo(x, y + 22);
+  camCx.stroke();
+  camCx.restore();
+}
 function drawOverlay(det) {
+  if ((CFG.cwcPoi | 0) === 1) { drawPoiMarker(); return; }   // S14R-0002: POI feedback
   camCx.drawImage($('vid'), 0, 0, W, H);
   drawDriftTrail();               // persistent drift trail (survives redraws)
 }
@@ -889,6 +957,107 @@ function benchCaptureComp(label, tot) {
     }
   } catch (e) { log('E benchcapcomp ' + (e && e.message || e)); }
 }
+// ---------------- S14R-0002 brightness probe (module scope: the
+// pre-burst calibration AND the console PROBE directive share it) ---
+const probeSteps = [];               // per-step telemetry {L, P90, clipPct, histMed}
+async function probeMeasure(b) {
+  // paint solid all-ON at b, let the AE re-converge, read the frame
+  await paint({ cmd: 'all', b });
+  await sleep(Math.max(500, CFG.bProbeDelayMs | 0 || 2000));  // ~2 s between steps
+  await grabTimeout();
+  const d = procCx.getImageData(0, 0, W, H);
+  const n = W * H, px = d.data;
+  const hist = new Uint32Array(256);
+  for (let i = 0, p = 0; i < n; i++, p += 4) {
+    const r = px[p], g = px[p + 1], bl = px[p + 2];
+    const l = r > g ? (r > bl ? r : bl) : (g > bl ? g : bl);   // max(r,g,b)
+    hist[l]++;
+  }
+  // whole-frame median (telemetry + the mask rule's master-relative read)
+  let acc = 0, hm = 0;
+  for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc > (n >> 1)) { hm = v; break; } }
+  // lamp-core P90: 5x5-window local maxima on the luma plane = cores;
+  // per-core value; clip = cores >= 252; ring bg from the coarser blur.
+  const lum = new Float32Array(n);
+  for (let i = 0, p = 0; i < n; i++, p += 4) {
+    const r = px[p], g = px[p + 1], bl = px[p + 2];
+    lum[i] = r > g ? (r > bl ? r : bl) : (g > bl ? g : bl);
+  }
+  // light 7x7-ish blur via two 3-tap horizontal passes + vertical passes
+  const blurPass = (src) => {
+    const t = new Float32Array(n), o = new Float32Array(n);
+    for (let y = 0; y < H; y++) for (let x = 1; x < W - 1; x++)
+      t[y * W + x] = (src[y * W + x - 1] + src[y * W + x] + src[y * W + x + 1]) / 3;
+    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++)
+      o[y * W + x] = (t[(y - 1) * W + x] + t[y * W + x] + t[(y + 1) * W + x]) / 3;
+    return o;
+  };
+  const sm = blurPass(blurPass(blurPass(lum)));    // soften noise; cores stay
+  const cores = [];
+  const step = 3;                                   // core sample lattice
+  for (let y = 4; y < H - 4; y += step) {
+    for (let x = 4; x < W - 4; x += step) {
+      const v = sm[y * W + x];
+      if (v < (CFG.bProbeCoreMinLuma | 0 || 170)) continue;   // not a lamp core
+      let isMax = true;
+      for (let dy = -2; dy <= 2 && isMax; dy++)
+        for (let dx = -2; dx <= 2; dx++) {
+          if (!dx && !dy) continue;
+          if (sm[(y + dy) * W + (x + dx)] > v) { isMax = false; break; }
+        }
+      if (isMax) cores.push(v);
+    }
+  }
+  cores.sort((a, b) => a - b);
+  const q = (arr, p) => arr.length ? arr[Math.min(arr.length - 1, (p * arr.length) | 0)] : 0;
+  const P90 = q(cores, 0.90);
+  let clipN = 0;
+  for (const c of cores) if (c >= 252) clipN++;
+  const clipPct = cores.length ? 100 * clipN / cores.length : 0;
+  return { b, P90, clipPct, histMed: hm,
+           nCores: cores.length, exp: expLine() };
+}
+async function brightnessProbe() {
+  const maxB = Math.min(255, Math.floor(510 / (Math.max(1, window._nPerStr) * 0.0142)));
+  const pLo = CFG.bProbeMin | 0 || 235, pHi = CFG.bProbeMax | 0 || 250;
+  const clipHi = +CFG.bProbeClipHi || 5.0;
+  let L = Math.max(20, Math.min(255, CFG.bProbeStart | 0 || 120));
+  let iters = 0, last = null;
+  const maxIter = Math.max(1, Math.min(5, CFG.bProbeIters | 0 || 3));
+  for (let it = 0; it < maxIter; it++) {
+    last = await probeMeasure(L);
+    iters++;
+    probeSteps.push({ L: L, P90: +last.P90.toFixed(1), clipPct: +last.clipPct.toFixed(2),
+                      histMed: last.histMed });
+    log('probe it' + iters + ' L=' + L + (iters === 1 && (CFG.bProbeStart | 0 || 120) !== L
+        ? ' (was clamped)' : '') + ': coreP90 ' + last.P90.toFixed(1) +
+        ' clip ' + last.clipPct.toFixed(2) + '% histMed ' + last.histMed +
+        ' lampCores ' + last.nCores + ' exp[' + last.exp + ']');
+    const ok = (last.P90 >= pLo && last.P90 <= pHi && last.clipPct <= clipHi);
+    if (ok || last.P90 < 40) break;                    // in band / detector-blind
+    // MULTIPLICATIVE adjustment toward the knee (clamped to +-1.5x/step)
+    const tgt = last.P90 < pLo ? (pLo + pHi) / 2 : pHi - 3;
+    const f = Math.max(0.667, Math.min(1.5, tgt / Math.max(20, last.P90)));
+    const Lnew = Math.max(20, Math.min(maxB, Math.round(L * f)));
+    if (Lnew === L) break;
+    L = Lnew;
+  }
+  // HOLD the final level, fixed 2 s wait, then fire (no settle gate).
+  // probeHistMed/probeClipPct/probeIters were legacy benchRun-scope vars —
+  // the return object now carries everything (the PROBE directive and the
+  // burst path both read the return), so no cross-function state.
+  const finalM = last;
+  const pHistMed = finalM.histMed, pClipPct = +finalM.clipPct.toFixed(2);
+  const brightOut = Math.max(20, Math.min(255, finalM.b));
+  const cb2 = Math.min(brightOut, maxB);
+  log('probe done: bright=' + brightOut + ' (iters ' + iters + ')');   // decision point
+  await paint({ cmd: 'all', b: cb2 });          // HOLD the chosen level
+  await sleep(CFG.waitSettleMs | 0 || 2000);    // fixed 2 s settle, THEN fire
+  log('probe settle held ' + (CFG.waitSettleMs | 0 || 2000) + 'ms -> burst');
+  return { bright: cb2, histMed: pHistMed, clipPct: pClipPct,
+           probeIters: iters, steps: probeSteps.slice(), coreP90: +finalM.P90.toFixed(1) };
+}
+
 async function benchRun() {
   if (benchRunning || benchUploading || !wsOpen || !camReady) { log('E burst: not ready'); return; }
   benchRunning = true;
@@ -897,6 +1066,7 @@ async function benchRun() {
                                          // poll's scanning flag (pollDrv keeps
                                          // reporting while a burst runs)
   setButtons();
+  probeSteps.length = 0;                 // S14R-0002: fresh telemetry per burst/probe
   try {
     // S14P-1928 capture-only mode (chkCapOnly): PRIMES + PAINTS + SETTLES +
     // GRABS stay IDENTICAL (1 s P00 primer, per-plane settles, fast master),
@@ -945,19 +1115,36 @@ async function benchRun() {
     // comp mode no longer grabs a separate black all-on at burst start.)
     window._saveCfg && window._saveCfg();   // persist bench CFG
     const comp = CFG.bComp | 0;
-    // S14R-0001: exposure levers take effect at every burst start —
-    // applyEvBias once ran only at camera-ready, so a mid-session CFG
-    // evBias never reached the camera (round-1 finding). Re-applied here
-    // only when the CFG value changed; POI (the iOS-honoured lever) is
-    // re-asserted every burst.
+    // S14R-0002 exposure: iOS runs POI-only (NO evBias constraint, ever);
+    // Android re-applies the CFG evBias AT BURST START (dir D: -3 stops at
+    // burst start), then the probe records the APPLIED exposure state
+    // (expLine()) so BSTATS makes exposure verifiable this era.
     applyEvBiasAtBurst();
     applyPoi();
+    // ---- S14R-0002 PRE-BURST BRIGHTNESS PROBE (the headline feature) ----
+    // OBJECTIVE (operator sharpening): predicted per-lamp burst amp headroom
+    // = P90 of LAMP-CORE pixel values (5x5 core max each) MINUS the local
+    // background ring median, during a SOLID all-ON frame — drive lamp cores
+    // to the JUST-BELOW-CLIP knee: saturated cores (round-1, med 255)
+    // strangle amp at (255 - OFF_lamp) while spill keeps growing; starved
+    // cores waste SNR. Target: lamp-core P90 in [bProbeMin, bProbeMax]
+    // (235-250) with lamp-pixel clip fraction (>= 252) <= bProbeClipHi (5%).
+    // L adjustment is MULTIPLICATIVE: L_new = L * targetP90 / measuredP90
+    // (clamped), 2-3 iterations max, ~2 s between steps (AE re-converges;
+    // measured within-burst drift <= 5 luma units is the post-settle
+    // behaviour the probe must preserve — never race the AE). After the
+    // final level is chosen: HOLD it and WAIT waitSettleMs = 2 s, then fire.
+    // BSTATS: per step {L, P90, clipPct, histMed} + final {bright, histMed,
+    // clipPct, probeIters}.
+    let probeRes = null;
+    if ((CFG.bProbe | 0) === 1 && cwcMode) {
+      try { probeRes = await brightnessProbe(); }
+      catch (e) { log('E probe ' + (e && e.message || e)); }
+    }
+    const cb0 = CFG.bBurstB | 0 || 150;   // bBurstB as configured (telemetry fallback)
     // S14J CWC form: holeGap floor lesson (<70 ms paint->grab lands inside
     // the camera pipeline floor) — clamp the plane settle, never skip it.
     const settleClamp = (ms) => Math.max(70, ms | 0 || 70);
-    let masterLuma = null;
-    const bShifts = [];
-    let lastLuma = null;               // comp=0 path: previous frame luma
     // ---- S14P-1916 CWC-form burst (primer P00..P17 + fast master) ---------
     // P00 is painted for 1 s so AE settles, then P00..P17 are grabbed, then a
     // fast all-on master grab before the meter can re-adjust (the 1915 lesson:
@@ -991,8 +1178,10 @@ async function benchRun() {
       // floor(510 / (nPerStr * 0.0142)) = full-scale px / 15.1 mW * 2 A.
       // At nPerStr=200 -> 179, so the standing bBurstB=150 passes
       // unclamped (1923 wrongly clamped it to 89).
+      // S14R-0002: the PROBE's chosen brightness wins when a probe ran —
+      // the burst paints at the calibrated level, whatever bBurstB said.
       const maxB = Math.min(255, Math.floor(510 / (Math.max(1, window._nPerStr) * 0.0142)));
-      const cb = Math.max(20, Math.min(maxB, CFG.bBurstB | 0 || 150));
+      const cb = Math.max(20, Math.min(maxB, probeRes ? probeRes.bright : (CFG.bBurstB | 0 || 150)));
       const testLed = Math.max(0, Math.min(nL - 1, CFG.cwcTestLed | 0 || 0));
       // S14R-0000 burst log: same paint/grab/settle choreography, 24 planes;
       // capture mode stays prefixed 'cwc capture:' so runs are distinguishable.
@@ -1058,6 +1247,10 @@ async function benchRun() {
       const dec = cwcDecode(cwcMst, planes, chain, nL);
       log('decode: ' + dec.nSites + ' px masked, ' + dec.sites.length + ' sites confirmed' +
           ' (amp>=' + CFG.cwcAmpGate + ', margin>=' + CFG.cwcMarginGate +
+          ', mask ' + (CFG.cwcMaskAdaptive | 0
+              ? 'min(' + CFG.cwcMaskThr + ', max(' + (CFG.cwcMaskFloor | 0) + ',' +
+                (CFG.cwcMaskK || 1.12) + '*' + dec.maskHistMed + ')=' + dec.maskThrUsed.toFixed(1) + ')'
+              : String(CFG.cwcMaskThr)) +
           ', rig ' + window._nStr + 'x' + window._nPerStr + ')');
       cwcShowResults(cwcMst, dec, testMode ? 'test led ' + testLed : 'cwc burst'
           + ((badConf || badRem || badStep) ? ' — MOTION FLAGGED, unreliable' : ''));
@@ -1066,6 +1259,17 @@ async function benchRun() {
                    testMode: testMode ? 1 : 0, testLed,
                    testBits: testMode ? cwcBits(testLed, nL) : undefined,
                    nStr: window._nStr, nPerStr: window._nPerStr,   // S14P-1923: rig shape rides the stats line
+                   // S14R-0002: pre-burst brightness-probe telemetry — the
+                   // chosen level, the measured all-ON histMed + lamp-core
+                   // clip fraction, how many probe steps it took, and the
+                   // per-step {L, P90, clipPct, histMed} table.
+                   bright: probeRes ? probeRes.bright : cb,
+                   histMed: probeRes ? probeRes.histMed : null,
+                   clipPct: probeRes ? probeRes.clipPct : null,
+                   probeIters: probeRes ? probeRes.probeIters : 0,
+                   coreP90: probeRes ? probeRes.coreP90 : null,
+                   probeSteps: probeRes ? probeRes.steps : [],
+                   expAtBurst: expLine(),        // exposure state is NOW verifiable
                    chain: chain.map((s, k) => ({ k, dx: +s.dx.toFixed(2), dy: +s.dy.toFixed(2), conf: +s.conf.toFixed(3) })),
                    decode: { ampGate: CFG.cwcAmpGate, marginGate: CFG.cwcMarginGate, suppress: CFG.cwcSuppress,
                              sitesMasked: dec.nSites, confirmed: dec.sites.length, conflicts: dec.conflicts.length,
@@ -1193,6 +1397,13 @@ async function benchRun() {
                    max_ms: iv.length ? iv[iv.length - 1] : 0,
                    fps: Math.round(fps * 100) / 100,
                    comp: comp ? 1 : 0,
+                   // S14R-0002: BSTATS carries the probe + exposure telemetry
+                   // (also on the plain all-on movement burst path).
+                   bright: probeRes ? probeRes.bright : cb0,
+                   histMed: probeRes ? probeRes.histMed : null,
+                   clipPct: probeRes ? probeRes.clipPct : null,
+                   probeIters: probeRes ? probeRes.probeIters : 0,
+                   expAtBurst: expLine(),
                    shifts: bShifts };
     log('burst stats: n=' + benchStats.n + ' med ' + med + 'ms (' + benchStats.fps +
         ' fps) min/max ' + benchStats.min_ms + '/' + benchStats.max_ms +
@@ -1293,6 +1504,55 @@ async function pollDrvOnce() {
   else if (d === 'SCAN') { surveyRun(); }
   else if (d === 'ABRT') { log('drv ABRT'); abortFlag = true; }
   else if (d === 'LOGP') { logPull(); }
+  else if (d === 'PROBE') {
+    // S14R-0002: console-initiated calibration probe (no burst). Runs the
+    // pre-burst brightness probe standalone — the rig paints solid all-ON
+    // frames at increasing levels, the chosen level's telemetry rides the
+    // next BSTATS, and the rig returns to BLACK.
+    if (benchRunning || benchUploading) { log('probe skipped: burst busy'); return; }
+    scanning = true; setButtons();
+    try {
+      const maxB = Math.min(255, Math.floor(510 / (Math.max(1, window._nPerStr) * 0.0142)));
+      const pLo = CFG.bProbeMin | 0 || 235, pHi = CFG.bProbeMax | 0 || 250;
+      const clipHi = +CFG.bProbeClipHi || 5.0;
+      let L = Math.max(20, Math.min(255, CFG.bProbeStart | 0 || 120));
+      let iters = 0, last = null;
+      for (let it = 0; it < Math.max(1, Math.min(5, CFG.bProbeIters | 0 || 3)); it++) {
+        last = await probeMeasure(L);      // includes the ~2 s AE spacing
+        iters++;
+        probeSteps.push({ L: L, P90: +last.P90.toFixed(1), clipPct: +last.clipPct.toFixed(2),
+                          histMed: last.histMed });
+        log('probe it' + iters + ' L=' + L + ': coreP90 ' + last.P90.toFixed(1) +
+            ' clip ' + last.clipPct.toFixed(2) + '% histMed ' + last.histMed +
+            ' exp[' + last.exp + ']');
+        if (last.P90 >= pLo && last.P90 <= pHi && last.clipPct <= clipHi) break;
+        if (last.P90 < 40) break;
+        const tgt = last.P90 < pLo ? (pLo + pHi) / 2 : pHi - 3;
+        const f = Math.max(0.667, Math.min(1.5, tgt / Math.max(20, last.P90)));
+        const Ln = Math.max(20, Math.min(maxB, Math.round(L * f)));
+        if (Ln === L) break;
+        L = Ln;
+      }
+      const chosen = Math.min(Math.max(20, last.b), maxB);
+      benchStats = null; cwcStats = null;   // no stale burst stats in the ship
+      cwcStats = { build: BUILD, probeOnly: true, bright: chosen,
+                   histMed: last.histMed, clipPct: +last.clipPct.toFixed(2),
+                   probeIters: iters, coreP90: +last.P90.toFixed(1),
+                   probeSteps: probeSteps.slice(), expAtBurst: expLine(), n: 0, comp: 0 };
+      benchStats = { build: BUILD, n: 0, bright: chosen, histMed: last.histMed,
+                     clipPct: +last.clipPct.toFixed(2), probeIters: iters,
+                     expAtBurst: expLine(), shifts: [] };
+      log('probe complete: chosen bright=' + chosen + ' iters=' + iters +
+          ' (BSTATS rides the next pull)');
+      await paint({ cmd: 'black' });
+      if (!$('chkCapOnly').checked) {       // ship the probe telemetry now
+        benchUploading = true; setButtons();
+        try { await benchPull(); } catch (e) { log('E probeship ' + e.message); }
+        benchUploading = false;
+      }
+    } catch (e) { log('E probe ' + (e && e.message || e)); }
+    scanning = false; setButtons();
+  }
 }
 async function pollDrv() {
   // One retry on failure before giving up: the firmware consumes the
@@ -1529,11 +1789,20 @@ function cwcDecode(masterL, planes, chain, nL) {
   // master - k_p*plane bilinear-resampled at the plane's OWN shift (1911: direct
   // per-plane registration, no accumulation); score(i, s) =
   // sum_p sign[i,p]*stacksig_p(s), sign ON=-1 OFF=+1. Sites = blurred-master
-  // luma >= CFG.cwcMaskThr. Greedy accept best-score-first; amp + d6-margin
-  // d8-margin gates (the 12-of-24 bank keeps d_min 8); 7 px suppression; then
+  // luma >= mask threshold. Greedy accept best-score-first; amp + margin
+  // gates (the 12-of-24 bank keeps d_min 8); suppression; then
   // STRONGEST-SITE-PER-CODEWORD dedup (with
   // only one physical string active, multi-site claims are ghosts).
-  const MASK_THR = (CFG.cwcMaskThr | 0) || 100; // S14P-1927: default 100 (sweep-validated 02 Oct across 5 handheld sets); never 175
+  // S14R-0002 ADAPTIVE MASK (corpora-calibrated, tools/tuning_s14r0002.json):
+  //   thr = min(cwcMaskThr, max(cwcMaskFloor, cwcMaskK * histMed(master)))
+  // Dark views (and-r4 histMed 74.5) relax 100 -> 83.4: mask-class misses
+  // drop 54 -> 47 at their anchors, +22 confirmed / -0 on the full CLI A/B
+  // (492 -> 514). Bright views (histMed >= 89.3) saturate at cwcMaskThr =
+  // the S14P-1927 sweep-validated rule — ios-r2 verified identical (440).
+  const MASK_THR = (CFG.cwcMaskAdaptive | 0)
+    ? Math.min((CFG.cwcMaskThr | 0) || 100,
+               Math.max(CFG.cwcMaskFloor | 0 || 45, (CFG.cwcMaskK || 1.12) * Math.max(histMedian(masterL), 1)))
+    : ((CFG.cwcMaskThr | 0) || 100);  // S14P-1927: default 100 (sweep-validated 02 Oct across 5 handheld sets); never 175
   const mMed = Math.max(histMedian(masterL), 1);
   const kk = planes.map((pl) => histMedian(pl) / mMed);
   // 1921: revert to original double 3-tap box blur; sweep shows it matches
@@ -1684,13 +1953,18 @@ function cwcDecode(masterL, planes, chain, nL) {
       }
     }
   }
-  return { sites, nSites: nS, k: kk, chain, conflicts };
+  return { sites, nSites: nS, k: kk, chain, conflicts,
+           maskThrUsed: MASK_THR, maskHistMed: mMed };
 }
 function cwcShowResults(masterL, dec, caption) {
-  // static master with a box at each detected LED site (operator view):
+  // static master with a label chip at each detected LED site (operator view):
   // green = single-claim codeword, amber = multi-site codeword (mirrored
   // strings make 2 sites per code the EXPECTED case in this rig).
   // S14P-1907: LED-number chip beside each box, same colour as the box.
+  // S14R-0002 (operator UI fix B): the DARK SQUARE behind the LED number is
+  // GONE — text-only labels with the 2 px black stroke (kept since it reads
+  // on any background); the near-box PLACEMENT (right side, mirrored at the
+  // frame edge) is unchanged.
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const cx2 = cv.getContext('2d');
   const im = cx2.createImageData(W, H);
@@ -1711,17 +1985,15 @@ function cwcShowResults(masterL, dec, caption) {
     cx2.strokeStyle = col;
     cx2.lineWidth = 1;
     cx2.strokeRect(s.x - 6, s.y - 6, 13, 13);
-    // S14P-1925: label chip BESIDE the box (right side, vertically centred);
+    // S14P-1925: label BESIDE the box (right side, vertically centred);
     // mirrored to the box's left if it would clip the frame's right edge.
     // S14R-0001: chip 2 px closer to the box; box stays 13x13 at ±6.
+    // S14R-0002: NO fill behind the glyphs (the dark rectangle hid master
+    // detail); digits stay pure white over the 2 px black stroke.
     const txt = String(s.led);
     const tw2 = cx2.measureText(txt).width;
-    const cw = tw2 + 4;
-    let centreX = s.x + 6 + cw / 2 + 2;              // box right + chip half + 2 px gap
-    if (centreX + cw / 2 > W - 2) centreX = s.x - 6 - cw / 2 - 2;   // mirror left
-    cx2.fillStyle = 'rgba(0,0,0,0.3)';
-    cx2.fillRect(centreX - cw / 2, s.y - 4.5, cw, 9);
-    // pure-white glyphs over a 2 px black stroke — digits read on any bg:
+    let centreX = s.x + 6 + tw2 / 2 + 2;             // box right + half label + 2 px gap
+    if (centreX + tw2 / 2 > W - 2) centreX = s.x - 6 - tw2 / 2 - 2;   // mirror left
     cx2.lineWidth = 2;
     cx2.strokeStyle = '#000';
     cx2.textAlign = 'center'; cx2.textBaseline = 'middle';

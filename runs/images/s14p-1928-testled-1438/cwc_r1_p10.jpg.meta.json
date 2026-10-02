@@ -1,0 +1,11 @@
+{
+ "t": "6.832",
+ "label": "cwc:r1:p10",
+ "W": 406,
+ "H": 720,
+ "exp": "exp=200.03 aem=continuous ev=-1 fd=0.00",
+ "wire_ts": "14:38:29",
+ "fend_ts": "14:38:31",
+ "magic_ok": true,
+ "bytes": 12641
+}
