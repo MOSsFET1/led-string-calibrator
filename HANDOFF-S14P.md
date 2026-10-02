@@ -315,13 +315,21 @@ LEDs ensemble mean (reports/page-simulation-s14p-1922.md).
    "cwcTestMode":1,"cwcTestLed":599}` delivered (id 599 = string 3
    pixel 200); completed round 14:38:18→14:39:15 under S14P-1928
    (CWCSTATS: n 18 planes, testBits [3,4,6,8,11,12,13,15,17], chain
-   conf 0.817–0.902, confirmed 275, conflicts 33). HONESTY NOTE: the
-   physical rig has fewer installed strings than the CFG claimed
-   (operator confirmed only ONE 200-LED string lights on all-on), so
-   cwcN 600 > installed and the decode over-claimed via the 9-of-18
-   d=4 cousin-phantom class — **275 is NOT a detection rate** and the
-   result-view 'led 599' chip was a phantom relabel of a real
-   string-1 lamp. Verdict: the test-mode path works end-to-end
+ conf 0.817–0.902, confirmed 275, conflicts 33). CORRECTED 02 Oct eve
+ from operator ground truth: strings 1-3 WERE connected (600 lamps
+ installed; many hidden/colocated). The CFG rig keys (nStr=3/nPerStr=200)
+ applied, but the decode bank ran the FULL 1600 — wire claims extend to
+ id 1570, so every claim with id >=600 is a d=4 cousin-phantom relabel
+ in the unpainted id space. The ~sub-600 confirms (incl. the 'led 599'
+ chip: x267,y422 amp 153 margin 94.5) are substantially real and
+ PLAUSIBLY GENUINE — with 3x200 installed, ~275 real detections from
+ one viewpoint is consistent with many hidden/colocated lamps per the
+ operator. Standing rule reaffirmed: decode domain must clamp to
+ min(cwcN, installed) — a >cap relabel is contamination, not detection.
+ Also note: the page showed nStr=8 after the S14R flash because boot
+ restores compiled defaults with an empty CFG slot; the queued rig
+ CFG re-applies on the page's next drv? polls (15:44 re-queue done).
+ Verdict: the test-mode path works end-to-end
    mechanically; interpreting it requires installed-count == cwcN.
    **OPERATOR DECISION (verbatim): no new one-LED-lighting UI
    feature — the existing all-on button already shows where to cut a
