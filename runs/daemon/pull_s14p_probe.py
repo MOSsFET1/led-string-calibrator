@@ -7,7 +7,7 @@ import serial
 from PIL import Image
 import numpy as np
 
-RUN = Path('/home/nellie/projects/led-display/POC LED survey/runs/s14p-tripod-led0')
+RUN = Path('/home/nellie/projects/led-display/poc_survey/runs/images/s14p-tripod-led0')
 FP = RUN / 'probe_frames.txt'
 
 def log(m):
