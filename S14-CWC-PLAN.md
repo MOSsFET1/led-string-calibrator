@@ -791,3 +791,219 @@ completed round 14:38:18→14:39:15; global id 599 = string 3 pixel
 - **OPERATOR DECISION (recorded verbatim)**: no new
   one-LED-lighting UI feature — the existing all-on button already
   shows where to cut a string.
+
+## 15. The S14R era as-built (02 Oct, S14R-0000 → S14R-0002)
+
+The R-line replaced the P line AFTER §13's designation. State at this
+writing: **S14R-0002 is committed at origin/main = 3f22c2a, QA PASS
+(exit 0, check 12), embed roundtrip 47408-byte exact — and NOT YET
+FLASHED** (the box still runs S14P-1928; the flash is the next physical
+action, then the first real 0002 burst). Verified 03 Oct: re-compile
+1,342,722 B = 68% (min_spiffs, RAM 18%); `tools/verify_embed_s14r.py`
+all-True (build stamps agree, 12OF24 bank served, 9OF18 retired,
+S14R-0001 UI ids kept, S14R-0002 probe/adaptive-mask ids present); bank
+recomputed d_min 8 / weight 12 / per-plane ON exactly 800 at N=1600 /
+800 consecutive complementary pairs. Era corpora live under
+`runs/daemon/runs/s14r-*` (gitignored imagery; metas/ledpos packs
+tracked); commit history: 8925ef8 (0000) → 8c3fe3d (0001) →
+e5534dc/1e7b843/c7e4aeb/b406a61 (round + corpora investigations) →
+3b22b35+3f22c2a (0002).
+
+### 15.1 S14R-0000 — 12-of-24 Golay bank (commit 8925ef8)
+
+- **Bank swap**: CWC 9-of-18 → extended-Golay [24,12,8] weight-12
+  subcode, per §13's feasibility: `tools/codewords_12of24.json` +
+  `page/codewords.js` (1600 codes as ON-plane index lists, weight
+  exactly 12, d_min 8, emitted as **800 complementary pairs** so every
+  plane paints EXACTLY N/2 lamps at every even prefix — §2's exact-duty
+  requirement without per-plane selection; generator
+  `tools/cwc_bank_gen.py`, checker `tools/cwc_bank_check.py` rc 0).
+  d_min 8 ⇒ the identity gate requires a **d8 margin** (score minus
+  best competitor / 12 > `cwcMarginGate`), and d≥9 is impossible
+  (sphere bound 600 < 1600) — this bank is the ceiling, as computed in
+  §13. The 9-of-18 bank is retired from the page (kept at
+  `tools/codewords_9of18.json` as the P-line record); CLI decoders go
+  `--bank`-aware (12of24 default, 9of18 legacy parity).
+- **Protocol delta**: 24 planes → `frame-bits` message is now exactly
+  **246 B** (6 B header + 240 B = 1920-bit plane), consistently in the
+  page, firmware and mock; burst = **25 frames** (primer-plane P00 held
+  1 s + P01..P23 + fast all-on master). QA STAMP S14R-0000 full
+  10-check PASS exit 0 (bit-exact LED 57 across 12/12 ON planes,
+  per-plane 100/200 lit at the 8×25 burst-3 shape, capture-only 25-frame
+  + bulk 50/50 intact); compile 1,333,698 B = 67%.
+- **Console decode**: `tools/cwc_pos_decode.py` amp normalisation
+  follows the bank weight (score/12), registration/direct-shift
+  machinery unchanged.
+
+### 15.2 First real 12-of-24 rounds + round-1 miss investigation (16:16 / 17:43)
+
+- **16:16 round** (report
+  `reports/s14r-0000-16h16-miss-classification.md`): phone 309 / console
+  **283/600** at gates mask 100 / amp 40 / margin 6; multi-phone parity
+  on the 269 shared ids: |d| median **0.0 px** (p90 2.0). cwcN=600
+  honored (max id 599 — §14's cap-gap phantom class is dead while the
+  bank maps only wired ids). **277 misses classified by instrument**
+  (stacksig-rebuild, CLI-amp parity exact): 191 amp<40 (ring med 224 —
+  the bright wall), 57 suppressed (colocated, within 3 px of a stronger
+  claim), 25 truly-absent/hidden, 3+1 margin/contest. **Measured law:
+  amp ≈ 0.54 × (255 − wall)** at this exposure (ON planes pinned at
+  sensor clip 255; modulation depth capped by (255−wall)) — miss rate
+  rises monotonically with wall luma, 200–239 bucket misses 80%.
+- **17:43 operator-aimed round** (report
+  `reports/s14r-0000-17h43-aimed-round-decode-and-fixpath-verification.md`):
+  phone 328 / console **317/600**; parity shared-L1 med 0.0 px again
+  despite re-aim; registration 10× steadier (direct shift med 0.26 px).
+  Exposure moved exp 699.97 → 200.02 (AE, not CFG): the wall-law
+  constant lifted **0.538 → 0.97** (= the per-plane gain k̄, as the
+  algebra predicts), bright-bucket (200–239) miss **80% → 54%** — the r1
+  law was exposure-specific, not universal.
+- **amp25-without-guard REFUTED** (the round-2 position audit):
+  relaxation counts reproduce (+97/+131) but **43–59% of the gains are
+  impostor placements** (far-orphan sites >6 px from any registered
+  lamp, amp ~1–2; a systematic string-3 560–599 family claims
+  string-1/2 lamp sites in BOTH rounds). True at-anchor gains: +33
+  (+34 at amp20). Rule: **hold amp 40 for identity-grade counts**; any
+  relaxed count must pass a ~6 px own-anchor position guard; r1's
+  "+97, zero regressions" line is corrected in-file.
+- The 560–599 string-3 tail went systematically sick from the 17:43
+  viewpoint (view-dependent blindness, confirmed fine from r1's angle)
+  — per-view "evidence-absent" bookkeeping (~35–55 ids/round) was
+  recommended to stop counting sensor/view limits as decoder misses.
+
+### 15.3 Android exp500 corpora (r2–r5, commit c7e4aeb)
+
+Console decode of 4 Android bursts (`runs/daemon/runs/s14r-and-r2..r5`,
+exp=500.05, all hygiene checks green): **429 / 549 / 492 / 387 of 600;
+union 583 (97.2%)**; hit histogram 4-of-4 = 269. 17 never-seen ids
+anatomised (5 bright-wall, 2 low-contrast, 2 view-dark, rest on-clip).
+**The monotone wall law BREAKS at this exposure**: r4 (darkest view,
+master histMed 74.5) misses hardest in its darkest bucket — **77 anchor
+misses are MASK-class** (master blur < 100; lamps still read blob peaks
+136) → the adaptive-mask-thr candidate. Amp is NOT cross-burst-comparable
+(within-id spread med 59 even normalised); homography is required for
+cross-burst mapping (translation-only false-spreads 200 px). Colocated
+pairs (<5 px) 161 across bursts, 42% same-string — the page's
+conflict-tolerant model (flag, both confirmed) stays the right
+semantics.
+
+### 15.4 S14R-0001 — operator UI + (iOS) exposure round (commit 8c3fe3d)
+
+- **Operator UI**: Burst button directly under the camera canvas
+  (burstRow), 8 one-press string buttons `bStr1..bStr8` (operator
+  nStr override mid-session; a box CFG nStr still drives the rig),
+  Survey button removed, 'Capture only' label, wake-lock requested
+  automatically at boot/on visibilitychange (separate wake button
+  GONE), LED-number font 13→10 px and chips 2 px closer. Compile
+  1,335,810 B = 67%; QA PASS exit 0 with new check 11.
+- **Exposure levers at burst start** (`applyEvBiasAtBurst`): Android
+  re-applies the CFG `evBias` AT BURST START (the r1 finding: it was
+  applied once in the camera-ready callback only, so CFG changes never
+  took effect); iOS runs the **POI tap lever** (`cwcPoi*` — iOS honours
+  pointsOfInterest, never exposed exposureCompensation).
+- **iPhone POI corpora r1–r4** (commit b406a61, report
+  `reports/s14r-0001-ios-poi-console-decode-exposure-and-cross-round.md`):
+  console **287 / 440 / 487 / 257 of 600; union 534 (89%)**, 66 ids
+  never in any burst — **100% rival-eats** (every one of the 600 had a
+  masked site amp ≥ 8 — usually ≥ 40 — somewhere; zero mask-class, zero
+  amp-starved). THE FAILURE AXIS FLIPPED from wall luma to codeword
+  interference in the dense swarm; miss% tracks how much string sits
+  behind each anchor, not wall luma (r2/r3 bucket tables INVERTED vs
+  0000). Gate relaxation on this corpus: gains **97–100% impostor**
+  (own-anchor guard-pass 6/472 total) — amp 40 stands. **POI tap was
+  PIXEL-INERT** (no measurable AE change across all 4 bursts) AND the
+  wire carried `exp=''` — **the exposure read-back gap** made the
+  feature unverifiable from metadata. Fixed in 0002 (§15.6).
+- r2↔r3 was one aim (95.2% of 413 shared ids re-place ≤5 px); r1 and
+  r4 were separate re-aims — cross-aim per-id disagreement is viewpoint
+  + interference, not identity churn.
+
+### 15.5 CLI identity lever (queued, the top open item)
+
+Evidence-ranked across all corpora (§15.2–15.4): the CLI's
+`tools/cwc_pos_decode.py` argmax-per-site + ±3 px suppression +
+strongest-codeword dedup **eats contested codewords** — contest +
+suppressed classes run 108–343 ids/burst on the iPhone corpus and
+~57/set on Android, while relaxed gates buy impostors. The redesign —
+**same-codeword dedup + demote rival-site claims ≤5 px to
+conflict-FLAGGED entries (page-parity), instead of silent suppression**
+— is designed and evidence-backed, NOT yet built. Keep amp 40 /
+margin 6 / adaptive mask; treat per-burst counts via mechanisms +
+union, never raw totals; per-id amp is aim-relative, never cross-round.
+
+### 15.6 S14R-0002 — pre-burst brightness calibration + adaptive thresholds (commits 3b22b35 + 3f22c2a)
+
+- **Pre-burst BRIGHTNESS PROBE** (the headline; page keys `bProbe*`,
+  tuning evidence `tools/tuning_s14r0002.json`): a solid all-ON paint at
+  `bProbeStart` 120, ~2 s between steps (`bProbeDelayMs`) so the AE
+  re-converges, 2–3 MULTIPLICATIVE iterations (L×target/measured,
+  clamped ±1.5×/step), metric = **lamp-core P90 (5×5 core max) minus
+  the local background-ring median** — drive cores to the
+  JUST-BELOW-CLIP knee: band **coreP90 235–250** (`bProbeMin/Max`)
+  with lamp-pixel clip fraction **≤5%** (`bProbeClipHi`, cores ≥ 252;
+  `bProbeCoreMinLuma` 170 defines a core). After the final level:
+  HOLD it and wait a FIXED `waitSettleMs` 2000, then fire — the
+  operator-simplified hold, NO settle gate. Calibration context: ALL
+  14 corpora bursts overdrove (lamp-core clip 17.1–56.0% at fixed
+  bBurstB 150, coreP90 = 255) — the knee band is new ground, chosen
+  because clipped cores strangle amp at (255 − OFF_lamp) while spill
+  keeps growing (§15.2's mechanism, inverted to a target).
+  - Every CWC burst runs it when `bProbe: 1` and paints its planes at
+    the CHOSEN level (bBurstB keeps a telemetry-fallback role); the
+    burst is probe+settle-gated ('probe done:' precedes 'cwc burst:' by
+    ≳1.5 s).
+  - **`PROBE` serial directive** = the standalone calibration run (no
+    burst): per-step telemetry `{L, P90, clipPct, histMed}`, rig
+    returns to black, telemetry ships as a `"probeOnly":true`
+    CWCSTATS/BSTATS via the next pull.
+- **BSTATS/CWCSTATS carry the probe + exposure telemetry**:
+  `{bright, histMed, clipPct, probeIters}` + `coreP90`+`probeSteps`
+  + **`expAtBurst`** — the 0001 exposure read-back gap (§15.4, `exp=''`)
+  is closed; exposure state is verifiable from every burst now (the
+  0001-POI-unverifiable lesson).
+- **Adaptive mask threshold** (`cwcMaskAdaptive 1`,
+  `cwcMaskK 1.12`, `cwcMaskFloor 45`): page and CLI in exact parity —
+  `thr = min(cwcMaskThr, max(cwcMaskFloor, cwcMaskK × histMed(master)))`;
+  the CLI ships `--mask-thr auto` semantics (adaptive default ON, box
+  CFG still overrides the page keys). A/B evidence (identical CLI
+  machinery, gates 40/6, fullres rad 4): **and-r4 (histMed 74.5) thr
+  100→83.4 = 492→514 confirmed, +22, −0 regression**; and-r2/ios-r2
+  saturate at 100 (byte-identical sets 429/440); and-r5 (histMed 83.5
+  → thr 93.5) 387→386 — the documented cost is hairline site 398
+  losing an argmax contest (same class as the base-gate 3–4%
+  interference misses; the threshold saturates at 100: +0 net beyond
+  the gain).
+- **Operator UI round 2**: the dark square behind result-view LED
+  numbers REMOVED (text-only white labels on a 2 px black stroke);
+  Android evBias −3 at burst start; POI tap gains visible feedback
+  (4 s crosshair at the metered point).
+- **QA: RESULT PASS, exit 0** — checks 1–11 kept green (stamp, CFG +
+  burst shape, direct registration, decode, canvas, test branch,
+  multi-string bit-exact, replay, capture-only ×2 = 50 frames + bulk
+  send, operator UI) and NEW check 12 exercises the probe end-to-end
+  on the fake camera: PROBE directive telemetry ships, a bProbe burst
+  fires only after the probe completes + the settle hold elapses, and
+  paints at the probe-chosen brightness. `verify_embed_s14r.py`
+  roundtrip PASS (47408); compile 1,342,722 B = 68% (RAM 18%;
+  re-verified 03 Oct pre-flash). Commit 3f22c2a additionally
+  quarantined drained/dup run dirs and added run7 residue for corpus
+  provenance.
+
+### 15.7 Where the S14R era stands / what is next
+
+1. **FLASH S14R-0002** (parent's action right after this doc task),
+   then the **first real 0002 burst** — the first evidence the probe +
+   BSTATS telemetry work on the real rig (expect lamp-core clip in the
+   single digits and BSTATS {bright…} populated; the 14-burst corpora
+   all overdrove at fixed b=150).
+2. **CLI suppression/ownership redesign** (§15.5) — the top identity
+   lever for the 100%-rival-eat iPhone class.
+3. **POI tap real-rig validation** — was pixel-inert in 0001; 0002's
+   crosshair feedback + exp readback make it measurable now.
+4. **TLS-heap wedge root cause** — undiagnosed; `-0x7F00`/`-0x7780`
+   storms recurred in the 06:44 wedge of today's capture.txt; RTS→EN
+   reset recipe stays the workaround.
+5. Adaptive-mask second-order costs: watch hairline sites (the 398
+   class) when re-sweeping; `cwcMaskAdaptive 0` remains the fixed-thr
+   fallback.
+6. ledcloud/2 §8 export converter — still not built (console verdicts
+   stay authoritative).
