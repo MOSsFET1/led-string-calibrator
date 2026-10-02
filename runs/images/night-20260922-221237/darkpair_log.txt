@@ -1,0 +1,111 @@
+[PHONE-LOG] begin
+[PHONE] t   0.0 ws connect wss://192.168.4.1/ws
+t   0.0 wake lock acquired
+t   0.9 cam live 720x1280 track=camera 0, facing back
+t   0.9 proc 406x720 (video 720x1280)
+t   0.9 ev bias -1
+t   1.8 box hello fw=poc_survey px=150
+[PHONE] t   5.3 survey start
+t   6.6 black g0 pk255 cw0.0% bl0
+t   6.9 black g1 pk255 cw0.0% bl0
+t   7.1 black g2 pk255 cw0.0% bl0
+t   7.9 all2 g0 pk255 cw0.2% bl0
+t   8.1 all2 g1 pk255 cw0.3% bl0
+[PHONE] t   8.2 all2 g2 pk255 cw0.4% bl0
+t   8.9 ref:R g0 pk255 cw0.0% bl0
+t   9.0 ref:R g1 pk255 cw0.0% bl0
+t   9.2 ref:R g2 pk255 cw0.0% bl0
+t   9.9 frame:R g0 pk255 cw0.0% bl0
+t  10.1 frame:R g1 pk255 cw0.0% bl0
+[PHONE] t  10.3 frame:R g2 pk255 cw0.0% bl0
+t  11.1 ref:G g0 pk255 cw0.0% bl0
+t  11.2 ref:G g1 pk255 cw0.0% bl0
+t  11.3 ref:G g2 pk255 cw0.0% bl0
+t  12.1 frame:G g0 pk255 cw0.0% bl2 R(118,465)p108 G(115,472)p174
+t  12.3 frame:G g1 pk255 cw0.0% bl1 R(118,465)p108
+[PHONE] t  12.4 frame:G g2 pk255 cw0.0% bl1 R(118,465)p108
+t  13.1 ref:B g0 pk255 cw0.0% bl0
+t  13.3 ref:B g1 pk255 cw0.0% bl0
+t  13.4 ref:B g2 pk255 cw0.0% bl0
+t  14.2 frame:B g0 pk255 cw0.0% bl1 B(342,225)p235
+t  14.4 frame:B g1 pk255 cw0.0% bl1 B(342,226)p238
+[PHONE] t  14.6 frame:B g2 pk255 cw0.0% bl1 B(342,226)p237
+t  14.7 survey done
+t  14.7 evid 778B
+t  33.3 accents 200
+t  56.3 accents 200
+t  57.7 all-on 160
+[PHONE] t  67.6 accents 200
+t 145.3 all-on 160
+t 151.8 all-on 160
+t 232.8 cfg darkPair=0,field2=0,accB=200,allB=160
+t 234.3 drv SCAN
+t 234.3 survey start
+[PHONE] t 235.3 black g0 pk255 cw0.0% bl0
+t 235.5 black g1 pk255 cw0.0% bl0
+t 235.7 black g2 pk255 cw0.0% bl0
+t 236.3 all2 g0 pk255 cw0.1% bl0
+t 236.5 all2 g1 pk255 cw0.2% bl0
+t 236.7 all2 g2 pk255 cw0.2% bl0
+[PHONE] t 237.3 ref:R g0 pk255 cw0.0% bl0
+t 237.4 ref:R g1 pk255 cw0.0% bl0
+t 237.6 ref:R g2 pk255 cw0.0% bl0
+t 238.2 frame:R g0 pk255 cw0.0% bl0
+t 238.4 frame:R g1 pk255 cw0.0% bl0
+t 238.5 frame:R g2 pk255 cw0.0% bl0
+[PHONE] t 239.2 ref:G g0 pk255 cw0.0% bl0
+t 239.4 ref:G g1 pk255 cw0.0% bl0
+t 239.5 ref:G g2 pk255 cw0.0% bl0
+t 240.3 frame:G g0 pk255 cw0.0% bl1 G(115,473)p168
+t 240.5 frame:G g1 pk255 cw0.0% bl1 G(115,473)p170
+t 240.7 frame:G g2 pk255 cw0.0% bl1 G(115,473)p170
+[PHONE] t 241.4 ref:B g0 pk255 cw0.0% bl0
+t 241.5 ref:B g1 pk255 cw0.0% bl0
+t 241.7 ref:B g2 pk255 cw0.0% bl0
+t 242.4 frame:B g0 pk255 cw0.0% bl1 B(344,226)p237
+t 242.6 frame:B g1 pk255 cw0.0% bl1 B(346,225)p235
+t 242.7 frame:B g2 pk255 cw0.0% bl1 B(346,225)p234
+[PHONE] t 242.8 survey done
+t 242.8 evid 779B
+t 243.3 frame pull: 16 frames
+t 308.9 frame pull done
+t 309.3 cfg darkPair=1
+t 312.4 drv SCAN
+[PHONE] t 312.4 survey start
+t 313.6 black g0 pk255 cw0.0% bl0
+t 313.7 black g1 pk255 cw0.0% bl0
+t 313.9 black g2 pk255 cw0.0% bl0
+t 314.5 all2 g0 pk255 cw0.1% bl0
+t 314.7 all2 g1 pk255 cw0.2% bl0
+[PHONE] t 314.9 all2 g2 pk255 cw0.2% bl0
+t 315.6 ref:R g0 pk255 cw0.0% bl0
+t 315.7 ref:R g1 pk255 cw0.0% bl0
+t 315.9 ref:R g2 pk255 cw0.0% bl0
+t 316.5 frame:R g0 pk255 cw0.0% bl0
+t 316.7 frame:R g1 pk255 cw0.0% bl1 R(202,519)p129
+[PHONE] t 316.9 frame:R g2 pk255 cw0.0% bl1 R(202,519)p130
+t 317.6 ref:G g0 pk255 cw0.0% bl0
+t 317.7 ref:G g1 pk255 cw0.0% bl0
+t 317.9 ref:G g2 pk255 cw0.0% bl0
+t 318.5 frame:G g0 pk255 cw0.0% bl2 R(118,464)p113 G(115,473)p171
+t 318.7 frame:G g1 pk255 cw0.0% bl1 R(118,464)p112
+[PHONE] t 318.9 frame:G g2 pk255 cw0.0% bl1 R(118,469)p113
+t 319.5 ref:B g0 pk255 cw0.0% bl0
+t 319.7 ref:B g1 pk255 cw0.0% bl0
+t 319.9 ref:B g2 pk255 cw0.0% bl0
+t 320.6 frame:B g0 pk255 cw0.0% bl1 B(341,227)p244
+t 320.8 frame:B g1 pk255 cw0.0% bl1 B(342,226)p245
+[PHONE] t 320.9 frame:B g2 pk255 cw0.0% bl1 B(342,227)p246
+t 322.1 dp:R:on pk255 med104 exp exp=500.05 aem=continuous ev=-1 fd=0.00
+t 322.5 dp:R:off pk255 med104 exp exp=500.05 aem=continuous ev=-1 fd=0.00
+t 322.5 dp R guard: OK (863 samples differ)
+t 322.9 dp:G:on pk255 med120 exp exp=500.05 aem=continuous ev=-1 fd=0.00
+t 323.5 dp:G:off pk255 med104 exp exp=500.05 aem=continuous ev=-1 fd=0.00
+[PHONE] t 323.5 dp G guard: OK (878 samples differ)
+t 324.0 dp:B:on pk255 med104 exp exp=500.05 aem=continuous ev=-1 fd=0.00
+t 324.4 dp:B:off pk255 med88 exp exp=500.05 aem=continuous ev=-1 fd=0.00
+t 324.5 dp B guard: OK (874 samples differ)
+t 324.6 survey done
+t 324.6 evid 797B
+[PHONE] t 334.9 log pull: 108 lines
+[PHONE-LOG] end

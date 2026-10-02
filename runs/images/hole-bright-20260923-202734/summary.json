@@ -1,0 +1,34 @@
+[
+ {
+  "tag": "b200_r1",
+  "ok": true,
+  "wall": 62,
+  "foundN": 149,
+  "missed": [
+   95
+  ]
+ },
+ {
+  "tag": "b200_r2",
+  "ok": false,
+  "wall": 245,
+  "foundN": null,
+  "missed": null
+ },
+ {
+  "tag": "b255_r1",
+  "ok": true,
+  "wall": 40,
+  "foundN": 149,
+  "missed": [
+   95
+  ]
+ },
+ {
+  "tag": "b255_r2",
+  "ok": false,
+  "wall": 246,
+  "foundN": null,
+  "missed": null
+ }
+]

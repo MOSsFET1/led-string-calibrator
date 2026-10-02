@@ -1,0 +1,402 @@
+[PHONE-LOG] begin
+[PHONE] t  76.5 h48 FOUND pk184 n35 @(191,101)
+t  76.8 h98 FOUND pk194 n45 @(77,186)
+t  77.1 h148 FOUND pk208 n22 @(322,628)
+t  77.7 h49 FOUND pk232 n35 @(193,80) bK3
+t  77.7 h99 FOUND pk225 n49 @(79,205) bK3
+t  77.7 h149 FOUND pk193 n34 @(321,611) bK3
+[PHONE] t  78.0 hole batch [50,100] ambiguous/out-of-window (2 holes) -> constrained singles fallback
+t  78.4 h50 1 candidates, none in chain-1 window (r=45px, pitch 19, chainPos 79,205) — miss
+t  78.4 h50 miss (blobs:1 acc:1)
+t  78.8 h100 1 candidates, none in chain-2 window (r=45px, pitch 17, chainPos 321,611) — miss
+t  78.8 h100 miss (blobs:1 acc:1)
+t  78.8 hole progress 150/150 (35s)
+[PHONE] t  78.8 hole serpentine audit: 0 hidden, median pitch 20px, gate 4x, 1 pass(es)
+t  78.8 hidden indices: (none)
+t  78.8 hole map saved (146 entries)
+t  78.8 hole survey done: 148 found, 4 missed in 35s misses: 94,95,50,100
+t  78.8 evid 602B
+t  91.7 drv SCAN
+[PHONE] t  91.7 hole survey start (npx=150 b=200 gap=100 thr=60 domK=8)
+t  93.1 hole master grabbed (3 grabs)
+t  93.9 h0 FOUND pk205 n72 @(107,674)
+t  93.9 hole anchor chain-0 LED#0 @(107,674) stable
+t  94.7 h50 FOUND pk169 n70 @(181,90)
+t  94.7 hole anchor chain-1 LED#50 @(181,90) stable
+[PHONE] t  95.7 h100 FOUND pk173 n32 @(80,225)
+t  95.7 hole anchor chain-2 LED#100 @(80,225) stable
+t  95.7 hole K-chain run: K=3 anchors 3/3 stable, winR=45px
+t  96.0 h1 FOUND pk192 n76 @(88,663) bK3
+t  96.0 h51 FOUND pk164 n21 @(166,112) bK3
+t  96.0 h101 FOUND pk124 n11 @(81,243) bK3
+[PHONE] t  96.4 h2 FOUND pk184 n77 @(84,645) bK3
+t  96.4 h52 FOUND pk243 n23 @(160,137) bK3
+t  96.4 h102 FOUND pk138 n11 @(84,262) bK3
+t  96.7 h3 FOUND pk137 n80 @(81,628) bK3
+t  96.7 h53 FOUND pk166 n26 @(160,163) bK3
+t  96.8 h103 FOUND pk185 n14 @(89,281) bK3
+[PHONE] t  96.9 h4 FOUND pk130 n65 @(80,613) bK3
+t  96.9 h54 FOUND pk152 n19 @(157,188) bK3
+t  96.9 h104 FOUND pk175 n18 @(95,299) bK3
+t  97.2 hole master regrabbed at pair 4
+t  97.5 h5 FOUND pk163 n49 @(82,598) bK3
+t  97.5 h55 FOUND pk161 n26 @(157,213) bK3
+[PHONE] t  97.5 h105 FOUND pk160 n47 @(108,317) bK3
+t  97.7 h6 FOUND pk139 n18 @(100,584) bK3
+t  97.7 h56 FOUND pk149 n23 @(155,237) bK3
+t  97.7 h106 FOUND pk165 n22 @(109,337) bK3
+t  98.1 h7 FOUND pk156 n36 @(117,578) bK3
+t  98.1 h57 FOUND pk161 n26 @(154,260) bK3
+[PHONE] t  98.1 h107 FOUND pk151 n23 @(114,355) bK3
+t  98.3 h8 FOUND pk172 n35 @(132,569) bK3
+t  98.3 h58 FOUND pk116 n18 @(155,284) bK3
+t  98.3 h108 FOUND pk171 n32 @(117,370) bK3
+t  98.6 h9 FOUND pk148 n39 @(135,558) bK3
+t  98.6 h59 FOUND pk141 n40 @(155,306) bK3
+[PHONE] t  98.6 h109 FOUND pk166 n16 @(123,387) bK3
+t  98.8 h10 FOUND pk156 n61 @(122,551) bK3
+t  98.8 h60 FOUND pk190 n34 @(155,329) bK3
+t  98.8 h110 FOUND pk161 n17 @(137,394) bK3
+t  99.1 h11 FOUND pk153 n72 @(104,554) bK3
+t  99.1 h61 FOUND pk148 n118 @(159,346) bK3
+[PHONE] t  99.1 h111 FOUND pk126 n13 @(149,387) bK3
+t  99.4 hole batch [12,62,112] ambiguous/out-of-window (2 holes) -> constrained singles fallback
+t  99.6 h12 FOUND pk181 n47 @(86,560)
+t 100.0 h62 FOUND pk122 n20 @(155,371)
+t 100.4 h112 FOUND pk143 n12 @(156,379)
+t 100.7 hole master regrabbed at pair 12
+[PHONE] t 100.9 hole batch [13,63,113] ambiguous/out-of-window (3 holes) -> constrained singles fallback
+t 101.3 h13 FOUND pk187 n84 @(76,562)
+t 101.6 h63 FOUND pk150 n21 @(153,392)
+t 101.9 h113 FOUND pk123 n17 @(163,370)
+t 102.1 hole batch [14,64,114] ambiguous/out-of-window (3 holes) -> constrained singles fallback
+t 102.5 h14 FOUND pk193 n43 @(79,575)
+[PHONE] t 102.8 h64 FOUND pk147 n17 @(154,412)
+t 103.0 h114 FOUND pk159 n22 @(171,363)
+t 103.3 hole batch [15,65,115] ambiguous/out-of-window (5 holes) -> constrained singles fallback
+t 103.6 h15 FOUND pk165 n40 @(83,588)
+t 104.0 h65 FOUND pk152 n16 @(156,432)
+t 104.4 hole master regrabbed at pair 115
+[PHONE] t 104.7 h115 FOUND pk161 n19 @(177,350)
+t 105.0 h16 FOUND pk145 n84 @(99,588) bK3
+t 105.0 h66 FOUND pk149 n17 @(161,452) bK3
+t 105.0 h116 FOUND pk164 n55 @(187,331) bK3
+t 105.3 h17 FOUND pk133 n116 @(109,604) bK3
+t 105.3 h67 FOUND pk154 n16 @(156,467) bK3
+[PHONE] t 105.3 h117 FOUND pk212 n53 @(194,309) bK3
+t 105.5 h18 FOUND pk137 n111 @(117,619) bK3
+t 105.5 h68 FOUND pk204 n20 @(154,484) bK3
+t 105.5 h118 FOUND pk182 n31 @(202,286) bK3
+t 105.7 h19 FOUND pk131 n107 @(135,631) bK3
+t 105.8 h69 FOUND pk199 n19 @(152,499) bK3
+[PHONE] t 105.8 h119 FOUND pk234 n33 @(211,264) bK3
+t 106.0 hole batch [20,70,120] ambiguous/out-of-window (6 holes) -> constrained singles fallback
+t 106.4 h20 FOUND pk145 n196 @(161,626)
+t 106.7 h70 FOUND pk125 n15 @(145,512)
+t 107.0 h120 FOUND pk152 n26 @(220,240)
+t 107.4 hole master regrabbed at pair 20
+[PHONE] t 107.6 h21 FOUND pk145 n83 @(173,611) bK3
+t 107.7 h71 FOUND pk148 n12 @(131,520) bK3
+t 107.7 h121 FOUND pk143 n43 @(226,214) bK3
+t 108.0 h22 FOUND pk175 n58 @(176,591) bK3
+t 108.0 h72 FOUND pk181 n22 @(118,522) bK3
+t 108.0 h122 FOUND pk158 n55 @(229,185) bK3
+[PHONE] t 108.2 h23 FOUND pk153 n48 @(183,582) bK3
+t 108.2 h73 FOUND pk219 n27 @(109,506) bK3
+t 108.2 h123 FOUND pk179 n51 @(235,156) bK3
+t 108.5 h24 FOUND pk201 n38 @(188,572) bK3
+t 108.5 h74 FOUND pk174 n21 @(103,490) bK3
+t 108.5 h124 FOUND pk196 n37 @(250,131) bK3
+[PHONE] t 108.8 h25 FOUND pk179 n44 @(189,560) bK3
+t 108.8 h75 FOUND pk217 n21 @(98,472) bK3
+t 108.8 h125 FOUND pk200 n36 @(272,109) bK3
+t 108.8 hole progress 76/150 (17s)
+t 109.1 h26 FOUND pk162 n91 @(182,545) bK3
+t 109.1 h76 FOUND pk155 n18 @(96,453) bK3
+[PHONE] t 109.2 h126 FOUND pk201 n47 @(298,92) bK3
+t 109.5 hole batch [27,77,127] ambiguous/out-of-window (4 holes) -> constrained singles fallback
+t 109.8 h27 FOUND pk163 n21 @(164,536)
+t 110.1 h77 FOUND pk158 n21 @(95,435)
+t 110.4 h127 FOUND pk215 n56 @(302,107)
+t 110.7 hole master regrabbed at pair 27
+[PHONE] t 111.0 hole batch [28,78,128] ambiguous/out-of-window (5 holes) -> constrained singles fallback
+t 111.3 h28 FOUND pk143 n13 @(149,530)
+t 111.6 h78 FOUND pk173 n13 @(92,416)
+t 111.9 h128 FOUND pk235 n63 @(280,124)
+t 112.3 h29 FOUND pk109 n7 @(148,525) bK3
+t 112.3 h79 FOUND pk181 n15 @(90,398) bK3
+[PHONE] t 112.3 h129 FOUND pk204 n38 @(271,152) bK3
+t 112.6 h30 FOUND pk153 n17 @(152,515) bK3
+t 112.6 h80 FOUND pk148 n10 @(92,380) bK3
+t 112.6 h130 FOUND pk177 n32 @(273,184) bK3
+t 112.8 h31 FOUND pk156 n16 @(163,500) bK3
+t 112.8 h81 FOUND pk148 n12 @(93,362) bK3
+[PHONE] t 112.8 h131 FOUND pk179 n30 @(269,215) bK3
+t 113.1 h32 FOUND pk215 n17 @(168,483) bK3
+t 113.1 h82 FOUND pk150 n67 @(98,344) bK3
+t 113.1 h132 FOUND pk180 n34 @(267,246) bK3
+t 113.4 h33 FOUND pk199 n29 @(168,462) bK3
+t 113.4 h83 FOUND pk159 n93 @(91,325) bK3
+[PHONE] t 113.4 h133 FOUND pk192 n50 @(267,276) bK3
+t 113.7 hole batch [34,84,134] ambiguous/out-of-window (5 holes) -> constrained singles fallback
+t 114.1 h34 FOUND pk178 n34 @(167,440)
+t 114.3 hole master regrabbed at pair 84
+t 114.6 h84 FOUND pk176 n26 @(90,305)
+t 115.0 h134 FOUND pk176 n50 @(268,302)
+[PHONE] t 115.3 h35 FOUND pk149 n22 @(165,418) bK3
+t 115.3 h85 FOUND pk166 n11 @(90,287) bK3
+t 115.3 h135 FOUND pk241 n110 @(268,332) bK3
+t 115.5 h36 FOUND pk143 n19 @(165,397) bK3
+t 115.5 h86 FOUND pk198 n15 @(89,266) bK3
+t 115.5 h136 FOUND pk204 n125 @(272,361) bK3
+[PHONE] t 115.9 h37 FOUND pk147 n12 @(169,375) bK3
+t 115.9 h87 FOUND pk198 n15 @(88,245) bK3
+t 115.9 h137 FOUND pk166 n175 @(283,378) bK3
+t 116.2 h38 FOUND pk134 n15 @(172,352) bK3
+t 116.2 h88 FOUND pk175 n13 @(88,225) bK3
+t 116.2 h138 FOUND pk155 n33 @(267,416) bK3
+[PHONE] t 116.5 hole batch [39,89,139] ambiguous/out-of-window (4 holes) -> constrained singles fallback
+t 116.9 h39 FOUND pk133 n19 @(172,328)
+t 117.3 h89 FOUND pk162 n11 @(87,204)
+t 118.0 h139 FOUND pk162 n27 @(264,442)
+t 118.7 hole master regrabbed at pair 39
+t 119.3 h40 FOUND pk143 n27 @(174,304) bK3
+[PHONE] t 119.3 h90 FOUND pk164 n29 @(85,184) bK3
+t 119.3 h140 FOUND pk173 n30 @(263,468) bK3
+t 119.6 h41 FOUND pk147 n28 @(176,280) bK3
+t 119.6 h91 FOUND pk201 n37 @(90,164) bK3
+t 119.6 h141 FOUND pk173 n23 @(265,495) bK3
+t 120.1 h42 FOUND pk217 n30 @(176,255) bK3
+[PHONE] t 120.1 h92 FOUND pk201 n120 @(100,150) bK3
+t 120.1 h142 FOUND pk162 n37 @(267,521) bK3
+t 120.6 h43 FOUND pk147 n29 @(177,229) bK3
+t 120.6 h93 FOUND pk206 n46 @(111,139) bK3
+t 120.6 h143 FOUND pk145 n41 @(269,550) bK3
+t 121.0 hole batch [44,94,144] ambiguous/out-of-window (2 holes) -> constrained singles fallback
+[PHONE] t 121.2 h44 FOUND pk151 n29 @(181,203)
+t 121.5 h94 miss (blobs:0 acc:0)
+t 121.8 h144 FOUND pk178 n34 @(276,579)
+t 122.1 hole batch [45,95,145] ambiguous/out-of-window (2 holes) -> constrained singles fallback
+t 122.5 h45 FOUND pk159 n32 @(185,177)
+t 122.7 h95 miss (blobs:0 acc:0)
+[PHONE] t 123.0 hole master regrabbed at pair 145
+t 123.2 h145 FOUND pk168 n42 @(297,591)
+t 123.6 h46 FOUND pk210 n48 @(188,150) bK3
+t 123.6 h96 FOUND pk159 n10 @(85,154) bK3
+t 123.6 h146 FOUND pk179 n28 @(320,592) bK3
+t 123.9 h47 FOUND pk248 n44 @(189,125) bK3
+[PHONE] t 123.9 h97 FOUND pk217 n23 @(77,167) bK3
+t 123.9 h147 FOUND pk179 n34 @(325,620) bK3
+t 124.2 hole batch [48,98,148] ambiguous/out-of-window (6 holes) -> constrained singles fallback
+t 124.6 h48 FOUND pk202 n35 @(191,101)
+t 125.0 h98 FOUND pk213 n48 @(77,187)
+t 125.3 h148 FOUND pk192 n21 @(322,628)
+[PHONE] t 125.6 h49 FOUND pk232 n37 @(193,81) bK3
+t 125.6 h99 FOUND pk194 n48 @(79,205) bK3
+t 125.6 h149 FOUND pk189 n31 @(321,611) bK3
+t 125.9 hole batch [50,100] ambiguous/out-of-window (2 holes) -> constrained singles fallback
+t 126.1 h50 1 candidates, none in chain-1 window (r=45px, pitch 19, chainPos 79,205) — miss
+t 126.1 h50 miss (blobs:1 acc:1)
+[PHONE] t 126.4 hole master regrabbed at pair 100
+t 126.6 h100 1 candidates, none in chain-2 window (r=45px, pitch 17, chainPos 321,611) — miss
+t 126.6 h100 miss (blobs:1 acc:1)
+t 126.7 hole progress 150/150 (35s)
+t 126.7 hole serpentine audit: 0 hidden, median pitch 20px, gate 4x, 1 pass(es)
+t 126.7 hidden indices: (none)
+[PHONE] t 126.7 hole map saved (146 entries)
+t 126.8 hole survey done: 148 found, 4 missed in 35s misses: 94,95,50,100
+t 126.8 evid 602B
+t 342.3 drv SCAN
+t 342.3 hole survey start (npx=150 b=200 gap=100 thr=60 domK=8)
+t 343.8 hole master grabbed (3 grabs)
+[PHONE] t 344.7 h0 FOUND pk205 n72 @(106,675)
+t 344.7 hole anchor chain-0 LED#0 @(106,675) stable
+t 345.4 h50 FOUND pk169 n62 @(180,90)
+t 345.4 hole anchor chain-1 LED#50 @(180,90) stable
+t 346.4 h100 FOUND pk190 n33 @(80,225)
+t 346.4 hole anchor chain-2 LED#100 @(80,225) stable
+[PHONE] t 346.5 hole K-chain run: K=3 anchors 3/3 stable, winR=45px
+t 346.8 h1 FOUND pk191 n78 @(87,663) bK3
+t 346.8 h51 FOUND pk161 n20 @(166,112) bK3
+t 346.8 h101 FOUND pk131 n16 @(81,243) bK3
+t 347.0 h2 FOUND pk186 n73 @(83,646) bK3
+t 347.0 h52 FOUND pk243 n32 @(160,138) bK3
+[PHONE] t 347.0 h102 FOUND pk147 n13 @(84,262) bK3
+t 347.2 h3 FOUND pk140 n82 @(81,629) bK3
+t 347.2 h53 FOUND pk175 n29 @(160,163) bK3
+t 347.2 h103 FOUND pk191 n16 @(89,281) bK3
+t 347.6 h4 FOUND pk126 n65 @(79,613) bK3
+t 347.6 h54 FOUND pk131 n21 @(157,188) bK3
+[PHONE] t 347.6 h104 FOUND pk196 n18 @(95,300) bK3
+t 347.9 hole master regrabbed at pair 4
+t 348.3 h5 FOUND pk161 n48 @(81,599) bK3
+t 348.3 h55 FOUND pk143 n27 @(157,213) bK3
+t 348.3 h105 FOUND pk152 n40 @(102,318) bK3
+t 348.6 h6 FOUND pk133 n17 @(98,590) bK3
+[PHONE] t 348.6 h56 FOUND pk149 n21 @(155,237) bK3
+t 348.6 h106 FOUND pk153 n22 @(109,337) bK3
+t 349.0 h7 FOUND pk164 n37 @(117,578) bK3
+t 349.0 h57 FOUND pk134 n26 @(154,260) bK3
+t 349.0 h107 FOUND pk150 n23 @(114,355) bK3
+t 349.3 h8 FOUND pk171 n35 @(132,569) bK3
+[PHONE] t 349.4 h58 FOUND pk143 n18 @(155,284) bK3
+t 349.4 h108 FOUND pk171 n28 @(117,371) bK3
+t 349.6 h9 FOUND pk150 n39 @(135,559) bK3
+t 349.6 h59 FOUND pk162 n38 @(155,307) bK3
+t 349.7 h109 FOUND pk156 n14 @(123,387) bK3
+t 349.9 h10 FOUND pk162 n59 @(122,552) bK3
+[PHONE] t 349.9 h60 FOUND pk183 n32 @(155,329) bK3
+t 349.9 h110 FOUND pk161 n21 @(136,394) bK3
+t 350.1 h11 FOUND pk154 n75 @(104,554) bK3
+t 350.1 h61 FOUND pk131 n119 @(158,346) bK3
+t 350.1 h111 FOUND pk132 n11 @(149,388) bK3
+t 350.5 hole batch [12,62,112] ambiguous/out-of-window (2 holes) -> constrained singles fallback
+[PHONE] t 350.7 h12 FOUND pk160 n41 @(86,560)
+t 351.0 h62 FOUND pk145 n18 @(154,371)
+t 351.3 h112 FOUND pk137 n16 @(155,380)
+t 351.6 hole master regrabbed at pair 12
+t 351.9 hole batch [13,63,113] ambiguous/out-of-window (3 holes) -> constrained singles fallback
+t 352.1 h13 FOUND pk185 n81 @(76,563)
+[PHONE] t 352.5 h63 FOUND pk145 n20 @(153,392)
+t 352.8 h113 FOUND pk127 n16 @(163,370)
+t 353.1 hole batch [14,64,114] ambiguous/out-of-window (3 holes) -> constrained singles fallback
+t 353.3 h14 FOUND pk191 n41 @(78,576)
+t 353.6 h64 FOUND pk143 n18 @(153,412)
+t 354.0 h114 FOUND pk157 n22 @(170,364)
+[PHONE] t 354.4 hole batch [15,65,115] ambiguous/out-of-window (5 holes) -> constrained singles fallback
+t 354.7 h15 FOUND pk166 n36 @(83,588)
+t 355.1 h65 FOUND pk156 n15 @(156,433)
+t 355.5 hole master regrabbed at pair 115
+t 355.8 h115 FOUND pk163 n22 @(177,351)
+t 356.2 h16 FOUND pk159 n79 @(99,588) bK3
+[PHONE] t 356.2 h66 FOUND pk140 n21 @(161,452) bK3
+t 356.2 h116 FOUND pk180 n56 @(187,331) bK3
+t 356.6 h17 FOUND pk135 n107 @(109,605) bK3
+t 356.6 h67 FOUND pk145 n19 @(156,467) bK3
+t 356.6 h117 FOUND pk215 n50 @(194,309) bK3
+t 356.9 h18 FOUND pk137 n114 @(117,620) bK3
+[PHONE] t 356.9 h68 FOUND pk190 n22 @(154,484) bK3
+t 356.9 h118 FOUND pk196 n31 @(201,287) bK3
+t 357.2 h19 FOUND pk127 n105 @(135,631) bK3
+t 357.2 h69 FOUND pk204 n17 @(152,500) bK3
+t 357.2 h119 FOUND pk220 n32 @(211,264) bK3
+t 358.0 hole batch [20,70,120] ambiguous/out-of-window (6 holes) -> constrained singles fallback
+[PHONE] t 358.3 h20 FOUND pk146 n198 @(161,626)
+t 358.6 h70 FOUND pk137 n16 @(144,512)
+t 358.9 h120 FOUND pk150 n29 @(220,241)
+t 359.3 hole master regrabbed at pair 20
+t 359.8 h21 FOUND pk139 n83 @(168,609) bK3
+t 359.8 h71 FOUND pk145 n14 @(131,521) bK3
+[PHONE] t 359.8 h121 FOUND pk144 n45 @(226,214) bK3
+t 360.4 h22 FOUND pk168 n58 @(175,592) bK3
+t 360.4 h72 FOUND pk182 n27 @(118,522) bK3
+t 360.4 h122 FOUND pk156 n60 @(229,185) bK3
+t 360.7 h23 FOUND pk156 n53 @(182,583) bK3
+t 360.7 h73 FOUND pk201 n24 @(109,507) bK3
+[PHONE] t 360.7 h123 FOUND pk192 n54 @(235,156) bK3
+t 361.0 h24 FOUND pk192 n39 @(187,572) bK3
+t 361.0 h74 FOUND pk174 n22 @(102,490) bK3
+t 361.0 h124 FOUND pk207 n37 @(250,131) bK3
+t 361.4 h25 FOUND pk183 n49 @(189,561) bK3
+t 361.4 h75 FOUND pk248 n21 @(98,472) bK3
+[PHONE] t 361.4 h125 FOUND pk213 n38 @(272,109) bK3
+t 361.4 hole progress 76/150 (19s)
+t 361.6 h26 FOUND pk159 n88 @(182,545) bK3
+t 361.7 h76 FOUND pk165 n17 @(96,454) bK3
+t 361.7 h126 FOUND pk202 n53 @(297,93) bK3
+t 361.9 hole batch [27,77,127] ambiguous/out-of-window (4 holes) -> constrained singles fallback
+[PHONE] t 362.2 h27 FOUND pk160 n22 @(164,537)
+t 362.6 h77 FOUND pk154 n21 @(94,435)
+t 362.9 h127 FOUND pk221 n63 @(302,101)
+t 363.3 hole master regrabbed at pair 27
+t 363.6 hole batch [28,78,128] ambiguous/out-of-window (5 holes) -> constrained singles fallback
+t 363.9 h28 FOUND pk139 n12 @(149,530)
+[PHONE] t 364.3 h78 FOUND pk150 n9 @(91,417)
+t 364.7 h128 FOUND pk241 n63 @(280,124)
+t 365.0 h29 FOUND pk97 n4 @(148,525) bK3
+t 365.0 h79 FOUND pk178 n15 @(90,399) bK3
+t 365.0 h129 FOUND pk198 n42 @(271,152) bK3
+t 365.3 h30 FOUND pk143 n17 @(152,516) bK3
+[PHONE] t 365.3 h80 FOUND pk145 n11 @(91,381) bK3
+t 365.3 h130 FOUND pk178 n32 @(273,184) bK3
+t 365.6 h31 FOUND pk158 n17 @(163,501) bK3
+t 365.6 h81 FOUND pk143 n14 @(93,362) bK3
+t 365.6 h131 FOUND pk177 n28 @(269,216) bK3
+t 365.9 h32 FOUND pk208 n20 @(168,483) bK3
+[PHONE] t 365.9 h82 FOUND pk158 n64 @(91,344) bK3
+t 365.9 h132 FOUND pk179 n39 @(267,246) bK3
+t 366.2 h33 FOUND pk218 n25 @(168,463) bK3
+t 366.2 h83 FOUND pk159 n92 @(90,325) bK3
+t 366.2 h133 FOUND pk188 n50 @(267,276) bK3
+t 366.5 h34 FOUND pk207 n36 @(167,440) bK3
+[PHONE] t 366.5 h84 FOUND pk189 n26 @(90,305) bK3
+t 366.5 h134 FOUND pk170 n48 @(267,303) bK3
+t 366.6 hole master regrabbed at pair 34
+t 367.0 h35 FOUND pk144 n20 @(165,419) bK3
+t 367.0 h85 FOUND pk146 n12 @(89,286) bK3
+t 367.0 h135 FOUND pk242 n122 @(268,332) bK3
+[PHONE] t 367.3 h36 FOUND pk154 n20 @(165,397) bK3
+t 367.3 h86 FOUND pk208 n19 @(88,266) bK3
+t 367.3 h136 FOUND pk197 n123 @(272,361) bK3
+t 367.6 h37 FOUND pk148 n15 @(169,376) bK3
+t 367.6 h87 FOUND pk216 n15 @(88,246) bK3
+t 367.6 h137 FOUND pk163 n180 @(268,389) bK3
+[PHONE] t 367.8 h38 FOUND pk134 n14 @(172,352) bK3
+t 367.8 h88 FOUND pk168 n13 @(88,225) bK3
+t 367.8 h138 FOUND pk157 n35 @(267,417) bK3
+t 368.1 hole batch [39,89,139] ambiguous/out-of-window (4 holes) -> constrained singles fallback
+t 368.5 h39 FOUND pk144 n19 @(172,328)
+t 368.8 h89 FOUND pk170 n14 @(87,205)
+[PHONE] t 369.1 h139 FOUND pk162 n29 @(263,443)
+t 369.3 h40 FOUND pk148 n25 @(174,305) bK3
+t 369.3 h90 FOUND pk160 n25 @(85,184) bK3
+t 369.3 h140 FOUND pk174 n29 @(263,468) bK3
+t 369.6 h41 FOUND pk143 n31 @(175,280) bK3
+t 369.6 h91 FOUND pk199 n39 @(90,164) bK3
+[PHONE] t 369.6 h141 FOUND pk175 n24 @(265,495) bK3
+t 369.9 hole master regrabbed at pair 41
+t 370.1 h42 FOUND pk221 n30 @(175,255) bK3
+t 370.1 h92 FOUND pk201 n115 @(100,151) bK3
+t 370.1 h142 FOUND pk161 n39 @(267,522) bK3
+t 370.4 h43 FOUND pk140 n30 @(177,229) bK3
+[PHONE] t 370.4 h93 FOUND pk203 n43 @(111,139) bK3
+t 370.4 h143 FOUND pk182 n42 @(268,550) bK3
+t 370.8 hole batch [44,94,144] ambiguous/out-of-window (2 holes) -> constrained singles fallback
+t 371.2 h44 FOUND pk144 n30 @(180,203)
+t 371.5 h94 miss (blobs:0 acc:0)
+t 371.9 h144 FOUND pk177 n38 @(276,579)
+[PHONE] t 372.2 hole batch [45,95,145] ambiguous/out-of-window (2 holes) -> constrained singles fallback
+t 372.5 h45 FOUND pk158 n32 @(184,177)
+t 372.8 h95 miss (blobs:0 acc:0)
+t 373.1 h145 FOUND pk161 n39 @(296,592)
+t 373.3 hole master regrabbed at pair 45
+t 373.6 h46 FOUND pk210 n48 @(188,151) bK3
+[PHONE] t 373.6 h96 FOUND pk144 n8 @(85,154) bK3
+t 373.6 h146 FOUND pk177 n28 @(320,592) bK3
+t 373.9 h47 FOUND pk255 n43 @(189,125) bK3
+t 373.9 h97 FOUND pk220 n25 @(76,167) bK3
+t 373.9 h147 FOUND pk175 n34 @(325,620) bK3
+t 374.3 hole batch [48,98,148] ambiguous/out-of-window (5 holes) -> constrained singles fallback
+[PHONE] t 374.6 h48 FOUND pk212 n34 @(191,101)
+t 374.9 h98 FOUND pk207 n53 @(76,187)
+t 375.2 h148 FOUND pk182 n23 @(322,628)
+t 375.6 h49 FOUND pk230 n36 @(192,81) bK3
+t 375.6 h99 FOUND pk217 n49 @(79,205) bK3
+t 375.6 h149 FOUND pk189 n31 @(321,611) bK3
+[PHONE] t 375.8 hole batch [50,100] ambiguous/out-of-window (2 holes) -> constrained singles fallback
+t 376.0 h50 1 candidates, none in chain-1 window (r=45px, pitch 19, chainPos 79,205) — miss
+t 376.0 h50 miss (blobs:1 acc:1)
+t 376.4 h100 1 candidates, none in chain-2 window (r=45px, pitch 17, chainPos 321,611) — miss
+t 376.4 h100 miss (blobs:1 acc:1)
+t 376.4 hole progress 150/150 (34s)
+[PHONE] t 376.4 hole serpentine audit: 0 hidden, median pitch 20px, gate 4x, 1 pass(es)
+t 376.4 hidden indices: (none)
+t 376.4 hole map saved (146 entries)
+t 376.4 hole survey done: 148 found, 4 missed in 34s misses: 94,95,50,100
+t 376.5 evid 602B
+t 591.1 log pull: 400 lines
+[PHONE] t 607.4 log pull done
+t 648.2 log pull: 400 lines
+t 663.8 log pull done
+t 696.3 log pull: 400 lines
+[PHONE-LOG] end
