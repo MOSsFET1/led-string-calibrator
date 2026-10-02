@@ -1,0 +1,10 @@
+{
+ "t": "79.981",
+ "label": "cwc:r1:p04",
+ "W": 406,
+ "H": 720,
+ "exp": "exp=699.97 aem=continuous ev=-1 fd=0.00",
+ "wire_ts": "16:18:58",
+ "fend_ts": "16:19:02",
+ "provenance": "wire capture.txt >=16:16:31 (S14R-0000 first real 12-of-24 round)"
+}
