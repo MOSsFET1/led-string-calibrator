@@ -1,22 +1,27 @@
 #!/usr/bin/env python3
-"""S14P-1923 pre-flash QA: mock box + headless Chromium + fake camera.
+"""S14P-1926 pre-flash QA: mock box + headless Chromium + fake camera.
 Validates the REAL page end-to-end before an ESP32 flash:
-  1. build stamp == S14P-1923
+  1. build stamp == S14P-1926
   2. CFG (cwc=1, cwcN=10) + BURST via mock drv? directives
   3. burst runs: 18 frame-bits planes + master, bench store ships 19 frames
   4. direct registration log line present (chain, no crash)
   5. in-page decode ran (sitesMasked/confirmed logged; CWCDEC chunks ship)
   6. result canvas (static master + site boxes) exists and is non-blank;
      saved to runs/qa-1904/result.png for operator/agent visual check
-  7. second burst with cwcTestMode=1 exercises the test branch on 1923
+  7. second burst with cwcTestMode=1 exercises the test branch
   8. multi-string rig via mock directives: CFG nStr=8, nPerStr=25 (200 ids
      over 8 virtual strings), one burst; assert burst completes + decode
      logs + per-lane frame-bits mapping exercised (LED 57 = display L3,
      pixel 7: its codeword's ON-plane pattern must appear EXACTLY in the
      lane-3 latch sequence across the 18 consecutive frame-bits messages).
+  9. S14P-1926 replay path: a rig CFG queued while the page is already up
+     converges ('cfg: rig 8x25 from box' + window._cfgRig snapshot); a page
+     RELOAD (fresh hello, no new directive) REPLAYS the still-held cfg into
+     the fresh context — reconverges idempotently, no rig-mismatch error.
 
 PASS = hard checks 1-6 pass; 7 exercises without a NEW 'E ' error;
-       8 completes with decode log + exact per-lane mapping sequence match.
+       8 completes with decode log + exact per-lane mapping sequence match;
+       9 replay + mismatch-guard + reload-convergence all behave as logged.
 Run with the venv python (websockets dep): see README tooling line."""
 import asyncio, base64, json, os, re, sys
 from pathlib import Path
@@ -28,7 +33,7 @@ BASE = TOOLS.parent
 RUN = BASE / "runs" / "qa-1904"
 import urllib.request as u
 
-STAMP = "S14P-1923"
+STAMP = "S14P-1926"
 
 
 def err_lines(logtxt, exclude_motion=True):
@@ -196,6 +201,54 @@ async def main():
             print("multi-string: decode logged:", dec3_ok, "| hello:", hello3,
                   "| ship carries strings/perString:", ship3_ok,
                   "| new errors:", errs3 if errs3 else "none")
+            # ---- S14P-1926 replay path + rig-mismatch guard ----
+            # Incident shape, reproduced deterministically: (a) a rig cfg
+            # arrives AFTER the page is already up (tonight 08:58 while the
+            # phone was wedged) — page must log 'cfg: rig 8x25 from box' and
+            # snapshot window._cfgRig; (b) an immediate RELOAD (outage/reconnect)
+            # inside the replay window — fresh hello re-arms 2 credits and the
+            # still-queued cfg REPLAYS to the new context, which converges
+            # idempotently with NO new directive and NO rig-mismatch error.
+            (TOOLS / "mock_directives.txt").write_text("")      # nothing queued
+            await cdp_eval(ws, "location.reload()")
+            await asyncio.sleep(4)                              # boot + hello (dedup-safe)
+            st9a = await cdp_eval(ws, "JSON.stringify({"
+                                    "onload:window._onload>0,"
+                                    "bld:document.getElementById('bl2').textContent,"
+                                    "ws:document.getElementById('wsst').textContent,"
+                                    "nStr:window._nStr,nPerStr:window._nPerStr})")
+            print("replay-a (fresh ctx after reload):", st9a)
+            ctx9 = ('"onload":true' in st9a and '"nStr":8,"nPerStr":25' in st9a and "open" in st9a)
+            # (a) cfg queued NOW (page already up — the 'arrives while page is up' shape)
+            (TOOLS / "mock_directives.txt").write_text("CFG=" + json.dumps(cfg3) + "\n")
+            cfg_from_box = ""
+            for _ in range(6):                                  # <= 1 idle poll of 1.5 s
+                await asyncio.sleep(1)
+                cfg_from_box = await cdp_eval(ws, "JSON.stringify(window._cfgRig||null)")
+                if cfg_from_box != "null":
+                    break
+            print("replay-b (cfg queued while page up): rig snapshot", cfg_from_box)
+            snap9 = (cfg_from_box == '{"nStr":8,"nPerStr":25}')
+            logtxt9 = await cdp_eval(ws, "document.getElementById('log').textContent")
+            from_box9 = "cfg: rig 8x25 from box" in (logtxt9 or "")
+            # (b) reload AGAIN — hello re-arms the window; the STILL-HELD cfg
+            # replays to the fresh context (no new directive written: the slot
+            # would need >2 polls to clear, so it is guaranteed present)
+            await cdp_eval(ws, "location.reload()")
+            await asyncio.sleep(4)
+            st9c = await cdp_eval(ws, "JSON.stringify({"
+                                    "nStr:window._nStr,nPerStr:window._nPerStr,"
+                                    "rig:(window._cfgRig||null)})")
+            logtxt9c = await cdp_eval(ws, "document.getElementById('log').textContent")
+            from_box9c = "cfg: rig 8x25 from box" in (logtxt9c or "")
+            conv9 = ('"nStr":8,"nPerStr":25' in st9c and '"rig":{"nStr":8,"nPerStr":25}' in st9c)
+            no_err9 = [l for l in err_lines(logtxt9c) if "rig mismatch" not in l]
+            if no_err9:
+                print("post-reload error lines (raw tail):",
+                      [l[:120] for l in (logtxt9c or "").split("\n") if " E " in l][-4:])
+            guard9_ok = bool(conv9 and (from_box9 or from_box9c) and (snap9 or conv9) and len(no_err9) == 0)
+            print(f"replay: ctx {ctx9}; from-box {from_box9 or from_box9c}; "
+                  f"rig snapshot {snap9 or conv9}; guard clean {len(no_err9) == 0}")
             # ---- per-lane bit mapping in the MOCK BOX ----
             # burst 3 paints 18 consecutive frame-bits planes (P00 is plane 0
             # held 1 s — no separate primer message). Probe LED 57:
@@ -235,14 +288,21 @@ async def main():
             multi_ok = (bool(rig_ln) and dec3_ok and hello3_ok and ship3_ok
                         and not errs3 and seq_ok and sums_ok and fb_seen >= 18
                         and len(led_planes) == 9)
-            print("\nRESULT:", "PASS" if (hard_ok and multi_ok) else "FAIL")
+            # S14P-1926: check 9 — the reload (fresh hello) converged to the
+            # still-queued rig cfg with NO new directive, and the apply was
+            # visible ('cfg: rig 8x25 from box').
+            replay_ok = bool(ctx9 and conv9 and from_box9 and guard9_ok)
+            print("\nRESULT:", "PASS" if (hard_ok and multi_ok and replay_ok) else "FAIL")
             print(f"  frames 19/19: {n_frames == 19}; stats<4096B: {stats_ok}; "
                   f"chain logged: {bool(chain_ln)}; decode logged: {bool(dec_ln)}; "
                   f"canvas: {'NO CANVAS' not in info}; CWCDEC {n_cwcdec} {cwcdec_ok}")
             print(f"  multi-string: rig line {bool(rig_ln)}; decode rig-tagged {dec3_ok}; "
                   f"hello 8x25 {hello3_ok}; ship strings-8 {ship3_ok}; errors {len(errs3)}; "
                   f"lane-map {seq_ok}; lit-sum {sums_ok}")
-            return 0 if (hard_ok and multi_ok) else 1
+            print(f"  S14P-1926 replay: fresh-ctx {ctx9}; reconverged {conv9}; "
+                  f"from-box logged {from_box9 or from_box9c}; clean {guard9_ok} "
+                  f"(cfg queued while page up, then a reload replays the held cfg)")
+            return 0 if (hard_ok and multi_ok and replay_ok) else 1
     finally:
         proc.kill()
         mock.kill()

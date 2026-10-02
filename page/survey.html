@@ -55,6 +55,7 @@
 </div>
 <script>
 'use strict';
+window._onload = Date.now();      // S14P-1926 probe: boot ran (fresh context marker)
 // LED Survey POC — F1: survey frame + exposure study + reusable blob detector.
 // New paradigm (STRATEGY-RESEARCH.md): identity will live in coded light
 // patterns, not sequential tracking. This build: machinery + one-shot survey
@@ -62,7 +63,7 @@
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14P-1923";
+const BUILD = "S14P-1926";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -171,6 +172,20 @@ function applyCfg(j) {
     const v = Math.max(1, Math.min(200, o.nPerStr | 0));
     if (v !== window._nPerStr) { window._nPerStr = v; touched.push('nPerStr=' + v); }
   }
+  // S14P-1926: make hello/CFG-replay CONVERGENCE visible — when the rig
+  // shape arrives (from hello or a replayed cfg) with the live rig already
+  // equal, log the converged shape; when it CHANGES, the ordinary cfg line
+  // carries nStr=/nPerStr=. Either way drift between the page and the box
+  // is never silent again. Also snapshot the box's delivered rig shape for
+  // the burst-start guard (after the clamps above, so _cfgRig == what the
+  // box queued). The rig-key case must fire even when OTHER cfg keys were
+  // touched: a replayed cfg always carries the console keys too.
+  if (typeof o.nStr === 'number' || typeof o.nPerStr === 'number') {
+    const rigTouched = touched.some(t => t.startsWith('nStr=') || t.startsWith('nPerStr='));
+    if (!rigTouched)
+      log('cfg: rig ' + window._nStr + 'x' + window._nPerStr + ' from box');
+    window._cfgRig = { nStr: window._nStr | 0, nPerStr: window._nPerStr | 0 };
+  }
   if (touched.length) { log('cfg ' + touched.join(',')); showCfg(); }
 }
 function showCfg() { $('cfgline').textContent =
@@ -215,6 +230,12 @@ function downloadLog() {
 let ws = null, wsOpen = false, cmdId = 0;
 const pending = new Map();      // id -> {resolve, reject, timer}
 let ackRetries = 0;             // consecutive ack retries -> session recycle
+// S14P-1926: a reload keeps navigator state but the fresh context reassigns
+// window._ws; a live socket from the PREVIOUS context (its own auto-reconnect
+// re-opened just before unload) must never suppress this context's hello —
+// tonight the page sat 'open' with the box holding 8x200 while _nStr stayed 1.
+// Track hello ownership per context: dedupe + stamp.
+window._helloAt = 0;
 function connectWS() {
   const url = 'wss://' + location.host + '/ws';
   log('ws connect ' + url);
@@ -229,13 +250,23 @@ function connectWS() {
   ws.onmessage = (ev) => {
     let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
     if (m.px !== undefined && m.fw === 'poc_survey') {          // hello reply:
-      window._npx = m.px;                                       // string length
-      window._nStr = Math.max(1, Math.min(8, m.nStr | 0 || 1));    // rig strings (S14P-1923)
-      window._nPerStr = Math.max(1, Math.min(200, m.nPerStr | 0 || 200));  // per-string length
-      const inp = $('npxin');
-      if (!inp.dataset.user) inp.value = m.nPerStr | 0 || m.px;   // box default,
-      log('box hello fw=' + m.fw + ' px=' + m.px + ' nStr=' + window._nStr + ' nPerStr=' + window._nPerStr);
-      setButtons();
+      // S14P-1926: apply a hello shape AT MOST ONCE per context. _nStr/_nPerStr
+      // are module lets reset on every context entry; the module-level guard
+      // fired once for the OLD context and then blocked every fresh hello for
+      // the NEW one — tonight the reloaded page kept hello-default rig 1x200
+      // (window._nStr stale from the pre-reload context) all the way to 10:02.
+      if (!connectWS._helloDone) {
+        connectWS._helloDone = true;
+        window._helloAt = Date.now();
+        window._npx = m.px;                                       // string length
+        window._nStr = Math.max(1, Math.min(8, m.nStr | 0 || 1));    // rig strings (S14P-1923)
+        window._nPerStr = Math.max(1, Math.min(200, m.nPerStr | 0 || 200));  // per-string length
+        const inp = $('npxin');
+        if (!inp.dataset.user) inp.value = m.nPerStr | 0 || m.px;   // box default,
+        log('box hello fw=' + m.fw + ' px=' + m.px + ' nStr=' + window._nStr + ' nPerStr=' + window._nPerStr);
+        setButtons();
+      } else log('hello (dedup): rig ' + (m.nStr | 0 || 1) + 'x' + (m.nPerStr | 0 || 200) +
+                 ' left as ' + window._nStr + 'x' + window._nPerStr);
     }
     if (m.id !== undefined && pending.has(m.id)) {
       const p = pending.get(m.id); pending.delete(m.id); clearTimeout(p.timer);
@@ -825,13 +856,27 @@ async function benchRun() {
       log('E cwc: codeword bank missing');
     } else if (cwcMode) {
       const testMode = (CFG.cwcTestMode | 0) === 1;
+      // S14P-1926 rig-mismatch guard: a burst must not silently paint the
+      // hello-default shape when the box holds a queued/other rig config.
+      // window._cfgRig = the rig shape the box's cfg channel last delivered
+      // (what the box's hello would answer after a reconnect) — if the live
+      // _nStr/_nPerStr drifted from it, flag it LOUD but do NOT refuse the
+      // burst (operator choice; a reconnect now converges via the replay).
+      if (window._cfgRig &&
+          ((window._cfgRig.nStr | 0) !== (window._nStr | 0) ||
+           (window._cfgRig.nPerStr | 0) !== (window._nPerStr | 0)))
+        log('E rig mismatch: page ' + (window._nStr | 0) + 'x' + (window._nPerStr | 0) +
+            ' vs box ' + (window._cfgRig.nStr | 0) + 'x' + (window._cfgRig.nPerStr | 0) +
+            ' — reconnect/CFG');
       const nL = Math.max(10, Math.min(paintCap(), CFG.cwcN | 0 || 150));
       // per-STRING polyfuse budget (the 2 A-hold rule, page-side mirror of
-      // the firmware's fuseClampB): a paint lights <= nPerStr px of ANY one
-      // string, so the clamp depends on nPerStr — NOT on the number of
-      // strings (each string has its own fuse; the rig total rides the
-      // firmware's FastLED supply limiter).
-      const maxB = Math.min(255, Math.floor(255000 / (Math.max(1, window._nPerStr) * 14.2)));
+      // the firmware's applyBits per-string clamp — S14P-1924 fix: the
+      // 255000/(px*14.2) form was 2x conservative (forgot the 15.1 mW/px
+      // to full-scale duty division); identical math to the firmware:
+      // floor(510 / (nPerStr * 0.0142)) = full-scale px / 15.1 mW * 2 A.
+      // At nPerStr=200 -> 179, so the standing bBurstB=150 passes
+      // unclamped (1923 wrongly clamped it to 89).
+      const maxB = Math.min(255, Math.floor(510 / (Math.max(1, window._nPerStr) * 0.0142)));
       const cb = Math.max(20, Math.min(maxB, CFG.bBurstB | 0 || 150));
       const testLed = Math.max(0, Math.min(nL - 1, CFG.cwcTestLed | 0 || 0));
       log((testMode ? 'cwc test: ' : 'cwc burst: ') +
@@ -1501,7 +1546,7 @@ function cwcShowResults(masterL, dec, caption) {
   cx2.putImageData(im, 0, 0);
   const counts = {};
   for (const s of dec.sites) counts[s.led] = (counts[s.led] || 0) + 1;
-  cx2.font = '10px monospace';
+  cx2.font = 'bold 13px monospace';   // S14P-1925: bumped from 10px for chip legibility
   for (const s of dec.sites) {
     const multi = counts[s.led] > 1;
     // 1908: label chips -30% (font 14→10, chip 15→11); site-box stroke
@@ -1510,14 +1555,23 @@ function cwcShowResults(masterL, dec, caption) {
     cx2.strokeStyle = col;
     cx2.lineWidth = 1;
     cx2.strokeRect(s.x - 6, s.y - 6, 13, 13);
-    // label chip right of the box, dark bg for readability on bloom:
+    // S14P-1925: label chip BESIDE the box (right side, vertically centred);
+    // mirrored to the box's left if it would clip the frame's right edge.
     const txt = String(s.led);
     const tw2 = cx2.measureText(txt).width;
-    const lx = s.x + 10, ly = s.y - 10;
-    cx2.fillStyle = 'rgba(0,0,0,0.6)';
-    cx2.fillRect(lx - 2, ly - 9, tw2 + 4, 11);
-    cx2.fillStyle = multi ? '#ffb400' : '#00ff55';
-    cx2.fillText(txt, lx, ly);
+    const cw = tw2 + 4;
+    let centreX = s.x + 6 + cw / 2 + 4;              // box right + chip half + 4 px gap
+    if (centreX + cw / 2 > W - 2) centreX = s.x - 6 - cw / 2 - 4;   // mirror left
+    cx2.fillStyle = 'rgba(0,0,0,0.3)';
+    cx2.fillRect(centreX - cw / 2, s.y - 5.5, cw, 11);
+    // pure-white glyphs over a 2 px black stroke — digits read on any bg:
+    cx2.lineWidth = 2;
+    cx2.strokeStyle = '#000';
+    cx2.textAlign = 'center'; cx2.textBaseline = 'middle';
+    cx2.strokeText(txt, centreX, s.y);
+    cx2.fillStyle = '#fff';
+    cx2.fillText(txt, centreX, s.y);
+    cx2.textAlign = 'left'; cx2.textBaseline = 'alphabetic';
   }
   const label = caption + ' — ' + dec.sites.length + ' sites';
   cx2.font = '16px monospace';

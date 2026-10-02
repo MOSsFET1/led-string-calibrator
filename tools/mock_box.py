@@ -11,6 +11,11 @@ SCAN/ABRT/CFG=<json> lines in tools/mock_directives.txt, served in drv?)
 S14P-1923: speaks frame-bits (the binary per-lane paint class) + hello
 carries nStr/nPerStr. Per-lane LATCH log lines ('L1/L2/...') prove the
 per-lane bit mapping (lane = j/nPerStr, pixel = j%nPerStr, LSB-first).
+
+S14P-1926: the mock mirrors the firmware's idempotent-replayable CFG
+channel — hello arms a 2-credit replay window, a fresh CFG= re-arms it,
+each drv? reply carrying a cfg consumes one credit, and sCfg clears only
+after the LAST replayed delivery (a reconnecting page ALWAYS converges).
 """
 import asyncio, json, ssl, base64, hashlib, struct
 from pathlib import Path
@@ -24,6 +29,8 @@ LOGF = BASE / "tools/mock_box.log"
 
 N_PX = 200                 # per-lane capacity (matches the firmware N_PX)
 state = {"npx": N_PX, "nStr": 1, "nPerStr": 200, "build": ""}
+s_cfg = ""                 # CFG=<json> slot (mirror of the firmware sCfg)
+s_cfg_replay = 2           # S14P-1926 replay credits (boot arms 2, hello re-arms)
 lanes: list[list[str | None]] = [[None] * N_PX for _ in range(8)]   # last latched content per lane
 WS_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 DIRV.write_text("")
@@ -39,6 +46,22 @@ def lane_tag(v):
     if v == "W":
         return "white"
     return str(v)
+
+def _atoi(s, i):
+    """C atoi() on s[i:]: skip ws/sign, take a decimal run, 0 when none."""
+    n = len(s)
+    while i < n and s[i] in " \t\r\n":
+        i += 1
+    j, sign = i, 1
+    if j < n and s[j] in "+-":
+        if s[j] == "-":
+            sign = -1
+        j += 1
+    v = 0
+    while j < n and s[j].isdigit():
+        v = v * 10 + (ord(s[j]) - 48)
+        j += 1
+    return sign * v
 
 async def send(ws_writer, obj):
     raw = json.dumps(obj).encode()
@@ -63,6 +86,7 @@ def send_binary(ws_writer, data: bytes):
     ws_writer.write(hdr + data)            # sync write; drained on next send
 
 async def ws_session(reader, writer):
+    global s_cfg, s_cfg_replay
     logp("WS OPEN")
     try:
         while True:
@@ -109,6 +133,8 @@ async def ws_session(reader, writer):
             i = m.get("id", 0)
             if cmd == "hello":
                 logp("HELLO build=" + str(m.get("build", "")))
+                # S14P-1926: every (re)connect re-arms the cfg replay window
+                s_cfg_replay = 2
                 await send(writer, {"ok": True, "id": i, "fw": "poc_survey",
                                     "px": state["npx"], "nStr": state["nStr"],
                                     "nPerStr": state["nPerStr"]})
@@ -179,17 +205,40 @@ async def ws_session(reader, writer):
                         DIRV.write_text("\n".join(lines))
                 cfg = ""
                 if d.startswith("CFG="):
-                    cfg = d[4:]
+                    s_cfg = d[4:]
                     d = ""
+                    # S14P-1926: a fresh CFG= re-arms the replay window, exactly
+                    # like the firmware CFG= handler
+                    s_cfg_replay = 2
+                    # S14P-1924: parse with the SAME offset-style algorithm as
+                    # the firmware CFG= handler (strstr on the quoted key,
+                    # atoi-style digits after `"key":`, i.e. +7 / +10 from the
+                    # opening quote) — keeps this mock a true regression mirror
+                    # of the box. Parity gate: tools/verify_cfg_parse.py asserts
+                    # new offsets PASS and the old (+6/+9) offsets FAIL on the
+                    # real rig CFG string.
                     try:
-                        j = json.loads(cfg)
-                        if isinstance(j.get("nStr"), int) and 1 <= j["nStr"] <= 8:
-                            state["nStr"] = j["nStr"]     # mirroring the firmware's box-side apply
-                        if isinstance(j.get("nPerStr"), int) and 1 <= j["nPerStr"] <= N_PX:
-                            state["nPerStr"] = j["nPerStr"]
+                        k1 = s_cfg.find('"nStr"')
+                        if k1 >= 0:
+                            v = _atoi(s_cfg, k1 + 7)
+                            if 1 <= v <= 8:
+                                state["nStr"] = v
+                        k2 = s_cfg.find('"nPerStr"')
+                        if k2 >= 0:
+                            v = _atoi(s_cfg, k2 + 10)
+                            if 1 <= v <= N_PX:
+                                state["nPerStr"] = v
                         logp("CFG nStr=%d nPerStr=%d" % (state["nStr"], state["nPerStr"]))
                     except Exception:
                         pass
+                if s_cfg:
+                    cfg = s_cfg
+                    # S14P-1926: replay window — each delivered cfg consumes a
+                    # credit; sCfg clears only after the LAST replayed delivery
+                    if s_cfg_replay > 0:
+                        s_cfg_replay -= 1
+                    else:
+                        s_cfg = ""
                 await send(writer, {"ok": True, "id": i, "drv": d, "cfg": cfg, "evid": 0})
             else:
                 logp("UNKNOWN cmd " + str(cmd))

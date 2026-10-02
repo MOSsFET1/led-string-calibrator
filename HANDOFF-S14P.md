@@ -6,11 +6,39 @@
 
 ## Current build
 
-- Firmware on box: **S14P-1923** (flashed 02 Oct, hash-verified, min_spiffs,
-  1,325,940 B = 67%, RAM 18%; banner `frame-bits per-lane rig +
-  nStr/nPerStr CFG`).
-- Page BUILD string: **S14P-1923**
-- `tools/cdp_1904_check.py` expects: **S14P-1923**
+- Firmware on box: **S14P-1926** (flashed 02 Oct 10:39, hash-verified,
+  min_spiffs, 1,328,002 B = 67%, RAM 18%; banner `CFG replay on hello +
+  rig-mismatch guard`).
+- Page BUILD string: **S14P-1926**
+- `tools/cdp_1904_check.py` expects: **S14P-1926**
+
+## 02 Oct afternoon session (1924→1926, chain of fixes after the era line below)
+
+- **1924** — real-hardware fix: firmware CFG parser atoi offsets (+6/+9 →
+  +7/+10; old offsets hit the colon, box silently kept nStr=1), loop()
+  pxColour fold no longer overwrites frame-bits lane content (sBitsMode
+  latch guard), page clamp corrected to the firmware-identical fuse
+  formula (b=150 unclamped). First run after fix: **198/200**.
+- **1925** — result-view chips restyled (operator spec): bold 13 px
+  pure-white glyphs with 2 px black stroke, chip beside the box's right
+  edge (mirror left at frame edge), backing alpha 0.6→0.3. Box then hit
+  the TLS-accept heap wedge after a silent WS death (RTS flash reset
+  clears it; page-side drv?-stall self-recovery still open, B119 class).
+- **1926** — CFG one-shot delivery gap FIXED (incident doc:
+  reports/INCIDENT-S14P-1926-cfg-one-shot-gap.md): box replays a queued
+  cfg on the first TWO drv? after every hello (applyCfg idempotent);
+  fresh contexts always apply their own hello (connectWS._helloDone);
+  burst start logs `E rig mismatch: page AxB vs box CxD` loudly; QA
+  check 9 replays the actual incident shape (queue-while-up + reload).
+- **Sweep result (console-side, validated on 5 sets)**: gates
+  **mask 100 / amp 40 / margin 6** gained everywhere (tonight's run2
+  105→160; 1911-r4 196→199; 06:44 burst 193→197), zero total
+  regressions; shipped via CFG (cwcMaskThr/cwcAmpGate/cwcMarginGate), not
+  compiled — promote on next-round evidence. suppress=2 measured harmful
+  (−18..23); fullres stays on. String 2 in the 10:02 set was structurally
+  undecodable: never painted with coded planes (page still ran nStr=1 —
+  the gap 1926 closes), and 9-of-18 codewords score ~0 on plane-constant
+  sites (sign-sum 0), so no decoder change can name those lamps.
 
 ## S14P-1923 — 8-string × up-to-200-LED support (02 Oct)
 

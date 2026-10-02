@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """S12 standing rule: size every message class at max N against its limit.
 This one sizes the CFG=<json> channel against the firmware sCfg buffer.
+(S14P-1924: box-side parse offsets verified separately — tools/verify_cfg_parse.py.)
 
 The widest real CFG payload is the page's FULL numeric key set (survey.html
 CFG object, 1923 adds nStr/nPerStr) with every value at its 5-digit max /
