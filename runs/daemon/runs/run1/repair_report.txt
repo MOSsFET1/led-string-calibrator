@@ -1,0 +1,49 @@
+REPAIR REPORT — runs/daemon/runs/run1/ (cwc_r1 burst, S14R-0000 12-of-24)
+================================================================ ==========
+
+DISCOVERY
+- 4 of 25 jpgs were truncated (SOI ok, EOI missing, PIL full-decode FAIL):
+    cwc_r1_p01.jpg  24300 B, PIL "image file is truncated (16 bytes not processed)"
+    cwc_r1_p07.jpg  17550 B, PIL "image file is truncated (35 bytes not processed)"
+    cwc_r1_p13.jpg  18225 B, PIL "image file is truncated (5 bytes not processed)"
+    cwc_r1_p20.jpg  20250 B, PIL "image file is truncated (42 bytes not processed)"
+  Same flush-truncation pattern as previous day corpora; all were the LAST-SHIPPED
+  tail files at their burst moment.
+
+WIRE SOURCE (runs/daemon/capture.txt, label cwc:r1:*, FRAME/FJPEG-chunk/FEND groups)
+- 0-day capture.txt holds SIX r1 bursts: 06:44, 08:35, 10:02, 11:06, 12:40/14:38
+  partials, and the 16:18-16:20 re-pull.
+- PROVENANCE (proven 25/25): each disk file's bytes are an EXACT BYTE-PREFIX of
+  exactly one wire group payload:
+    p00..p17, master -> 06:44:52..06:46:22 burst (original, git-committed era)
+    p18, p19, p21, p22, p23 -> 16:19:50..16:20:08 re-pulled burst (already full)
+    p01, p07, p13 (trunc) -> their 06:44-burst groups
+    p20 (trunc) -> its 16:19:57 group
+  Each truncated file has exactly ONE wire superset, so recovery is unambiguous.
+- Disk .meta.json files already byte-match the wire FRAME metadata for all 4
+  targets (no meta rewrite needed/recommended).
+
+REPAIR (atomic os.replace, per-file)
+  cwc_r1_p01.jpg  <- wire 06:44:56 group  24300 -> 36774 B (12474 B tail restored)
+  cwc_r1_p07.jpg  <- wire 06:45:27 group  17550 -> 36719 B (19169 B tail restored)
+  cwc_r1_p13.jpg  <- wire 06:45:57 group  18225 -> 36527 B (18302 B tail restored)
+  cwc_r1_p20.jpg  <- wire 16:19:57 group  20250 -> 25511 B ( 5261 B tail restored)
+
+BACKUPS (pre-repair truncated originals, byte-preserved)
+  runs/daemon/runs/run1/truncated_backup/{cwc_r1_p01,cwc_r1_p07,cwc_r1_p13,cwc_r1_p20}.jpg
+
+VERIFICATION (fresh independent re-parse of capture.txt)
+- 25/25 files: \xff\xd8 SOI + \xff\xd9 EOI + PIL open().load() full decode, all
+  406x720; all byte-exact vs their provenance wire group (full group, not prefix).
+- sha256 of every repaired + backup file matches the pre-write manifest
+  (/tmp/repair_r1/repair_manifest.json).
+- 66 other files in run1 untouched (mtime check, no fresh writes).
+- Never opened /dev/ttyACM0. No git commands. Temp work only in /tmp/repair_r1/.
+
+FILES TOUCHED
+  runs/daemon/runs/run1/cwc_r1_p01.jpg  (repaired)
+  runs/daemon/runs/run1/cwc_r1_p07.jpg  (repaired)
+  runs/daemon/runs/run1/cwc_r1_p13.jpg  (repaired)
+  runs/daemon/runs/run1/cwc_r1_p20.jpg  (repaired)
+  runs/daemon/runs/run1/truncated_backup/* (4 pre-repair copies, new)
+  runs/daemon/runs/run1/repair_report.txt (this file)
