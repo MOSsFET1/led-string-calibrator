@@ -583,7 +583,7 @@ timing path:
    Chromium extended with the capture state machine), tripod then
    handheld.
 
-## 12. Implementation status (02 Oct 2026, S14P-1923)
+## 12. Implementation status (02 Oct 2026, S14P-1928)
 
 Frame-bits replaces JSON paints for CWC rigs — with CFG `nStr=8,
 nPerStr=200` (1600 LEDs) a single JSON paint cannot reach the box: it
@@ -630,3 +630,161 @@ records what the plan's earlier sections look like as-built.
   spatial conflicts flagged (a26/b115, a28/b117, a77/b103, a78/b102,
   a147/b160), chain conf 0.777–0.900, no motion flag; 1917-era
   baselines phone 190/200, console 195/200.
+- **§10-era gate defaults (1922→1927, sweep-validated 02 Oct)**:
+  page defaults are now mask 100 / amp 40 / margin 6 with full-res
+  ±4 px NCC refine ON — console-led optimisation, see §13. The §10b
+  era values (mask 175→150→100 history, amp 60, margin 25→10) remain
+  accurate history; 10b's "never ≤160" mask rule is superseded at the
+  NEW amp-40 regime (mask 100 is console-optimal there; the ≤160
+  phantom risk was measured at the old amp-60 regime).
+
+## 13. 02 Oct console-led optimisation + capture-only corpus (as of S14P-1928)
+
+Evidence: `reports/console-decode-20261002-run2-6.md` +
+`reports/console-decode-20261002-sweep-results.json` (450 rows), QA
+`tools/cdp_1904_check.py` check 10, repair provenance
+`runs/daemon/repair_report.json`.
+
+**Baseline (console, first REAL multi-string-ish round set)** — CFG
+`cwc=1 cwcN=400 nStr=2 nPerStr=200` + gates mask 100 / amp 40 /
+margin 6, six 19-frame rounds 12:40–12:45 captured box-perspective
+(~3 m off-axis, 9.5–16 px/LED): runs 2–6 = **354/309/358/389/300 =
+1710/2000 (85.5%)** at fullres rad 4. Round spread tracks per-round
+luma, not identity: zero LEDs missed in all 5 rounds, 35 missed ≥3
+of 5, misses viewpoint-scattered (worst ids 394–399, 246/248, 78–82)
+— no dead band, no codeword-structure failure, and at N=400 no
+over-claim/phantom evidence. Missing-LED repair: the daemon writer
+damaged 8 of 95 frames (7 truncated + r2 p01, which was both
+morning-blocked and PIL-broken; r2 p00 was the other morning-blocked
+label) — all **95/95 re-derived byte-exact from
+`runs/daemon/capture.txt`** (host window 12:40–12:45 verified, PIL
+406×720, SOI/EOI checked); damaged originals preserved under
+`runs/daemon/runs/truncated_backup/` + `run2/morning_0843_backup/`.
+The 5-frame 12:40:26–40 r1 tail (labels `cwc:r1:*`) lives in
+`runs/daemon/runs/run1af/` — jpg+meta only, NOT a decodable run
+(morning r1 in git stays untouched, still truncated p01/p07/p13 as
+committed). No CWCSTATS/CWCDEC exists for this burst anywhere in
+capture.txt — phone decode stats never shipped before the daemon died;
+console numbers are today's only decode ground truth.
+
+**90-combo gate sweep** (mask {100,125,150,175,200} × amp {40,60,80} ×
+margin {6,10,14} × fullres {off, rad4}, totals /2000 over runs 2–6):
+
+| mask | amp | margin | fullres | total | note |
+|------|-----|--------|---------|-------|------|
+| 100 | 40 | 6 | rad4 | **1710** | promoted set — today's optimum |
+| 100 | 40 | 10 | rad4 | 1708 | margin 10 trades run6 (−4) for r4/r5 (+1) |
+| 125 | 40 | 6 | rad4 | 1704 | |
+| 150 | 40 | 6 | rad4 | 1682 | |
+| 150 | 60 | 10 | rad4 | 1458 | old default — −252 |
+| 100 | 40 | 6 | off | 1197 | best fullres-OFF combo |
+
+Read-across: **the promoted set IS the sweep optimum** (top total,
+top-or-tied min per run at min 300); amp 60→40 is the single biggest
+lever (amp 80 collapses: best amp-80 combo 1068); fullres rad-4 is
+worth +513 (1710 vs 1197) — mandatory off-tripod; mask 150+ loses
+28–456 at amp 40 (worst: mask 200 / margin 14).
+**Shipped as compiled defaults in S14P-1927/1928** (page CFG + firmware),
+not left to CFG: mask `cwcMaskThr` 100 (was 150), amp `cwcAmpGate` 40
+(was 60), margin `cwcMarginGate` 6 (was 10), fullres refine on.
+
+**S14P-1928 capture-only corpus choreography** (QA check 10 PASS,
+38/38): the burst's paint/grab/settle choreography is UNCHANGED
+(P00 1 s primer 50%-on → P01..P17 at `cwcSettle` → fast all-on
+master) but the in-page decode/reg/ship stack is bypassed — frames
+accumulate in benchStore ACROSS bursts (run-numbered labels
+`cwc:rN:*`), zero decode lines / zero CWCDEC-CWCDECS-CWCSTATS / zero
+auto-ship, Burst re-enables promptly after each burst; the operator
+ships the accumulated store with the page's **'Send frames (all)'**
+button (one benchPull, non-destructive — the store keeps its frames,
+cleared only at the next decode-mode burst start / reload). Store
+overflow in capture mode DROPS THE OLDEST frame with a loud log line
+naming the lost label (no silent wrap). Rationale: the box's HTTPS
+was dying all afternoon (see the TLS-heap wedge below); console-side
+decode of raw frames is the reliable path while the page stays a
+camera (this is how the 1710 baseline + sweep corpus was captured).
+
+**Box TLS-heap wedge (open, undiagnosed)**: esp-tls-mbedtls
+`mbedtls_ssl_setup -0x7F00` (ALLOC_FAILED, no heap for a new TLS
+session) storms killed the box's HTTPS twice today — ~08:32–08:43
+(the S14P-1926 incident window) and 12:57:15→12:58:03, right after
+which the daemon died (last capture 12:45:10 `[PHONE-LOG] end`,
+daemon gone by 12:58, never recovered on its own). Same signature as
+the 30 Sep archive wedge (archive/S14-BENCH-SESSION.md: reboot clears
+it). **Working recipe (02 Oct, proven twice)**: RTS→EN pulse via the
+bench serial (a flash-reset tap reboots the box) → boot banner replays
+(`=== poc_survey S14P-1928: ...`), page can reconnect. Recovery drill:
+restart the daemon, verify `=== daemon start ===` + `[LOGA] persistent
+arm ON` in its output, then drop directives in `runs/daemon/cmds/`.
+Root cause (heap fragmentation vs leak vs socket pressure) is NOT yet
+diagnosed.
+
+**Codeword-bank feasibility (02 Oct, computed + verified)**:
+
+- 9-of-18 @ 1600 codes, d≥5: IMPOSSIBLE — constant-weight sphere bound
+  = floor(C(18,9)/82) = 592 < 1600 (greedy reached only 206).
+  d_min 4 is the ceiling for the 9-of-18 bank; 1710/2000 is what
+  one-bit-correcting identity buys at 3 m off-axis.
+- 12-of-24 @ 1600 codes, d≥8: FEASIBLE — C(24,12) = 2,704,156
+  enumerated; the extended Golay [24,12,8] weight-12 subcode holds
+  2,576 codewords, pairwise d_min 8 VERIFIED on the full subcode; the
+  first-1600 and first-400 prefixes both keep d_min 8 (prefix property
+  holds for the new bank). d≥9 impossible (sphere bound 600 < 1600).
+  Burst cost: 24 planes per burst instead of 18 (+6 planes ≈ +30%
+  burst and decode time).
+- **OPERATOR DECISION (02 Oct): the 12-of-24 era is designated
+  S14R-0000** — a NEW R-line, the next build after S14P-1928. The P
+  line (9-of-18) is closed at S14P-1928; S14R work starts from the
+  Golay subcode bank + the S14P-1928 capture-only console pipeline.
+
+**Open items (as of S14P-1928)**:
+
+1. **TLS-heap wedge root cause** — undiagnosed (see above; reboot/RTS
+   recipe is the workaround).
+2. **Phone-vs-console parity for runs 2–6** — UNVERIFIABLE: no
+   CWCSTATS/CWCDEC ever shipped (capture-only mode, then the daemon
+   died 12:58 before any later telemetry).
+3. **First REAL 8×200 multi-string rig round** — still pending
+   (today's 5 rounds ran nStr=2 at cwcN=400 box-perspective).
+4. **Phone 1600-id result-view UI** — how a 1600-id map should
+   render/select is still open (200-id boxes fine).
+5. **Test-LED demo** — RAN AND COMPLETED, 14:38–14:39 under S14P-1928:
+   mechanical end-to-end PASS, but the decode over-claimed on a
+   partial rig (cwcN 600 > installed) — verdict, honesty note and the
+   operator's no-new-UI decision recorded in §14 below.
+6. **ledcloud/2 §8 export tool** — CWCDECS carries the §8 field
+   names; the converter is still not built (console verdicts stay
+   authoritative for cloud export).
+
+## 14. Test-LED demo (02 Oct, 14:38–14:39, S14P-1928) — mechanical PASS, honest verdict
+
+The queued demo CFG was delivered and the test-mode path ran to
+completion (runs/daemon/capture.txt, `=== daemon start ===` 14:28
+session; CFG acked 14:28:29, first test burst telemetry 14:38,
+completed round 14:38:18→14:39:15; global id 599 = string 3 pixel
+200; the bank is the 9-of-18 P line — 12-of-24 is S14R-0000, §13).
+
+- **CFG delivered**: `{"cwc":1,"cwcN":600,"nStr":3,"nPerStr":200,
+  "cwcSuppress":1,"cwcMaskThr":100,"cwcAmpGate":40,"cwcMarginGate":6,
+  "cwcTestMode":1,"cwcTestLed":599}`.
+- **Completed-round telemetry (CWCSTATS 14:39:15)**: build S14P-1928,
+  n = 18 planes, testMode 1, testLed 599,
+  testBits = [3,4,6,8,11,12,13,15,17] (LED 599's codeword ON planes),
+  chain conf 0.817–0.902, confirmed 275, conflicts 33 (gates amp 40 /
+  margin 6, suppress 1).
+- **HONESTY NOTE (mandatory reading)**: the physical rig has FEWER
+  installed strings than the CFG claimed — the operator visually
+  confirmed only one 200-LED string lights on all-on. With
+  cwcN = 600 > installed, the decoder over-claimed via the same
+  d = 4 cousin-phantom class as the S14P-1927 morning incident
+  (cwcN = 1600 → 646 = 392 real + 254 relabels; here cwcN = 600 →
+  275 with 33 conflicts). **275 is NOT a detection rate**, and the
+  result-view 'led 599' chip was a phantom relabel of a real
+  string-1 lamp, NOT proof that string-3 pixel 200 lit.
+- **Verdict**: the test-mode path (CFG → burst → codeword-bit paint →
+  decode → highlighted chip) works END-TO-END MECHANICALLY;
+  interpreting its output requires installed-count == cwcN (the
+  decoder must never be pointed beyond what is physically wired).
+- **OPERATOR DECISION (recorded verbatim)**: no new
+  one-LED-lighting UI feature — the existing all-on button already
+  shows where to cut a string.
