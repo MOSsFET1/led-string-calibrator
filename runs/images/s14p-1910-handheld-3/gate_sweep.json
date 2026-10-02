@@ -1,0 +1,47 @@
+[
+ {
+  "amp": 45,
+  "margin": 10,
+  "count": 177
+ },
+ {
+  "amp": 45,
+  "margin": 25,
+  "count": 168
+ },
+ {
+  "amp": 45,
+  "margin": 40,
+  "count": 155
+ },
+ {
+  "amp": 60,
+  "margin": 10,
+  "count": 177
+ },
+ {
+  "amp": 60,
+  "margin": 25,
+  "count": 168
+ },
+ {
+  "amp": 60,
+  "margin": 40,
+  "count": 155
+ },
+ {
+  "amp": 90,
+  "margin": 10,
+  "count": 168
+ },
+ {
+  "amp": 90,
+  "margin": 25,
+  "count": 161
+ },
+ {
+  "amp": 90,
+  "margin": 40,
+  "count": 153
+ }
+]

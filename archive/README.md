@@ -35,4 +35,4 @@ deleted from git (retirement = this move); history stays intact via
 - `IMPLEMENTATION-BRIEF-1919.md` — Oct 1 implementation brief for S14P-1919
   (suppress-window reduction + conflict audit from the sweep). Superseded
   and BUILT (S14P-1919 `cwcSuppress` 1 + spatial conflict audit); results
-  in `S14-CWC-PLAN.md` §10-era entries and `HANDOFF-S14P.md`.
+  in `S14-CWC-PLAN.md` §10-era entries and `HANDOFF-S14P.md`.\n\n2026-10-02 restructure: the root-eran .md files here are the LIVE versions (root copies moved in); all era image/run dirs moved from runs/ to runs/images/.\n

@@ -55,7 +55,7 @@ JSON `frame` writes lane 1 and mirrors lanes 2-8 ONLY while `nStr≤1`;
 ## Build & flash (compile BEFORE flashing, every page or firmware change)
 
 ```
-cd "/home/nellie/projects/led-display/POC LED survey"
+cd "/home/nellie/projects/led-display/poc_survey"
 arduino-cli compile --fqbn "esp32:esp32:esp32c6:CDCOnBoot=cdc,PartitionScheme=min_spiffs" firmware/poc_survey
 arduino-cli upload  --fqbn "esp32:esp32:esp32c6:CDCOnBoot=cdc,PartitionScheme=min_spiffs" -p /dev/ttyACM0 firmware/poc_survey
 ```

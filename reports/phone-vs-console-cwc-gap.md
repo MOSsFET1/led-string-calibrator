@@ -130,6 +130,6 @@ For the symptom **phone missing 131, 150, 156** while console finds them:
 
 ## Files referenced
 
-- `POC LED survey/page/survey.html` — `cwcChain` (lines 1118–1196), `nccRefine` (1197–1228), `cwcDecode` (1229–1355).
-- `POC LED survey/tools/cwc_pos_decode.py` — `register_direct` / `ncc_search` / `parabolic_refine` / `ncc_refine` / `main`.
-- `POC LED survey/S14-CWC-PLAN.md` — §10b/§10c/§10d/§10e (mask threshold history, parabolic spec, sticky gate hazards).
+- `poc_survey/page/survey.html` — `cwcChain` (lines 1118–1196), `nccRefine` (1197–1228), `cwcDecode` (1229–1355).
+- `poc_survey/tools/cwc_pos_decode.py` — `register_direct` / `ncc_search` / `parabolic_refine` / `ncc_refine` / `main`.
+- `poc_survey/S14-CWC-PLAN.md` — §10b/§10c/§10d/§10e (mask threshold history, parabolic spec, sticky gate hazards).
