@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""S14P-1927 pre-flash QA: mock box + headless Chromium + fake camera.
+"""S14P-1928 pre-flash QA: mock box + headless Chromium + fake camera.
 Validates the REAL page end-to-end before an ESP32 flash:
-  1. build stamp == S14P-1927
+  1. build stamp == S14P-1928
   2. CFG (cwc=1, cwcN=10) + BURST via mock drv? directives
   3. burst runs: 18 frame-bits planes + master, bench store ships 19 frames
   4. direct registration log line present (chain, no crash)
@@ -14,16 +14,27 @@ Validates the REAL page end-to-end before an ESP32 flash:
      logs + per-lane frame-bits mapping exercised (LED 57 = display L3,
      pixel 7: its codeword's ON-plane pattern must appear EXACTLY in the
      lane-3 latch sequence across the 18 consecutive frame-bits messages).
-  9. S14P-1926 replay path (kept in 1927): a rig CFG queued while the page is
+  9. S14P-1926 replay path (kept): a rig CFG queued while the page is
      already up converges ('cfg: rig 8x25 from box' + window._cfgRig snapshot);
      a page RELOAD (fresh hello, no new directive) REPLAYS the still-held cfg
      into the fresh context — reconverges idempotently, no rig-mismatch error.
+  10. S14P-1928 capture-only bursts + manual bulk send: chkCapOnly ON -> TWO
+     bursts prime/paint/settle/grab as usual ('cwc capture:' start lines,
+     19 frames each) but ACCUMULATE 38 frames in benchStore with ZERO decode
+     (no chain/decode/result-view lines), ZERO CWCDEC/CWCSTATS and ZERO
+     auto-ship (no FRAME/FJPEG logc traffic); Burst re-enables promptly after
+     each burst. Then 'Send frames (all)' (btnSendFrames) ships ALL 38 in one
+     benchPull (FRAME/FJPEG traffic appears, pull completes, buttons
+     re-enable; benchPull is non-destructive — the store KEEPS its frames,
+     cleared only at the next decode-mode burst start).
 
 PASS = hard checks 1-6 pass; 7 exercises without a NEW 'E ' error;
        8 completes with decode log + exact per-lane mapping sequence match;
-       9 replay + mismatch-guard + reload-convergence all behave as logged.
+       9 replay + mismatch-guard + reload-convergence all behave as logged;
+       10 capture mode accumulates without decode/ship + manual bulk send
+       ships 38 with no new 'E ' errors.
 Run with the venv python (websockets dep): see README tooling line."""
-import asyncio, base64, json, os, re, sys
+import asyncio, base64, json, os, re, sys, time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -33,7 +44,7 @@ BASE = TOOLS.parent
 RUN = BASE / "runs" / "qa-1904"
 import urllib.request as u
 
-STAMP = "S14P-1927"
+STAMP = "S14P-1928"
 
 
 def err_lines(logtxt, exclude_motion=True):
@@ -115,7 +126,7 @@ async def main():
             print("chain:", chain_ln)
             dec_ln = await wait_log(ws, "decode:", tries=90)
             print("decode:", dec_ln)
-            # S14P-1927: burst-1 now runs the FULL 8x200 default rig (page cwcN
+            # S14P-1928: burst-1 runs the FULL 8x200 default rig (page cwcN
             # 1600, mock box defaults nStr=8) — nL=1600 still maps onto the
             # 18-plane/1600-led codeword bank, so the 19-frame shape is
             # unchanged; only the decode semantics moved (mock fake camera
@@ -175,7 +186,7 @@ async def main():
                 await asyncio.sleep(1)
             print("burst 2 released:", not busy)
             # ---- burst 3: multi-string rig (explicit CFG 8x25 = 200 ids) ----
-            # S14P-1927: burst-3 stays the EXPLICIT narrow CFG (nStr=8,
+            # S14P-1928: burst-3 stays the EXPLICIT narrow CFG (nStr=8,
             # nPerStr=25) — unchanged despite the compiled defaults moving to
             # 8x200; its assertions are shape-explicit, not default-driven.
             cfg3 = dict(cfg, cwcN=200, nStr=8, nPerStr=25)
@@ -209,7 +220,7 @@ async def main():
             print("multi-string: decode logged:", dec3_ok, "| hello:", hello3,
                   "| ship carries strings/perString:", ship3_ok,
                   "| new errors:", errs3 if errs3 else "none")
-            # ---- S14P-1926 replay path + rig-mismatch guard ----
+            # ---- check 9: S14P-1926 replay path + rig-mismatch guard ----
             # Incident shape, reproduced deterministically: (a) a rig cfg
             # arrives AFTER the page is already up (tonight 08:58 while the
             # phone was wedged) — page must log 'cfg: rig 8x25 from box' and
@@ -296,21 +307,135 @@ async def main():
             multi_ok = (bool(rig_ln) and dec3_ok and hello3_ok and ship3_ok
                         and not errs3 and seq_ok and sums_ok and fb_seen >= 18
                         and len(led_planes) == 9)
-            # S14P-1927: check 9 (the S14P-1926 replay, kept) — the reload
+            # S14P-1928: check 9 (the S14P-1926 replay, kept) — the reload
             # (fresh hello) converged to the still-queued rig cfg with NO new
             # directive, and the apply was visible ('cfg: rig 8x25 from box').
             replay_ok = bool(ctx9 and conv9 and from_box9 and guard9_ok)
-            print("\nRESULT:", "PASS" if (hard_ok and multi_ok and replay_ok) else "FAIL")
+
+            # ================= check 10: S14P-1928 capture-only + bulk send ==
+            # STAGE B: chkCapOnly ON -> TWO bursts keep the full capture
+            # choreography (1 s P00 primer + per-plane settles + 18 planes +
+            # fast master) but ACCUMULATE 38 frames in benchStore with.ZERO
+            # decode (no chain/decode/result view), ZERO CWCDEC/CWCSTATS and
+            # ZERO auto-ship (no pull-file traffic at all); Burst re-enables
+            # promptly after each burst end. STAGE C: 'Send frames (all)'
+            # ships ALL accumulated frames in ONE benchPull.
+            pull_txt = (TOOLS / "mock_log_pull.txt").read_text()
+            pull_mark = len(pull_txt)                 # count only NEW pull lines
+            boxlog_markB = len((TOOLS / "mock_box.log").read_text().splitlines())
+            logB0 = await cdp_eval(ws, "document.getElementById('log').textContent")
+            errsB0 = err_lines(logB0)                 # baseline for new-error diff
+            cap_on = await cdp_eval(ws, "document.getElementById('chkCapOnly').checked = true; 'set'")
+            print("check 10 stage B: chkCapOnly", cap_on)
+            async def c10_burst_and_settle(rno):
+                (TOOLS / "mock_directives.txt").write_text("BURST\n")
+                print(f"burst C10-{rno} (capture mode) queued")
+                cap_ln = await wait_log(ws, f"captured: r{rno} 19 frames", tries=90)
+                end = False
+                for _ in range(90):
+                    bb = await cdp_eval(ws, "JSON.stringify({r:benchRunning,u:benchUploading,s:scanning})")
+                    if bb == '{"r":false,"u":false,"s":false}':
+                        end = True; break
+                    await asyncio.sleep(1)
+                t0 = time.monotonic(); lat = None
+                for _ in range(16):                   # re-enable within ~2 s of end
+                    st = await cdp_eval(ws, "JSON.stringify({b:document.getElementById('bBurst').disabled})")
+                    if st == '{"b":false}': lat = time.monotonic() - t0; break
+                    await asyncio.sleep(0.25)
+                return cap_ln, end, lat
+            (TOOLS / "mock_directives.txt").write_text("")   # stage B needs NO cfg
+            cap1_ln, end1, lat1 = await c10_burst_and_settle(1)
+            st1 = await cdp_eval(ws, "JSON.stringify({n:benchStore.length, run:benchRunNo})")
+            print(f"capture burst 1: end {end1}; bBurst re-enabled "
+                  f"{lat1 is not None and f'{lat1:.2f}s' or 'NEVER'}; store/run {st1}")
+            # NO auto-ship between bursts: the pull file must gain NOTHING
+            newpull1 = (TOOLS / "mock_log_pull.txt").read_text()[pull_mark:]
+            cap2_ln, end2, lat2 = await c10_burst_and_settle(2)
+            st2c = await cdp_eval(ws, "JSON.stringify({n:benchStore.length, run:benchRunNo})")
+            print(f"capture burst 2: end {end2}; bBurst re-enabled "
+                  f"{lat2 is not None and f'{lat2:.2f}s' or 'NEVER'}; store/run {st2c}")
+            newpull = (TOOLS / "mock_log_pull.txt").read_text()[pull_mark:]
+            logtxt10 = await cdp_eval(ws, "document.getElementById('log').textContent")
+            newlog10 = [l for l in (logtxt10 or "").split("\n")
+                        if l and l not in set((logB0 or "").split("\n"))]
+            nodec = [l for l in newlog10 if ("chain totals" in l or l.strip().startswith("decode:")
+                                            or "CWCDEC" in l or "MOTION WARNING" in l)]
+            capstart10 = sum(1 for l in newlog10 if "cwc capture:" in l)
+            capacc = [l for l in newlog10 if "captured: r" in l]
+            nores10 = await cdp_eval(ws, "String(document.getElementById('cwcResult') === null)")
+            lab_ok10 = await cdp_eval(ws, "JSON.stringify(benchStore.every(f => f.label.startsWith('cwc:r')))")
+            bl10 = (TOOLS / "mock_box.log").read_text().splitlines()[boxlog_markB:]
+            fb10 = sum(1 for l in bl10 if l.startswith("FRAME-BITS"))
+            errs10b = [l for l in err_lines(logtxt10) if l not in errsB0]
+            print(f"stage B: 'cwc capture:' starts {capstart10} (want 2); accumulated "
+                  f"{[l[-40:] for l in capacc]}; store-labels-all-cwc {lab_ok10}; "
+                  f"frame-bits paints {fb10} (want 36 = 2x18 planes); "
+                  f"no result canvas {nores10}; pull traffic {len(newpull.splitlines())} lines")
+            print("stage B decode-stack lines (want []):", nodec if nodec else "none")
+            print("stage B new errors (want none):", errs10b if errs10b else "none")
+            # STAGE C: manual bulk send — the EXISTING benchPull over the
+            # WHOLE accumulated store in one go.
+            click10 = await cdp_eval(ws, "document.getElementById('btnSendFrames').click(); 'clicked'")
+            print("check 10 stage C: btnSendFrames", click10)
+            ship_ln10 = await wait_log(ws, "bench pull done", tries=90)
+            print("ship 10:", ship_ln10)
+            end3 = False
+            for _ in range(60):
+                bb = await cdp_eval(ws, "JSON.stringify({r:benchRunning,u:benchUploading,s:scanning})")
+                if bb == '{"r":false,"u":false,"s":false}':
+                    end3 = True; break
+                await asyncio.sleep(1)
+            pullC = (TOOLS / "mock_log_pull.txt").read_text()[pull_mark:]
+            fmeta = []
+            for l in pullC.splitlines():
+                if l.startswith("FRAME "):
+                    try: fmeta.append(json.loads(l[len("FRAME "):]))
+                    except Exception: pass
+            r1_f = sum(1 for m in fmeta if str(m.get("label", "")).startswith("cwc:r1:"))
+            r2_f = sum(1 for m in fmeta if str(m.get("label", "")).startswith("cwc:r2:"))
+            n_frames10 = sum(1 for l in pullC.splitlines() if l.startswith("FRAME "))
+            n_fjpeg10 = sum(1 for l in pullC.splitlines() if l.startswith("FJPEG "))
+            n_fend10 = sum(1 for l in pullC.splitlines() if l.startswith("FEND"))
+            n_cwcstats10 = sum(1 for l in pullC.splitlines() if l.startswith("CWCSTATS "))
+            st3 = await cdp_eval(ws, "JSON.stringify({n:benchStore.length,"
+                                    "send:document.getElementById('btnSendFrames').disabled,"
+                                    "burst:document.getElementById('bBurst').disabled})")
+            logtxt10c = await cdp_eval(ws, "document.getElementById('log').textContent")
+            errs10c = [l for l in err_lines(logtxt10c) if l not in errsB0]
+            # POST-SHIP STORE SEMANTICS (verified + reported): benchPull() is
+            # deliberately NON-destructive — it ships the ring and LEAVES it;
+            # the store is cleared only at the next decode-mode burst START
+            # (S14P-1902) or page reload. Capture mode's run must therefore
+            # keep the 38 frames after the manual send (re-send is a re-ship;
+            # the operator's protection is the clear-on-next-decode-burst).
+            print(f"stage C: FRAME {n_frames10}/38 (r1 {r1_f}, r2 {r2_f}), FJPEG {n_fjpeg10},"
+                  f" FEND {n_fend10}, CWCSTATS {n_cwcstats10} (want 0); released {end3};"
+                  f" post-ship state {st3}")
+            print("stage C new errors (want none):", errs10c if errs10c else "none")
+            cap_ok = bool(cap1_ln and cap2_ln and end1 and end2 and end3
+                          and lat1 is not None and lat1 < 4.0 and lat2 is not None and lat2 < 4.0
+                          and st1 == '{"n":19,"run":1}' and st2c == '{"n":38,"run":2}'
+                          and lab_ok10 == 'true'
+                          and capstart10 == 2 and len(capacc) == 2
+                          and len(newpull.splitlines()) == 0      # no auto-ship, no logc at all
+                          and not nodec and nores10 == 'true' and fb10 == 36
+                          and n_frames10 == 38 and n_fjpeg10 > 0 and n_fend10 == 38
+                          and r1_f == 19 and r2_f == 19 and n_cwcstats10 == 0
+                          and not errs10b and not errs10c)
+            print("\nRESULT:", "PASS" if (hard_ok and multi_ok and replay_ok and cap_ok) else "FAIL")
             print(f"  frames 19/19: {n_frames == 19}; stats<4096B: {stats_ok}; "
                   f"chain logged: {bool(chain_ln)}; decode logged: {bool(dec_ln)}; "
                   f"canvas: {'NO CANVAS' not in info}; CWCDEC {n_cwcdec} {cwcdec_ok}")
             print(f"  multi-string: rig line {bool(rig_ln)}; decode rig-tagged {dec3_ok}; "
                   f"hello 8x25 {hello3_ok}; ship strings-8 {ship3_ok}; errors {len(errs3)}; "
                   f"lane-map {seq_ok}; lit-sum {sums_ok}")
-            print(f"  S14P-1927 replay (check 9): fresh-ctx {ctx9}; reconverged {conv9}; "
+            print(f"  S14P-1928 replay (check 9): fresh-ctx {ctx9}; reconverged {conv9}; "
                   f"from-box logged {from_box9 or from_box9c}; clean {guard9_ok} "
                   f"(cfg queued while page up, then a reload replays the held cfg)")
-            return 0 if (hard_ok and multi_ok and replay_ok) else 1
+            print(f"  S14P-1928 capture-only (check 10): starts {capstart10}x, store 38 after 2 bursts, "
+                  f"decode skipped {not nodec and nores10 == 'true'}, no auto-ship, bulk send 38+re-enable; "
+                  f"errors {len(errs10b) + len(errs10c)}")
+            return 0 if (hard_ok and multi_ok and replay_ok and cap_ok) else 1
     finally:
         proc.kill()
         mock.kill()

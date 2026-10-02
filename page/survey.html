@@ -47,7 +47,10 @@
     <button id="bAbort" disabled>Abort</button>
     <button id="bAll" disabled>All-on</button>
     <button id="bOff" disabled>Off</button>
+    <input id="chkCapOnly" type="checkbox" style="vertical-align:middle"> <label for="chkCapOnly"
+      style="font-size:11px;color:#889;vertical-align:middle">Capture only (no decode/auto-send)</label>
     <button id="bBurst" disabled>Burst</button>
+    <button id="btnSendFrames" disabled>Send frames (all)</button>
     <button id="bLog" disabled>Download log</button>
     <button id="bWake">Keep screen on</button>
   </div>
@@ -63,7 +66,7 @@ window._onload = Date.now();      // S14P-1926 probe: boot ran (fresh context ma
 // Deliberately ABSENT (never reliably worked; made unnecessary): phone->box
 // log shipping, pause/resume, session state. One feature at a time.
 
-const BUILD = "S14P-1927";
+const BUILD = "S14P-1928";
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable, applied on drv? poll) ---------------
@@ -646,6 +649,12 @@ function setButtons() {
   $('bOff').disabled = !wsOpen || scanning;
   $('bAbort').disabled = !scanning;
   $('bBurst').disabled = !wsOpen || !camReady || benchRunning || benchUploading;
+  // S14P-1928: Send frames (all) = the manual bulk ship of the ACCUMULATING
+  // store. Enabled between (not during) bursts, ws+camera up, store non-empty
+  // (benchPulling itself is inside benchRunning/benchUploading windows — see
+  // the BRAMP note). Stays disabled in capture mode while a burst runs.
+  $('btnSendFrames').disabled = !wsOpen || benchRunning || benchUploading ||
+                                benchStore.length === 0;
   $('bLog').disabled = logRing.length === 0;
 }
 async function manualAll() { await paint({ cmd: 'all', b: CFG.allB }).catch((e) => log('E ' + e.message)); log('all-on ' + CFG.allB); }
@@ -701,7 +710,14 @@ function benchCapture(label) {
     const jpg = c.toDataURL('image/jpeg', 0.5).split(',')[1];
     benchStore.push({ t: ((Date.now() - t0) / 1000).toFixed(3), label, W, H,
                       exp: expLine(), jpg });
-    if (benchStore.length > benchMax) benchStore.shift();
+    if (benchStore.length > benchMax) {
+      // S14P-1928: the ring wrapped — the OLDEST slot (shift) is dropped;
+      // say WHICH label was lost instead of wrapping silently.
+      const lost = benchStore[0].label;
+      benchStore.shift();
+      log('E store FULL — send now (oldest wrapping): lost ' + lost);
+      setButtons();                        // store count changed
+    }
   } catch (e) { log('E benchcap ' + (e && e.message || e)); }
 }
 // phase correlation in-page: NCC on a 128-wide decimated grid
@@ -794,7 +810,13 @@ function benchCaptureComp(label, tot) {
     const jpg = c.toDataURL('image/jpeg', 0.5).split(',')[1];
     benchStore.push({ t: ((Date.now() - t0) / 1000).toFixed(3), label, W, H,
                       exp: expLine() + ' comp=' + tot.dx.toFixed(2) + ',' + tot.dy.toFixed(2) + '@' + tot.conf.toFixed(2), jpg });
-    if (benchStore.length > benchMax) benchStore.shift();
+    if (benchStore.length > benchMax) {
+      // S14P-1928: same wrap rule as benchCapture (comp path) — the oldest
+      // slot is dropped; log which label was lost.
+      const lost = benchStore[0].label;
+      benchStore.shift();
+      log('E store FULL — send now (oldest wrapping): lost ' + lost);
+    }
   } catch (e) { log('E benchcapcomp ' + (e && e.message || e)); }
 }
 async function benchRun() {
@@ -806,6 +828,14 @@ async function benchRun() {
                                          // reporting while a burst runs)
   setButtons();
   try {
+    // S14P-1928 capture-only mode (chkCapOnly): PRIMES + PAINTS + SETTLES +
+    // GRABS stay IDENTICAL (1 s P00 primer, per-plane settles, fast master),
+    // but the decode/registration stack (cwcChain/guard/cwcDecode/
+    // cwcShowResults/cwcStats/CWCDEC) is skipped — the console re-registers
+    // and decodes offline from the raw frames — and the end-of-run auto-ship
+    // is skipped: frames ACCUMULATE in benchStore across bursts and leave via
+    // 'Send frames (all)' (btnSendFrames) or a directive BRAMP.
+    const capOnly = $('chkCapOnly') && $('chkCapOnly').checked;
     const n = Math.max(2, Math.min(40, CFG.bBurstN | 0 || 20));
     const gap = Math.max(0, CFG.bBurstGap | 0);
     const hold = Math.max(0, CFG.bBurstHold | 0);
@@ -818,7 +848,9 @@ async function benchRun() {
     // never shrank. A failed/missed pull is still recoverable: the store
     // keeps its frames until the NEXT burst starts (BRAMP any time before
     // then; LOGA keeps the arm open so nothing is lost to a closed window).
-    if (benchStore.length) {
+    // S14P-1928: capture-only mode is the ACCUMULATING exception — frames
+    // stay across bursts, ship via the manual 'Send frames (all)' button.
+    if (benchStore.length && !capOnly) {
       log('bench store cleared: ' + benchStore.length + ' unshipped or unpulled frames dropped');
       benchStore.length = 0;
     }
@@ -885,7 +917,9 @@ async function benchRun() {
       const maxB = Math.min(255, Math.floor(510 / (Math.max(1, window._nPerStr) * 0.0142)));
       const cb = Math.max(20, Math.min(maxB, CFG.bBurstB | 0 || 150));
       const testLed = Math.max(0, Math.min(nL - 1, CFG.cwcTestLed | 0 || 0));
-      log((testMode ? 'cwc test: ' : 'cwc burst: ') +
+      // S14P-1928 capture mode: same paint/grab/settle choreography, prefixed
+      // 'cwc capture:' so capture-mode runs are distinguishable in the log.
+      log((testMode ? 'cwc test: ' : (capOnly ? 'cwc capture: ' : 'cwc burst: ')) +
           'primer(1s) -> 18 frame-bits planes -> master(fast), ' + nL +
           ' leds (rig ' + rigCap() + '), b=' + cb + (cb < (CFG.bBurstB | 0 || 150) ? ' (clamped)' : '') +
           (testMode ? ', led=' + testLed : ''));
@@ -908,6 +942,16 @@ async function benchRun() {
       const cwcMst = await grabPlane();
       benchCapture('cwc:r' + benchRunNo + ':master');
       gts.push(Date.now());
+      // S14P-1928 CAPTURE-ONLY branch: the 19 frames are in benchStore —
+      // STOP here. No registration chain, no health guard, no in-page
+      // decode, no result view, no CWCDEC/CWCDECS ship, no cwcStats (the
+      // console re-registers + decodes offline from the raw frames); the
+      // shared auto-ship below is skipped for capOnly (accumulating store).
+      if (capOnly) {
+        log('captured: r' + benchRunNo + ' 19 frames (store ' + benchStore.length + '/' + benchMax + ')' +
+            (benchStore.length >= benchMax ? ' — FULL' : ''));
+        await paint({ cmd: 'black' });
+      } else {
       // 1911: direct per-plane registration + in-page position decode +
       // result view
       const chain = cwcChain(cwcMst, planes);
@@ -982,6 +1026,9 @@ async function benchRun() {
       // NO benchPull here: the shared S14L auto-ship at benchRun's end
       // ships the store once (a local call double-shipped the 19 frames —
       // harness-verified 29 Sep).
+      } // end non-capture CWC decode branch (S14P-1928: capOnly skips the
+        // chain, health guard, decode, drift trail AND the CWCDEC ship —
+        // they all read the decode-branch consts chain/dec)
     } else {
     // ---- original all-on movement burst (unchanged; CWCSTATS added so the
     // pull ships stats even when BSTATS loses the arm race) ----
@@ -1111,10 +1158,16 @@ async function benchRun() {
     // window, so with no console reader the chunks are dropped silently and
     // nothing backs up. benchPulling gates re-entry; benchUploading keeps
     // the Burst button locked out until the upload completes.
-    benchUploading = true; setButtons();
-    try { await benchPull(); }
-    catch (e) { log('E autoship ' + (e.message || e)); }
-    benchUploading = false; setButtons();
+    // S14P-1928: CAPTURE-ONLY SKIPS the auto-ship — frames accumulate in
+    // benchStore and leave via 'Send frames (all)' (or directive BRAMP), so
+    // benchUploading never rises and the Burst button unlocks immediately at
+    // the release below (existing path, unchanged).
+    if (!capOnly) {
+      benchUploading = true; setButtons();
+      try { await benchPull(); }
+      catch (e) { log('E autoship ' + (e.message || e)); }
+      benchUploading = false; setButtons();
+    }
   } catch (e) { log('E burst ' + (e && e.message || e)); }
   benchRunning = false;
   scanning = false;   // release: idle preview + manual buttons resume
@@ -1190,6 +1243,19 @@ $('bLog').onclick = logPull;
 // params (bBurstN/gap/hold/B + bComp). Same code path the console's BURST
 // directive drives — just operator-triggered, no serial round-trip.
 $('bBurst').onclick = () => benchRun();
+// S14P-1928 'Send frames (all)': MANUAL bulk ship — the EXISTING benchPull()
+// over the whole accumulating store (every capture burst since the page
+// loaded, in one go). Post-ship the store KEEPS the frames (cleared only at
+// the next non-capture burst start / reload): benchPull itself is deliberately
+// non-destructive — the re-pull protection is the benchRun clear at the next
+// decode-mode burst start, not a pull-time wipe.
+$('btnSendFrames').onclick = async () => {
+  if (benchPulling || benchRunning || benchUploading || !benchStore.length) return;
+  benchUploading = true; setButtons();
+  try { await benchPull(); }
+  catch (e) { log('E sendframes ' + (e.message || e)); }
+  benchUploading = false; setButtons();
+};
 
 // Bank embedded INLINE (single-file page; regeneration source: page/codewords.js
 // <- tools/codewords_9of18.json). // CWC codewords, 9-of-18 (S14): window.CWC_CODES_9OF18 = array of "p,p,..p"

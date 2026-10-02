@@ -12,6 +12,10 @@ __pycache__/
 # scratch
 *.log
 .DS_Store
-runs/daemon/runs/run1/*.jpg
+# bench capture imagery: LOCAL-ONLY (operator no-images rule); metas,
+# ledpos.json, direct_shifts.json and cwc_frames.txt packs stay tracked
+runs/daemon/runs/*/*.jpg
+runs/daemon/runs/*/truncated_backup/
+runs/daemon/runs/*/morning_0843_backup/
 runs/qa-1904/*.png
 runs/**/led_overlay.png
