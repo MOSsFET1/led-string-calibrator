@@ -9533,3 +9533,5 @@
 [15:06:19] E (2288354) httpd: httpd_accept_conn: session creation failed
 [15:06:22] E (2291691) esp-tls-mbedtls: read error :-0x0050
 [15:06:22] E (2291691) esp-tls-mbedtls: read error :-0x0050
+[15:27:54] === daemon start ===
+[15:27:54] [LOGA] persistent arm ON
