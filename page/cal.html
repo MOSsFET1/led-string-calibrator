@@ -71,7 +71,7 @@ window._onload = Date.now();      // fresh-context marker (survey-page lineage)
 // step boundary; config rides CALCFG=<json> (cmds file, one-shot like CFG=).
 // ============================================================================
 
-const BUILD = "S14R-0003B-CAL";   // 0003B: shipBatch 4 default (storm fix) baked into served page; mid-session CALCFG delivery unreliable 04 Oct (slot drained by boot-time poll, mid-session polls saw only rig CFG keys)
+const BUILD = "S14R-0003C-CAL";   // 0003C: benchPull splice fix — drop shipped prefix (re-ship storm ROOT CAUSE: store never cleared; survey clears at next-burst, battery loop has no boundary)
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable; SAME key names as survey.html) ------
@@ -804,6 +804,7 @@ async function expE5() {
 async function benchPull() {
   if (benchPulling) return;
   benchPulling = true;
+  let shipped = 0;                 // 0003C: fully-relayed frame count
   try {
     log('cal ship: ' + benchStore.length + ' frames');
     for (const f of benchStore) {
@@ -818,9 +819,18 @@ async function benchPull() {
       await sendCmd({ cmd: 'logc', d: 'FEND' }, { tries: 2, timeout: 2000 });
       await sleep(30);
       if (abortFlag || calState.abortFlag) break;
+      shipped++;
     }
     await sendCmd({ cmd: 'logend' }, { tries: 2, timeout: 2000 });
-    log('cal ship done');
+    log('cal ship done: ' + shipped + ' sent');
+    // 0003C FIX — the 4/5/6… re-ship storm's root cause: drop the SHIPPED
+    // prefix so the next trigger ships only new frames. The survey page
+    // never needed this (benchRun clears leftovers at the next burst start,
+    // survey :1093) but the battery loop has no such boundary: without the
+    // clear every shipIfDue re-shipped the whole store (24→25→26… 03 Oct
+    // 22:19, 04 Oct 09:0x+09:3x). Abort/exception keeps the rest for a
+    // later full re-ship (conservative: nothing is lost, nothing repeats).
+    benchStore.splice(0, shipped);
   } catch (e) { log('E calship ' + (e && e.message || e)); }
   benchPulling = false;
 }

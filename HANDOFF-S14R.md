@@ -300,13 +300,26 @@ Multi-directive files are a torn-payload footgun; pacing with wire
 verification between sends is the only safe pattern. (Last night's
 single-file success was luck of polling phase.)
 
-**Build S14R-0003b (this file's postscript):** shipBatch 4 baked into
-the SERVED page (compiled default; no config delivery needed). BUILD
-stamp `S14R-0003B-CAL`; CAL_BUILD auto-synced by packer; compile
-1,353,250 B = 68% (verified battery running on it from 09:35:21).
-Rationale: mid-session CALCFG delivery is unreliable on 0003a (cfg
-slot drains at boot-time poll; later polls only re-deliver the rig
-CFG — observed: battery json never reached a mid-session page).
+**Build S14R-0003b (this file's postscript):** superseded same day by
+**S14R-0003c** after the re-ship storm's ROOT CAUSE landed in sight:
+cal.html's benchPull — the "survey benchPull copy" — was missing the
+store clear. Survey never needed it inside the pull (benchRun clears
+leftovers at the next burst start, survey :1093); the battery loop has
+no such boundary, so every shipIfDue re-shipped the whole store
+(4→5→6… today, 24→25→26… 03 Oct). 0003c: benchPull counts fully-
+relayed frames and `benchStore.splice(0, shipped)` after logend
+(abort/exception keeps the rest — conservative). **LIVE VERIFIED:
+first complete battery `done:true` 39.4 min 10:33 (build 0003C-CAL),
+572 relays 09:44–10:34 ALL unique, zero re-ships; E4 epochs r8–r11 at
+25/25 each; run0 428 jpgs + runs 8–11 25 each.** E4 ships its whole
+100-frame batch at experiment end (CWC path lacks the intra-step
+shipIfDue call) — 0004 item. Battery ran on rig CFG 3x200/cwcN600
+(queued CFG drained by the fresh page's hello post-reflash — the
+mid-session CALCFG gap from §10 does not affect the rig CFG +
+hello path). Caveat for idle-trace analysis: run0's
+cal_idle_00–11 may be attempt-3's (09:4x) rather than attempt-4's
+(09:52+) — labels collide across today's two runs; check wire stamps
+in capture.txt if those 12 points matter.
 S14R-0004 fix list grows: HEAPCAP beacon (wire-side heap telemetry:
 free/LFB/min-LFB on >4 KB change — discriminates wedge mechanisms at
 next morning storm), TLS content buffers → 8 KB + max_open_sockets
