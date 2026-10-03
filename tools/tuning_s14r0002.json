@@ -59,5 +59,85 @@
     "histMed",
     "clipPct",
     "probeIters"
-  ]
+  ],
+  "calBattery": {
+    "_readme": "S14R-0003 autonomous CAL battery (page /cal, CAL directive): compiled defaults for the battery state machine. CALCFG=<json> overrides live per run (page merges; same key names). Labels: E1/E2/E3/E5 use cal:<exp>:\u2026, E4 uses the UNTOUCHED survey run space cwc:rN:* so the console decoder (cwc_pos_decode.py) works byte-compat on those runs.",
+    "build": "S14R-0003-CAL",
+    "serve": {
+      "route": "/cal",
+      "transport": "same TLS+wss as the survey page (shared /ws, JSON cmds + 246 B frame-bits)",
+      "start": "CAL serial directive (cmds file one-shot via bench daemon, like BURST)",
+      "abort": "ABRT directive (checked at every step boundary; rig returned to black)"
+    },
+    "order": [
+      "E5",
+      "E1",
+      "E2",
+      "E3",
+      "E4"
+    ],
+    "e1_ladder_all_on": [
+      5,
+      10,
+      20,
+      40,
+      60,
+      80,
+      100,
+      120,
+      150,
+      179
+    ],
+    "e2_ladder_duty": [
+      5,
+      10,
+      20,
+      40,
+      60,
+      80,
+      100,
+      120,
+      150,
+      179
+    ],
+    "e2_duty_bank_row": 0,
+    "e2_duty_note": "duty-0.5 paint = an exact coded plane's ON set: codeword ROW 'dutyBank' over the mapped codes (plane 0 = 300 of the first 600 lamps; bank is complementary-paired so every row is exactly 50%)",
+    "e3_settle": {
+      "jump": [
+        5,
+        120,
+        5
+      ],
+      "traceMs": 12000,
+      "gapMs": 250
+    },
+    "e4_ladder": [
+      80,
+      100,
+      120,
+      150
+    ],
+    "e4_duty_bank_row": -1,
+    "e4_duty_note": "E4 dwell paint uses the COMPLEMENT of codeword plane 0 (-1) = the exact inverse 50% coded pattern, contrasting each burst master; dwell 2000 ms probe-style, then ONE real 24-plane CWC burst at that L using the existing burst primitive (primer 1000 ms, cwcSettle planes, fast master) with survey labels cwc:rN:*",
+    "e4_gap_ms": 10000,
+    "snapshots_per_step": 18,
+    "snapshot_gap_ms": 500,
+    "solid_ms": 300,
+    "step_gap_ms": 5000,
+    "idle_frames": 60,
+    "idle_gap_ms": 1000,
+    "ship_batch_frames": 24,
+    "snapshot_jpeg_q": 0.5,
+    "telemetry": {
+      "per_step": "CALSTATS {kind:'step', exp, stepIdx|jump, L, duty, snaps, histMed (CWCSTATS recipe parity), coreP90 (raw-core P90 over self-segmented bright blobs: threshold blobSegThr + 4-conn components, blobMinPx), blobs, nCores, expReadback}",
+      "per_E4_run": "CWCSTATS {mode:'calE4', L, n, rig, histMed(master), probeIters:0} + labels cwc:rN:p00..p23/master (console decoder compatible)",
+      "battery": "CALSTATS {kind:'battery', build, order, done, mins, rig, cwcN}",
+      "frames": "FRAME/FJPEG/FEND groups with per-frame label + ts + exp, same as the survey page"
+    },
+    "blob_seg": {
+      "thr": 40,
+      "minPx": 4
+    },
+    "estimated_full_battery_min": 26
+  }
 }
