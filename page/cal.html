@@ -110,7 +110,7 @@ const CAL = {
   idleCount: 60,          // E5 frames
   idleGapMs: 1000,        // E5 spacing
   e4GapMs: 10000,         // E4 gap between L values
-  shipBatch: 24,          // incremental ship trigger (frames held in the store)
+  shipBatch: 4,           // incremental ship trigger (03 Oct storm: 24-frame batch @115200 relay ~90 s blew chunk acks; <=4 measured safe)
   snapJpegQ: 0.5,         // snapshot JPEG quality (survey parity)
   blobSegThr: 40,         // raw-core seg floor (threshold + components)
   blobMinPx: 4,           // component >= this pixel count counts as a blob
@@ -638,7 +638,7 @@ async function calLadderStep(expTag, L, isDuty, stepIdx) {
     const t0s = Date.now();
     await calSnap(labelBase + ':' + k);     // label = cal:e<k>:L<L>:k
     // incremental ship keeps the store small (S14L heap lesson)
-    if (benchStore.length >= (CAL.shipBatch | 0 || 24)) await shipIfDue(false);
+    if (benchStore.length >= (CAL.shipBatch | 0 || 4)) await shipIfDue(false);
     const spent = Date.now() - t0s;
     if (spent < snapGap) {
       const wait = snapGap - spent;
@@ -697,7 +697,7 @@ async function expE3() {
       const t0s = Date.now();
       await calSnap('cal:E3:' + from + 'to' + to + ':t' + String(k).padStart(3, '0'));
       k++;
-      if (benchStore.length >= (CAL.shipBatch | 0 || 24)) await shipIfDue(false);
+      if (benchStore.length >= (CAL.shipBatch | 0 || 4)) await shipIfDue(false);
       const spent = Date.now() - t0s;
       if (spent < gapMs) await sleep(gapMs - spent);
     }
@@ -784,7 +784,7 @@ async function expE5() {
   for (let k = 0; k < (CAL.idleCount | 0 || 60) && !calState.abortFlag; k++) {
     const t0s = Date.now();
     await calSnap('cal:idle:' + String(k).padStart(2, '0'));
-    if (benchStore.length >= (CAL.shipBatch | 0 || 24)) await shipIfDue(false);
+    if (benchStore.length >= (CAL.shipBatch | 0 || 4)) await shipIfDue(false);
     const spent = Date.now() - t0s;
     if (spent < (CAL.idleGapMs | 0 || 1000)) {
       let w2 = 0; const wait = (CAL.idleGapMs | 0 || 1000) - spent;
@@ -830,7 +830,7 @@ async function benchPull() {
 async function shipIfDue(force) {
   if (benchPulling || benchUploading) return;
   if (!benchStore.length) return;
-  if (!force && benchStore.length < (CAL.shipBatch | 0 || 24)) return;
+  if (!force && benchStore.length < (CAL.shipBatch | 0 || 4)) return;
   calProgress('ship ' + benchStore.length + ' frames');
   benchUploading = true;
   try { await benchPull(); } catch (e) { log('E shipifdue ' + (e.message || e)); }
