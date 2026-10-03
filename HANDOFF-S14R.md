@@ -91,7 +91,9 @@ CORRECTION block — the amp25 "+97" there was refuted; true +33),
 - **Telemetry**: BSTATS no longer `{}`: per probe step
   `{L, P90, clipPct, histMed}` + final `{bright, histMed, clipPct,
   probeIters}` — this was the exposure-readback fix (exp='' metas made
-  0001's POI unverifiable). Check BSTATS on every 0002 burst.
+  0001's POI unverifiable). 03 Oct correction: on CWC paths this ships
+  in CWCSTATS (BSTATS {} on the wire right after it is by design);
+  check the CWCSTATS probe fields on every 0002 burst.
 - **Exposure levers**: Android `evBias` stays **−1** (03 Oct operator
   call: the −3 intent never landed in a real burst, all 14 calibration
   corpora ran at −1, iOS ignores it anyway); burst-start re-apply hook
