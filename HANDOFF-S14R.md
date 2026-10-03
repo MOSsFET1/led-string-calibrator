@@ -35,7 +35,7 @@ re-verify against the repo.
 | S14P-1926/27/28 | 01–02 Oct | CFG replay on hello; full-rig compiled defaults (nStr 8, cwcN 1600) + promoted gates; capture-only bursts + manual bulk send | console corpus 1710/2000 @ mask100/amp40/margin6 |
 | S14R-0000 | 02 Oct | 12-of-24 Golay bank migration (from 9-of-18), 24-plane bursts | d_min 4→8; QA 10/10 PASS; phone 309/600 round-1 |
 | S14R-0001 | 02 Oct | burst under camera; 1–8 string row (box CFG still authoritative); survey+wake buttons removed; evBias re-apply at burst; iOS POI tap (cwcPoi) | POI pixel-inert (measured); exp='' readback gap |
-| S14R-0002 | 02 Oct | **pre-burst brightness probe** (solid-ON `cwcSolidMs`, lamp-core P90→knee 235–250, clip ≤5%); **adaptive mask thr** `min(cwcMaskThr, max(45, 1.12·histMed))`; BSTATS telemetry `{bright, histMed, clipPct, probeIters}`; chip dark square removed; Android evBias −3 at burst; POI tap feedback | QA PASS exit 0; verify_embed 47,408 B roundtrip |
+| S14R-0002 | 02 Oct | **pre-burst brightness probe** (solid-ON `cwcSolidMs`, lamp-core P90→knee 235–250, clip ≤5%); **adaptive mask thr** `min(cwcMaskThr, max(45, 1.12·histMed))`; BSTATS telemetry (ships in CWCSTATS on CWC paths); chip dark square removed; Android evBias stays −1 (−3 retired 03 Oct before ever landing); POI tap feedback | QA PASS exit 0; verify_embed 47,408 B roundtrip |
 
 Compile FQBN (mandatory, bare FQBN overflows):
 `esp32:esp32:esp32c6:CDCOnBoot=cdc,PartitionScheme=min_spiffs`
@@ -92,8 +92,10 @@ CORRECTION block — the amp25 "+97" there was refuted; true +33),
   `{L, P90, clipPct, histMed}` + final `{bright, histMed, clipPct,
   probeIters}` — this was the exposure-readback fix (exp='' metas made
   0001's POI unverifiable). Check BSTATS on every 0002 burst.
-- **Exposure levers**: Android `evBias=-3` applied at burst start
-  (re-apply hook from 0001 makes it take effect); iOS has no evBias —
+- **Exposure levers**: Android `evBias` stays **−1** (03 Oct operator
+  call: the −3 intent never landed in a real burst, all 14 calibration
+  corpora ran at −1, iOS ignores it anyway); burst-start re-apply hook
+  kept for future use; iOS has no evBias —
   POI tap + feedback reticle; box-side `cwcBright` overrides both
   (camera-agnostic photons lever).
 

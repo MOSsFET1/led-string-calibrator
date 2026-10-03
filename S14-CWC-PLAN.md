@@ -898,7 +898,8 @@ semantics.
 - **Exposure levers at burst start** (`applyEvBiasAtBurst`): Android
   re-applies the CFG `evBias` AT BURST START (the r1 finding: it was
   applied once in the camera-ready callback only, so CFG changes never
-  took effect); iOS runs the **POI tap lever** (`cwcPoi*` — iOS honours
+  took effect; 03 Oct: rig runs `evBias` −1 everywhere — −3 retired
+  before its first real burst); iOS runs the **POI tap lever** (`cwcPoi*` — iOS honours
   pointsOfInterest, never exposed exposureCompensation).
 - **iPhone POI corpora r1–r4** (commit b406a61, report
   `reports/s14r-0001-ios-poi-console-decode-exposure-and-cross-round.md`):
@@ -974,7 +975,7 @@ union, never raw totals; per-id amp is aim-relative, never cross-round.
   the gain).
 - **Operator UI round 2**: the dark square behind result-view LED
   numbers REMOVED (text-only white labels on a 2 px black stroke);
-  Android evBias −3 at burst start; POI tap gains visible feedback
+  Android evBias stays −1 (−3 intent retired 03 Oct: never applied in a real burst, all calibration corpora at −1, iOS ignores it); POI tap gains visible feedback
   (4 s crosshair at the metered point).
 - **QA: RESULT PASS, exit 0** — checks 1–11 kept green (stamp, CFG +
   burst shape, direct registration, decode, canvas, test branch,
