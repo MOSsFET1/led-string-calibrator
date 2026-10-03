@@ -41,6 +41,33 @@ def write_cap(line: str, f):
     f.flush()
 
 
+def open_serial(log):
+    """Open the bench port, retrying ~1 min while a USB re-enum settles."""
+    last = None
+    for attempt in range(30):
+        try:
+            s = serial.Serial(PORT, BAUD, timeout=0.5)
+            time.sleep(0.5); s.reset_input_buffer()
+            return s
+        except (serial.SerialException, OSError) as e:
+            last = e
+            log(f'!! serial open retry {attempt+1}/30: {e}')
+            time.sleep(2.0)
+    print(f'FATAL: {PORT} never opened: {last}', flush=True)
+    sys.exit(1)
+
+
+def arm_persistent(ser, log):
+    """Send LOGA (persistent auto-ship arm) + capture the 1 s ack window."""
+    ser.write(b'LOGA\n')
+    t_end = time.time() + 1.0
+    while time.time() < t_end:
+        ln = ser.readline()
+        if ln:
+            log(ln.decode(errors='replace').rstrip())
+    ser.reset_input_buffer()
+
+
 def decode_frames(capture_path: Path, out_root: Path, min_len=8000):
     """Decode [PHONE] FRAME/FJPEG/FEND groups -> per-label JPEG files."""
     frames = []
@@ -107,15 +134,20 @@ def main():
 
     RUNS.mkdir(parents=True, exist_ok=True)
     CMDDIR.mkdir(exist_ok=True)
-    ser = serial.Serial(PORT, BAUD, timeout=0.5)
-    time.sleep(0.5); ser.reset_input_buffer()
 
     print(f'daemon on {PORT}, capture -> {CAPTURE}')
     with CAPTURE.open('a') as f:
+        ser = open_serial(lambda s: write_cap(s, f))
         write_cap(f'=== daemon start ===', f)
-        ser.write(b'LOGA\n')            # persistent arm: every auto-ship reaches serial
-        time.sleep(0.5)
+        try:
+            arm_persistent(ser, lambda s: write_cap(s, f))
+        except (serial.SerialException, OSError) as e:
+            write_cap(f'!! arm failed at startup (port churn?): {e}', f)
+            time.sleep(2.0)
+            ser = open_serial(lambda s: write_cap(s, f))
+            arm_persistent(ser, lambda s: write_cap(s, f))
         while True:
+          try:
             line = ser.readline()
             if line:
                 s = line.decode(errors='replace').rstrip()
@@ -127,31 +159,42 @@ def main():
                     elif 'bench pull done' in s or 'bench pull:' in s:
                         write_cap('', f)  # (kept blank for readability)
                         print('  ' + s.split('] ')[-1], flush=True)
-            # execute trigger commands from cmds/
-            for cf in sorted(CMDDIR.glob('*.txt')):
-                cmds = [c.strip() for c in cf.read_text().splitlines() if c.strip()]
-                print(f'executing {cf.name}: {cmds}', flush=True)
-                for c in cmds:
-                    write_cap(f'>> CMD {c}', f)
-                    ser.write((c + '\n').encode())
-                    time.sleep(0.8)
-                    # capture the immediate ack ([DRV] x queued / [CFG] / [STAT])
-                    t_end = time.time() + (3.5 if c.startswith('STAT') else 1.5)
-                    while time.time() < t_end:
-                        ln = ser.readline()
-                        if ln:
-                            write_cap(ln.decode(errors='replace').rstrip(), f)
-                    time.sleep(0.4); ser.reset_input_buffer()
-                cf.unlink()   # one-shot
-                if any(c.strip() == 'BURST' for c in cmds):
-                    print('  BURST sent (auto-ship follows ~1 s after the burst)', flush=True)
-            # periodic decode of any completed frame groups
-            if int(time.time()) % 30 == 0:
-                try:
-                    decode_frames(CAPTURE, RUNS / 'runs')
-                except Exception:
-                    pass
-                time.sleep(1.0)
+          except (serial.SerialException, OSError) as e:
+            # USB re-enum / port blip: drop the handle, reconnect, re-arm LOGA.
+            # The box keeps running autonomously (arm is box-side persistent, the
+            # battery never needs the daemon) — only OUR wire recording pauses.
+            write_cap(f'!! serial loop error: {e} — reconnecting', f)
+            try: ser.close()
+            except Exception: pass
+            time.sleep(2.0)
+            ser = open_serial(lambda s: write_cap(s, f))
+            arm_persistent(ser, lambda s: write_cap(s, f))
+            write_cap('!! reconnected + LOGA re-armed', f)
+          # execute trigger commands from cmds/
+          for cf in sorted(CMDDIR.glob('*.txt')):
+            cmds = [c.strip() for c in cf.read_text().splitlines() if c.strip()]
+            print(f'executing {cf.name}: {cmds}', flush=True)
+            for c in cmds:
+                write_cap(f'>> CMD {c}', f)
+                ser.write((c + '\n').encode())
+                time.sleep(0.8)
+                # capture the immediate ack ([DRV] x queued / [CFG] / [STAT])
+                t_end = time.time() + (3.5 if c.startswith('STAT') else 1.5)
+                while time.time() < t_end:
+                    ln = ser.readline()
+                    if ln:
+                        write_cap(ln.decode(errors='replace').rstrip(), f)
+                time.sleep(0.4); ser.reset_input_buffer()
+            cf.unlink()   # one-shot
+            if any(c.strip() == 'BURST' for c in cmds):
+                print('  BURST sent (auto-ship follows ~1 s after the burst)', flush=True)
+          # periodic decode of any completed frame groups
+          if int(time.time()) % 30 == 0:
+            try:
+                decode_frames(CAPTURE, RUNS / 'runs')
+            except Exception:
+                pass
+            time.sleep(1.0)
 
 
 if __name__ == '__main__':
