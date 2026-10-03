@@ -267,7 +267,7 @@ function sizeForVideo(vw, vh) {
 let grabResolvers = [];            // rVFC-based grabs (single pump owns rVFC)
 
 function startCamera() {
-  $('camst').textContent = 'Cam: requesting';
+  $('camstat').textContent = 'Cam: requesting';
   const p = navigator.mediaDevices.getUserMedia({
     video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
     audio: false });
@@ -277,7 +277,7 @@ function startCamera() {
       videoTrack = s.getVideoTracks()[0];
       const v = $('vid');
       v.srcObject = s;
-      $('camst').textContent = 'Cam: playing';
+      $('camstat').textContent = 'Cam: playing';
       return v.play();
     })
     .then(() => {
@@ -287,14 +287,14 @@ function startCamera() {
       sizeForVideo(vw, vh);
       camCv.width = W; camCv.height = H;   // display = processing aspect, no squash
       camReady = true; frameIdx = 0;
-      $('camst').textContent = 'Cam: live'; $('camst').className = 'st ok';
+      $('camstat').textContent = 'Cam: live'; $('camstat').className = 'st ok';
       applyEvBias(); _evLastApplied =
         (typeof CFG.evBias === 'number' && isFinite(CFG.evBias)) ? CFG.evBias : -1;
       pump();
     })
     .catch((e) => {
       log('E cam ' + (e && e.name || e));
-      $('camst').textContent = 'Cam: retrying'; $('camst').className = 'st bad';
+      $('camstat').textContent = 'Cam: retrying'; $('camstat').className = 'st bad';
       const t = setTimeout(startCamera, 8000);
       const kick = () => { clearTimeout(t); document.removeEventListener('visibilitychange', kick);
                            camCv.removeEventListener('touchstart', kick); startCamera(); };
