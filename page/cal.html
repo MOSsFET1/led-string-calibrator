@@ -71,7 +71,7 @@ window._onload = Date.now();      // fresh-context marker (survey-page lineage)
 // step boundary; config rides CALCFG=<json> (cmds file, one-shot like CFG=).
 // ============================================================================
 
-const BUILD = "S14R-0003-CAL";
+const BUILD = "S14R-0003B-CAL";   // 0003B: shipBatch 4 default (storm fix) baked into served page; mid-session CALCFG delivery unreliable 04 Oct (slot drained by boot-time poll, mid-session polls saw only rig CFG keys)
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable; SAME key names as survey.html) ------

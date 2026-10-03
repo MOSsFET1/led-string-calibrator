@@ -246,6 +246,18 @@ wire).
 5. capture.txt timestamps have no date; era-split by content
    (uptime `t`, build stamps, line numbers), not by label alone.
 
+**Postscript (23:0x, after the handover stamp):** battery attempt 2 did
+not survive — the page's websocket dropped 22:34:13 (phone screen/AE
+asleep; old-config instance) and no page has returned; the box still
+holds attempt-2 config (shipBatch 4, E5-skip) with 2 credits, so the
+battery self-starts whenever the phone wakes. Attempt-1's E5 idle trace
+is banked: 29 labels (27 clean, 2 quarantined `.trunc` — in-store
+capture truncation, deterministic across 9–12 re-ship occurrences; new
+bug species), wire-repaired byte-exact, PROVENANCE.json in-run,
+committed 06cdc6e/7f19e83. Overnight watcher armed on `done:true`
+(corrected full-growth scan — the stall false-positive was a 3 KB tail
+drowning in a 100 KB FJPEG dump). Banked-data analysis dispatched.
+
 **Morning plan (battery ends ~22:56):** extract runs dirs → parallel
 subagent analysis: (a) AE settle curves per L ± 2 s-hypothesis test,
 (b) all-ON vs 50%-duty same-L brightness, (c) raw-core blob metric
@@ -254,3 +266,53 @@ re-map), (e) E4 union(L) at {80,100,120,150} → objective function for
 the probe-revision build. Deliverable: probe-algorithm
 recommendation + proposed S14R-0004 changes. Then fix (7)'s CFG
 displacement in the same build.
+
+## 10. 04 Oct morning (S14R-0003b) — verified log
+
+Overnight: box stayed up, wire SILENT 22:34:13→08:09:27 true time.
+Then TWO failure modes, both now root-caused (read-only forensics
+committed with this file):
+
+1. **TLS wedge recurred heap-free (resident-asset hypothesis DEAD).**
+   08:09:27–08:11:06: 24/24 connection attempts failed at
+   `mbedtls_ssl_setup -0x7F00` — synchronous malloc failure (<12 ms,
+   never reached the network). Cleared by RTS→EN only. Mechanism (best
+   fit): largest-free-block freeze — each TLS attempt transiently
+   allocates ~33–37 KB (2×16 KB content bufs + cert/key/drbg), phone
+   fires 2–4 parallel sockets, WiFi softAP RX high-water (~51 KB)
+   reshapes the heap; between retry bursts NOTHING large allocates, so
+   the LFB never re-coalesces. App code clean (no Strings/NVS/leaks;
+   failure path frees everything — checked). Post-reset handshake
+   errors (−0x7780/−0x0050) are client retry noise on a healthy box —
+   NEVER reset on that label alone.
+
+2. **24-frame ship storm wedges the chain (page AND daemon).**
+   Sequence 09:00–09:31: multi-directive cmds file raced the page's
+   drv? poll on the single cfg slot → torn JSON ("E cfgparse" on the
+   page) → battery started on COMPILED defaults (E5 + shipBatch 24) →
+   24-frame batch ship-storm → wire froze 09:07:41 (daemon wedged,
+   died silently) → fresh page re-shipped the whole bench store after
+   WS reconnect (second storm input). Two daemon deaths today; each
+   needed kill + restart + (box reset).
+
+**Standing rule upgraded: cmds files carry ONE directive per file.**
+Multi-directive files are a torn-payload footgun; pacing with wire
+verification between sends is the only safe pattern. (Last night's
+single-file success was luck of polling phase.)
+
+**Build S14R-0003b (this file's postscript):** shipBatch 4 baked into
+the SERVED page (compiled default; no config delivery needed). BUILD
+stamp `S14R-0003B-CAL`; CAL_BUILD auto-synced by packer; compile
+1,353,250 B = 68% (verified battery running on it from 09:35:21).
+Rationale: mid-session CALCFG delivery is unreliable on 0003a (cfg
+slot drains at boot-time poll; later polls only re-deliver the rig
+CFG — observed: battery json never reached a mid-session page).
+S14R-0004 fix list grows: HEAPCAP beacon (wire-side heap telemetry:
+free/LFB/min-LFB on >4 KB change — discriminates wedge mechanisms at
+next morning storm), TLS content buffers → 8 KB + max_open_sockets
+1–2 + lru_purge + static WiFi RX sizing, 7F00 watchdog, abort button
+always visible (was hidden mid-battery), ws-state header must track
+real socket state. decode skip-if-exists collision: today's E5 idle
+labels (`cal:idle:NN`) were silently dropped against last night's
+run0 files — acceptable (attempt-1 idle banked), but labels in shared
+space stay day-stamped only because E1–E3 embed a day tag.
