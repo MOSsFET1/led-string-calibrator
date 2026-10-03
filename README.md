@@ -134,11 +134,11 @@ at it (bBurstB is overridden, telemetry fallback). All 14 S14R corpora
 bursts overdrove (lamp-core clip 17.1–56.0% at fixed bBurstB 150; tuning
 evidence `tools/tuning_s14r0002.json`), so the knee band is new ground.
 The console can run the calibration standalone (`PROBE` directive →
-`"probeOnly":true` CWCSTATS + BSTATS) and every burst's **BSTATS now
-carries {bright, histMed, clipPct, probeIters}** + `expAtBurst` — NOTE (03 Oct, verified on first 0002 burst): on CWC paths
-the probe telemetry ships in **CWCSTATS** (bright/histMed/clipPct/probeIters/
-probeSteps); BSTATS stays `{}` there by design and fills only on
-probe-only/all-on paths
+`"probeOnly":true` CWCSTATS + BSTATS). Every burst's probe telemetry +
+`expAtBurst` ships in **CWCSTATS** on CWC paths (03 Oct, verified on the
+first 0002 burst: bright/histMed/clipPct/probeIters/probeSteps) — on the
+wire, `BSTATS {}` right after CWCSTATS is the by-design CWC-path
+signature; BSTATS itself fills only on probe-only/all-on paths
 (`exposure readback fix`). Operator-simplified constants: `stepDelayMs`
 2000 spacing + a FIXED `waitSettleMs` 2000 hold, NO settle gate.
 
