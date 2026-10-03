@@ -126,7 +126,7 @@
     "step_gap_ms": 5000,
     "idle_frames": 60,
     "idle_gap_ms": 1000,
-    "ship_batch_frames": 24,
+    "ship_batch_frames": 4,
     "snapshot_jpeg_q": 0.5,
     "telemetry": {
       "per_step": "CALSTATS {kind:'step', exp, stepIdx|jump, L, duty, snaps, histMed (CWCSTATS recipe parity), coreP90 (raw-core P90 over self-segmented bright blobs: threshold blobSegThr + 4-conn components, blobMinPx), blobs, nCores, expReadback}",
@@ -138,6 +138,7 @@
       "thr": 40,
       "minPx": 4
     },
-    "estimated_full_battery_min": 26
+    "estimated_full_battery_min": 26,
+    "_ship_note": "shipBatch<=4 standing rule (03 Oct 22:19 storm: 24-frame batch, ~32 logc chunks/frame @115200 = ~90 s serial, chunk acks tries 2x2000ms blow the window, store never cleared, re-ship grows 25/26/27...)"
   }
 }
