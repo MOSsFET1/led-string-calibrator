@@ -135,8 +135,10 @@ bursts overdrove (lamp-core clip 17.1–56.0% at fixed bBurstB 150; tuning
 evidence `tools/tuning_s14r0002.json`), so the knee band is new ground.
 The console can run the calibration standalone (`PROBE` directive →
 `"probeOnly":true` CWCSTATS + BSTATS) and every burst's **BSTATS now
-carries {bright, histMed, clipPct, probeIters}** + `expAtBurst` — the
-exposure readback gap that made the 0001 POI era unverifiable is closed
+carries {bright, histMed, clipPct, probeIters}** + `expAtBurst` — NOTE (03 Oct, verified on first 0002 burst): on CWC paths
+the probe telemetry ships in **CWCSTATS** (bright/histMed/clipPct/probeIters/
+probeSteps); BSTATS stays `{}` there by design and fills only on
+probe-only/all-on paths
 (`exposure readback fix`). Operator-simplified constants: `stepDelayMs`
 2000 spacing + a FIXED `waitSettleMs` 2000 hold, NO settle gate.
 
@@ -167,7 +169,7 @@ flash.
 |---|---|---|
 | `nStr` / `nPerStr` | 8 / 200 | strings / LEDs per string (frame-bits geometry; full-rig defaults) |
 | `allB` | 160 | All-on button brightness |
-| `evBias` | -1 | exposureCompensation bias (Android only; re-applied AT BURST START since 0002; iOS runs POI-only, no evBias constraint at all) |
+| `evBias` | -1 | exposureCompensation bias (Android only; re-applied AT BURST START since 0002; iOS runs POI-only, no evBias constraint at all). 03 Oct operator call: STAYS at -1 — the -3 value never landed in a real burst (all 25 first-0002 readbacks ev=-1, zero CFG lines on the wire), every calibration corpus ran at -1, and iOS ignores it anyway so platform parity wins |
 | `cwcPoi` (+cwcPoiX/cwcPoiY) | 1 | camera-view tap sets AE/AFF POI (iOS lever); re-applied each burst; 4 s crosshair feedback (0002) |
 | `mergeR` | 6 | blob merge (detectDiffBlobs, the CWC pile-up reader) |
 | `bBurstN/Gap/Hold/B` | 20/0/1000/150 | bench burst frames, pacing, all-on hold, brightness (bBurstB overridden by a run probe's chosen level) |

@@ -50,7 +50,8 @@
     }
   },
   "exposure": {
-    "androidEvBiasBurstStart": -3,
+    "androidEvBiasBurstStart": -1,
+    "androidEvBiasNote": "03 Oct operator call: stays -1; the -3 intent never landed in a real burst (all 25 first-0002 readbacks ev=-1), all calibration corpora ran at -1, iOS ignores it",
     "iosPoi": "no evBias; POI tap + flash feedback + re-assert each burst"
   },
   "bstats_keys_added": [
