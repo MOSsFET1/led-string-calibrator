@@ -1,0 +1,15 @@
+{
+ "dir": "runs/daemon/runs/run0",
+ "what": "S14R-0003-CAL battery attempt 1 (22:19-22:34 Sydney), E5 idle trace only before ship-retry-storm abort",
+ "conditions": [
+  "room exp=799.98 (tonight); aem continuous; ev=-1",
+  "phone tripod, wall aim as morning 0944 rig",
+  "firmware S14R-0003a, cal.html first-load instance"
+ ],
+ "frames": {
+  "clean": 27,
+  "quarantined_truncated_in_store": 2
+ },
+ "provenance": "wire capture.txt 22:19-22:34, re-derived byte-exact keeping longest occurrence per label; labels cal:idle:00..28; screen/phone asleep after 22:34 websocket drop",
+ "end_status": "CALSTATS done:false mins:10.9 after ABRT; page websocket gone [PHONE-LOG] end 22:34:13"
+}
