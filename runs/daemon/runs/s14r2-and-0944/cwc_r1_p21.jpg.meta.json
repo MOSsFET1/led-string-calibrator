@@ -1,0 +1,10 @@
+{
+ "t": "63.767",
+ "label": "cwc:r1:p21",
+ "W": 406,
+ "H": 720,
+ "exp": "exp=500.05 aem=continuous ev=-1 fd=0.00",
+ "wire_ts": "09:46:06",
+ "fend_ts": "09:46:10",
+ "provenance": "wire capture.txt 09:44-09:46 S14R-0002 first android run (operator ground truth: this dir only)"
+}
