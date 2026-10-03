@@ -1,20 +1,30 @@
 #!/usr/bin/env python3
-"""S14R build-chain verifier: embedded page blob == gzipped page byte-exact.
-Adapted from verify_embed_1928.py (kept for history); stamps S14R-0002."""
-import gzip, base64, re
+"""S14R build-chain verifier: embedded page asset == gzipped page byte-exact.
+Adapted from verify_embed_1928.py (kept for history); stamps S14R-0002.
+
+Flash-asset era: PAGE_GZ is a compile-time C byte array in
+firmware/poc_survey/page_gz.h (packed by pack_page.py), replacing the old
+PAGE_GZ_B64 base64 string + malloc-RAM decode. All served-gz byte invariants
+are unchanged: decompressed array == page/survey.html bytes, header LEN
+matches, BUILD stamps present, served UI ids intact.
+"""
+import gzip, re, sys
 from pathlib import Path
 base = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "firmware" / "tools"))
+from page_assets import array_from_header, header_len
+
 ino = (base / 'firmware/poc_survey/poc_survey.ino').read_text()
+hdr = (base / 'firmware/poc_survey/page_gz.h').read_text()
 html = (base / 'page/survey.html').read_bytes()
-block = ino.split('PAGE_GZ_B64[] =', 1)[1].split(';\n', 1)[0]
-raw = base64.b64decode(''.join(re.findall(r'"([^"]+)"', block)))
+raw = array_from_header(hdr, 'PAGE_GZ')
 gz = gzip.compress(html, 9)
-mlen = re.search(r'PAGE_GZ_LEN = (\d+)', ino)
+mlen = header_len(hdr, 'PAGE_GZ')
 # NOTE: gzip.compress embeds a wall-clock MTIME in the header, so raw == fresh-gz
 # is only true within the same second. The real invariants: lossless roundtrip
-# (decompressed blob == page bytes) + stored length == fresh gzip length.
-print('embed roundtrip byte-exact (decompressed blob == page):', gzip.decompress(raw) == html)
-print('PAGE_GZ_LEN:', mlen.group(1) if mlen else '?', 'actual fresh gzip:', len(gz))
+# (decompressed array == page bytes) + stored length == fresh gzip length.
+print('embed roundtrip byte-exact (decompressed array == page):', gzip.decompress(raw) == html)
+print('PAGE_GZ_LEN:', mlen if mlen is not None else '?', 'actual fresh gzip:', len(gz))
 served = gzip.decompress(raw).decode()
 print('served stamp S14R-0002:', 'S14R-0002' in served)
 print('build stamps agree (page BUILD == sketch PAGE_BUILD):',
@@ -36,8 +46,14 @@ print('served iOS-no-evBias gate present:', 'isIOS' in served and
       'iOS gate: exposureCompensation was never exposed' in served)
 print('served probe directive handled:', "'PROBE'" in served)
 print('served label chip fill removed:', 'rgba(0,0,0,0.3)' not in served)
-print('served Survey button removed:', "id=\"bSurvey\"" not in served)
-print('served wake button removed:', "id=\"bWake\"" not in served)
+print('served Survey button removed:', 'id="bSurvey"' not in served)
+print('served wake button removed:', 'id="bWake"' not in served)
 print('served fixed close present:', 'end non-capture CWC decode branch' in served)
 print('served bank is 12OF24:', 'window.CWC_CODES_12OF24 = [' in served)
 print('served bank retired (no 9OF18):', 'CWC_CODES_9OF18' not in served)
+# flash-asset wiring checks (replaces the old base64-string presence checks)
+print('sketch serves the flash array directly (no B64 consts, no RAM bufs):',
+      'gz_page_send(req, PAGE_GZ, PAGE_GZ_LEN)' in ino and
+      'PAGE_GZ_B64' not in ino and 'uint8_t* pageGz' not in ino)
+print('sketch includes the page_gz.h header:', '#include "page_gz.h"' in ino)
+print('header array length matches header LEN:', len(raw) == (mlen if mlen else -1))
