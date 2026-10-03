@@ -11,5 +11,6 @@
   "quarantined_truncated_in_store": 2
  },
  "provenance": "wire capture.txt 22:19-22:34, re-derived byte-exact keeping longest occurrence per label; labels cal:idle:00..28; screen/phone asleep after 22:34 websocket drop",
- "end_status": "CALSTATS done:false mins:10.9 after ABRT; page websocket gone [PHONE-LOG] end 22:34:13"
+ "end_status": "CALSTATS done:false mins:10.9 after ABRT; page websocket gone [PHONE-LOG] end 22:34:13",
+ "quarantine_note": "truncated frames kept LOCAL-ONLY (.trunc, untracked per no-images rule; byte sizes 17550/15525, every re-ship occurrence identical length -> truncation happened at capture/store time, not transport)"
 }
