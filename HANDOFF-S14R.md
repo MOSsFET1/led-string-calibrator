@@ -1,9 +1,11 @@
 # Handover — S14R (LED survey R-line: 12-of-24 coded bursts)
 
-Written 02 Oct late (session of S14R-0002 completion). **If only one
-thing is true, it's this:** box firmware is being flashed to
-**S14R-0002**, commit `3f22c2a` is origin/main, and every S14R-era
-claim below is backed by a verified console report in `reports/`.
+Written 02 Oct late (S14R-0002 completion). Updated 03 Oct night after
+the CAL-battery build + reflash — **if only one thing is true, it's
+this:** box firmware is **S14R-0003a** (cal battery, pages served from
+FLASH), origin/main is in the `36e72e3..8f0d62b` range, §9 is the
+night's verified log, and every S14R-era claim below is backed by a
+console report in `reports/`.
 Author of this handover checked primary evidence (wire logs, QA logs,
 git) — trust it over memory notes; when it conflicts with anything,
 re-verify against the repo.
@@ -36,6 +38,7 @@ re-verify against the repo.
 | S14R-0000 | 02 Oct | 12-of-24 Golay bank migration (from 9-of-18), 24-plane bursts | d_min 4→8; QA 10/10 PASS; phone 309/600 round-1 |
 | S14R-0001 | 02 Oct | burst under camera; 1–8 string row (box CFG still authoritative); survey+wake buttons removed; evBias re-apply at burst; iOS POI tap (cwcPoi) | POI pixel-inert (measured); exp='' readback gap |
 | S14R-0002 | 02 Oct | **pre-burst brightness probe** (solid-ON `cwcSolidMs`, lamp-core P90→knee 235–250, clip ≤5%); **adaptive mask thr** `min(cwcMaskThr, max(45, 1.12·histMed))`; BSTATS telemetry (ships in CWCSTATS on CWC paths); chip dark square removed; Android evBias stays −1 (−3 retired 03 Oct before ever landing); POI tap feedback | QA PASS exit 0; verify_embed 47,408 B roundtrip |
+| S14R-0003 / 0003a | 03 Oct | **CAL battery** `/cal` (autonomous tripod experiments E5 idle / E1 all-ON L-ladder 5→179 / E2 50%-duty ladder via exact coded plane / E3 settle jumps 5↔120 @250 ms / E4 real 24-plane bursts at L∈{80,100,120,150}) + `CALCFG=`/`CAL`/`CALSTATS` wire; **pages served from FLASH** const arrays (RAM-resident + lazy variants both failed — see §9); cal.html `camstat` id fix; bench_daemon serial-blip hardening | compile 1,353,122 B = 68%; ship-retry storm data still saved by disk dedup |
 
 Compile FQBN (mandatory, bare FQBN overflows):
 `esp32:esp32:esp32c6:CDCOnBoot=cdc,PartitionScheme=min_spiffs`
@@ -152,6 +155,16 @@ CORRECTION block — the amp25 "+97" there was refuted; true +33),
    if any operator report says "string-2 end".
 6. **Harness speed** — QA runs 4.5–8 min with the probe choreography
    (mock box paints in real time); a fast-probe mock mode would help.
+7. **CALCFG displaces rig CFG on the cal page** — the page's single
+   `drv?` poll consumed CALCFG and never applied the rig CFG, so the
+   battery-end CALSTATS self-reported `cwcN:1600` (cap-gap trap class).
+   Console decode unaffected (authoritative). Fix in next build: deliver
+   CFG **after** CALCFG, or give the cal page its own poll.
+8. **TLS wedge root cause** — §4's resident-asset heap hypothesis is now
+   the best-supported explanation; 0003a (flash-resident pages) is the
+   retest. If storms recur heap-free, escalate to a real probe session.
+9. **Morning analysis of the 22:30 battery** — plan in §9 (settle curves,
+   duty comparison, raw-metric feasibility, transfer curve, union(L)).
 
 ## 7. Environment pointers
 
@@ -164,6 +177,11 @@ CORRECTION block — the amp25 "+97" there was refuted; true +33),
 - QA: `tools/cdp_1904_check.py` — ~4.5–8 min; run DETACHED
   (`setsid nohup ... > /tmp/qa.log 2>&1 &`), poll the LOG, never wait
   in a capped call; mock box is self-spawned; the REAL port forbidden.
+- **/cal battery**: https://192.168.4.1/cal (BUILD `S14R-0003-CAL`);
+  drive via daemon cmds files — `CALCFG={...}` + `CAL` one-shot (start),
+  `ABRT` (stop), `BRAMP` (re-ship); keep `shipBatch: 4` (§9 storm);
+  constants in `tools/tuning_s14r0002.json` (calBattery); full interface
+  spec `reports/s14r-0003-cal-battery-cmds.md`.
 - Corpora: `runs/daemon/runs/s14r-*` (each 25 jpgs + metas); era
   imagery local-only per `.gitignore` (metas/ledpos/frames packs
   tracked). Quarantines: `s14p-drained-*`, `x-drain-*`,
@@ -183,3 +201,56 @@ CORRECTION block — the amp25 "+97" there was refuted; true +33),
 - Subagents for heavy reads/compute; main session = decisions + serial
   + git + verified results only. Verify every important claim with a
   tool before asserting it.
+
+## 9. 03 Oct night log (S14R-0003 → reflash → battery) — verified incidents
+
+**Timeline (all verified on the wire or from code, line refs at time):**
+day session: evBias −3 decision (stays −1, docs/json updated) + first
+0002 burst reports committed/pushed; night: S14R-0003 battery build →
+flash 21:0x → **connection-refused wedge** (mbedtls −0x7F00
+SSL_SETUP_FAILED at 21:21:12 with ZERO wss clients — cal asset's
+~26 KB resident from boot starved TLS session setup) → lazy-decode
+reflash → `/cal` serves its own 500 "page not loaded" (decodeB64
+couldn't malloc 25.8 KB contiguous mid-session; wire showed no
+"asset decoded" at request time) → **S14R-0003a flash-resident pages**
+(decodeB64/decodePage/malloc buffers DELETED; handlers serve const
+PROGMEM arrays; RAM globals 62,500 B) → `/cal` loads but camera stuck
+"Cam: starting" + no wake lock → root cause ONE dom-bug: code wrote
+`$('camst')` but element id is `camstat` — null-deref killed
+startCamera BEFORE getUserMedia AND before boot line 952's
+requestWake(); fixed (4 refs), repacked, verified, reflashed →
+battery armed and phone started it 22:19-ish (26+ E5 idle frames,
+room at exp=799.98 tonight) → operator: "stuck on E5, ship 24 then
+25/26/27/28/29 frames with minutes between" → wire forensics: SAME
+base64 payloads re-shipped repeatedly = **ship-retry storm**: every
+logc chunk awaits an ack (tries 2 × timeout 2000), box relays at
+115200 ≈ 3.5 s/frame so the 24-frame batch (~90 s serial time) blows
+the window, chunks retry, ship abandons WITHOUT clearing the store,
+next trigger re-ships all → growing counts, ~minutes/attempt; the
+daemon's disk dedup saved the data anyway (28 jpgs in run0/) →
+battery ABRT'd cleanly 22:29:44 (`done:false, mins:10.9`) →
+restarted 22:30:18 with shipBatch 4, E5 skipped (idle data already on
+wire).
+
+**Standing traps learned tonight (all new):**
+1. Ship-chunk acks vs baud: keep **shipBatch ≤ 4** on any burst-size
+   ship; ~32 logc chunks/frame at 3.5 s/frame relay dominates.
+2. Manual serial banner checks **reboot the C6** (`rst:0x15
+   USB_UART_HPSYS` on control-line transitions) — check banners via
+   the daemon wire, never open the port while the daemon holds it
+   (kill daemon first, port frees, and then prefer the wire).
+3. Never serve big assets from RAM/heap on a TLS box; flash const
+   arrays are the pattern (packers page_assets.py / verify_flash_pages.py).
+4. Daemon cmds auto-execute at cold start even with no page connected
+   (2-credit slot replay design) — staging order matters, not timing.
+5. capture.txt timestamps have no date; era-split by content
+   (uptime `t`, build stamps, line numbers), not by label alone.
+
+**Morning plan (battery ends ~22:56):** extract runs dirs → parallel
+subagent analysis: (a) AE settle curves per L ± 2 s-hypothesis test,
+(b) all-ON vs 50%-duty same-L brightness, (c) raw-core blob metric
+feasibility at L=5+, (d) instrument-vs-raw transfer curve (band
+re-map), (e) E4 union(L) at {80,100,120,150} → objective function for
+the probe-revision build. Deliverable: probe-algorithm
+recommendation + proposed S14R-0004 changes. Then fix (7)'s CFG
+displacement in the same build.
