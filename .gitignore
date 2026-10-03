@@ -25,3 +25,5 @@ runs/**/led_overlay.png
 
 # morning-era run1 preservation dirs (all backups): imagery local-only
 runs/daemon/runs/run1/morning_*_backup*/
+
+runs/daemon/runs/*/*.trunc
