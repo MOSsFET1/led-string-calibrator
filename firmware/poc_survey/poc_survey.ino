@@ -197,7 +197,7 @@ static uint8_t sCalCfgReplay = 2;
 // experiments (scanning flag from drv? traffic), solid RED until a page
 // with the CURRENT build stamps hello (new code ready to load on phone)
 static const char PAGE_BUILD[] = "S14R-0002";   // keep in sync with the page BUILD
-static const char CAL_BUILD[] = "S14R-0003D-CAL"; // the /cal battery page's stamp
+static const char CAL_BUILD[] = "S14R-0003E-CAL"; // the /cal battery page's stamp
                                                  // (S14R-0003; pack_cal_page.py keeps
                                                  // it in sync with page/cal.html's BUILD)
 static bool sBuildMatched = false;             // page hello matched PAGE_BUILD

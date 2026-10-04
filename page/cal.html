@@ -71,9 +71,11 @@ window._onload = Date.now();      // fresh-context marker (survey-page lineage)
 // step boundary; config rides CALCFG=<json> (cmds file, one-shot like CFG=).
 // ============================================================================
 
-const BUILD = "S14R-0003D-CAL";   // 0003D: E4 tear guard (row-discontinuity metric + silent
-                                  // re-paint/regrab x2, still-torn ships with torn:1 FRAME
-                                  // meta; E4-only CALCFG order verified, no page fix needed)
+const BUILD = "S14R-0003E-CAL";   // 0003E: tear thresholds re-tuned for the short-exposure
+                                  // regime (thr 18→26, thrRed 6→8.5 — 0003D's live E4-only
+                                  // battery @exp300.03 showed clean-max 13.4 vs cal-regime 10.6,
+                                  // 61/96 regrabs) + benchPull now ships torn/tm meta (0003D
+                                  // dropped the extras — flags never reached disk)
                                   // 0003C: benchPull splice fix — drop shipped prefix (re-ship storm ROOT CAUSE: store never cleared; survey clears at next-burst, battery loop has no boundary)
 const $ = (id) => document.getElementById(id);
 
@@ -444,9 +446,12 @@ function benchCapture(label, extra) {
     c.width = W; c.height = H;
     c.getContext('2d').drawImage(procCv, 0, 0, W, H);
     const jpg = c.toDataURL('image/jpeg', CAL.snapJpegQ).split(',')[1];
-    const meta = { t: ((Date.now() - t0) / 1000).toFixed(3), label, W, H,
-                   exp: expLine() };
-    if (extra) Object.assign(meta, extra);
+    // 0003E FIX: carry the FULL stored meta (not a fixed field list) so the
+    // tear guard's torn:1/tm extras survive to the wire and <label>.meta.json
+    // (0003D shipped {t,label,W,H,exp} only — flags were silently dropped).
+    const meta = Object.assign({ t: ((Date.now() - t0) / 1000).toFixed(3),
+                                 label, W, H, exp: expLine() },
+                               extra || {});
     benchStore.push(Object.assign(meta, { jpg }));
     if (benchStore.length > benchMax) {
       const lost = benchStore[0].label;
@@ -506,10 +511,16 @@ function setButtons() {
 // bench without repacking).
 const TEAR = {
   skipTop: 120,           // rows below this are not examined (y104 rig edge)
-  thr: 18,                // luma max-row-jump -> torn (page recipe: torn 57.5/28.5,
-                          // clean <= 10.6, p95 9.9; sib may re-tune)
-  thrRed: 6,              // red-vs-luma divergence jump -> torn (p05 y383: 8.5,
-                          // clean <= 2.4 — the ONLY signal on that frame)
+  thr: 26,                // luma max-row-jump -> torn (0003E: was 18 @0003D
+                          // calibration exp 699.97 — LIVE 0003D battery ran
+                          // exp 300.03 where clean max = 13.4 → 61/96 planes
+                          // regrabbed, 15 page-flagged, 0-1 real tears; 26 =
+                          // 1.94x tonight's clean max, still 2.9x the r8-p07
+                          // gray tear 57.5-class... see thrRed for the
+                          // red-only species; sib may re-tune per exposure)
+  thrRed: 8.5,            // red-vs-luma divergence jump -> torn (0003E: was 6;
+                          // 0003D live battery's true tear r12 p15 scored
+                          // jR 16.5 → 1.94x margin; clean max 2.9 → 2.9x)
   retries: 2,             // re-paint + regrab attempts per plane
 };
 // Metric on the procCx grab (canvas drawImage downscale = area-average; the
@@ -983,7 +994,9 @@ async function benchPull() {
   try {
     log('cal ship: ' + benchStore.length + ' frames');
     for (const f of benchStore) {
-      const meta = JSON.stringify({ t: f.t, label: f.label, W: f.W, H: f.H, exp: f.exp });
+      const meta = JSON.stringify({ t: f.t, label: f.label, W: f.W, H: f.H,
+                                    exp: f.exp,
+                                    torn: f.torn, tm: f.tm });
       await sendCmd({ cmd: 'logc', d: 'FRAME ' + meta }, { tries: 2, timeout: 2000 });
       await sleep(30);
       for (let i = 0; i < f.jpg.length; i += 900) {
