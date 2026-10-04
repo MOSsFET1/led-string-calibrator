@@ -75,6 +75,16 @@ PRESETS: dict = {
         out_rel='e4003d',
         fullbase='../../../runs/',
     ),
+    'e4003e': dict(
+        run_dirs=['s14r0003e-r2', 's14r0003e-r3', 's14r0003e-r4', 's14r0003e-r5'],
+        e4_l={2: 80, 3: 100, 4: 120, 5: 150},
+        sec_meta=[('E4', 'E4 · CWC bursts — S14R-0003E clean re-run')],
+        title='S14R-0003E E4-only battery · gallery',
+        h1='S14R-0003E E4-only battery · image corpus gallery',
+        summary='s14r0003e-r2..r5 (exp 699.97, wire-verified, zero tears)',
+        out_rel='e4003e',
+        fullbase='../../../runs/',
+    ),
 }
 
 RX_IDLE = re.compile(r'cal_idle_(\d+)$')
