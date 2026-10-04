@@ -50,6 +50,33 @@ SEC_META = [
     ('E4', 'E4 · CWC bursts (real 24-plane rigs)'),
 ]
 
+# Presets (2026-10-04): '0003c' = the ORIGINAL milestone-corpus gallery (paths
+# and layout unchanged); 'e4003d' = S14R-0003D's E4-only tear-guard validation
+# battery, wire-extracted (runs/daemon/analysis/e4_0003d_extract/) into dated
+# dirs s14r0003d-r9..r12 (epochs r9/r10/r11 landed wire-only: their run-dir
+# labels collided with the milestone battery's dirs — r12 is identical on disk
+# and wire, sha-checked 25/25). Output: analysis/gallery/e4003d/index.html.
+PRESETS: dict = {
+    '0003c': dict(
+        run_dirs=RUN_DIRS, e4_l=E4_L, sec_meta=SEC_META,
+        title='S14R-0003c battery corpus · gallery',
+        h1='S14R-0003c calibration battery · image corpus gallery',
+        summary='run0 + run8..run11',
+        out_rel='',  # under analysis/gallery/
+        fullbase='../../runs/',
+    ),
+    'e4003d': dict(
+        run_dirs=['s14r0003d-r9', 's14r0003d-r10', 's14r0003d-r11', 's14r0003d-r12'],
+        e4_l={9: 80, 10: 100, 11: 120, 12: 150},
+        sec_meta=[('E4', 'E4 · CWC bursts — S14R-0003D tear-guard validation')],
+        title='S14R-0003D E4-only battery · gallery',
+        h1='S14R-0003D E4-only battery · image corpus gallery',
+        summary='s14r0003d-r9..r12 (exp 300.03, wire-verified)',
+        out_rel='e4003d',
+        fullbase='../../../runs/',
+    ),
+}
+
 RX_IDLE = re.compile(r'cal_idle_(\d+)$')
 RX_LAD  = re.compile(r'cal_E([12])_L(\d+)_(\d+)$')
 RX_E3   = re.compile(r'cal_E3_(.+)_t(\d+)$')
@@ -80,10 +107,11 @@ def mk(jpg, sec, sub, k, cap, anomalies):
     )
 
 
-def scan_corpus(anomalies):
+def scan_corpus(anomalies, cfg):
     buckets = {}
     dims = set()
-    for run in RUN_DIRS:
+    run_dirs, e4_l = cfg['run_dirs'], cfg['e4_l']
+    for run in run_dirs:
         d = RUNS / run
         if not d.is_dir():
             sys.exit('missing run dir: %s' % d)
@@ -110,14 +138,14 @@ def scan_corpus(anomalies):
                         m = RX_E4.fullmatch(stem)
                         if m:
                             n, p = int(m.group(1)), m.group(2)
-                            if n not in E4_L:
+                            if n not in e4_l:
                                 sys.exit('unknown CWC epoch run%d — extend E4_L' % n)
                             if p == 'master':
-                                rec = mk(jpg, 'E4', 'epoch %s · L=%d' % (jpg.parent.name, E4_L[n]),
+                                rec = mk(jpg, 'E4', 'epoch %s · L=%d' % (jpg.parent.name, e4_l[n]),
                                          1000, 'master', anomalies)
                             else:
                                 k = int(m.group(3))
-                                rec = mk(jpg, 'E4', 'epoch %s · L=%d' % (jpg.parent.name, E4_L[n]),
+                                rec = mk(jpg, 'E4', 'epoch %s · L=%d' % (jpg.parent.name, e4_l[n]),
                                          k, 'p%02d' % k, anomalies)
                         else:
                             sys.exit('unmatched stem %s/%s — extend the regexes' % (run, stem))
@@ -126,9 +154,9 @@ def scan_corpus(anomalies):
     return buckets, dims
 
 
-def order_sections(buckets):
+def order_sections(buckets, cfg):
     subs_by_sec = {}
-    for sec_id, _ in SEC_META:
+    for sec_id, _ in cfg['sec_meta']:
         keys = [k for k in buckets if k[0] == sec_id]
         if not keys:
             sys.exit('corpus missing an expected section: %s' % sec_id)
@@ -142,12 +170,12 @@ def order_sections(buckets):
             subs_by_sec[sec_id] = subs
         else:  # E4 epochs in run order
             subs = []
-            for run in ('run8', 'run9', 'run10', 'run11'):
-                n = int(run[3:])
-                key = ('E4', 'epoch %s · L=%d' % (run, E4_L[n]))
+            for run in cfg['run_dirs']:
+                n = int(re.sub(r'^.*?(\d+)$', r'\1', run))
+                key = ('E4', 'epoch %s · L=%d' % (run, cfg['e4_l'][n]))
                 if key not in buckets:
                     sys.exit('missing E4 epoch %s' % run)
-                subs.append({'label': 'epoch %s · L=%d' % (run, E4_L[n]),
+                subs.append({'label': 'epoch %s · L=%d' % (run, cfg['e4_l'][n]),
                              'items': sorted(buckets[key], key=lambda r: r['k'])})
             subs_by_sec[sec_id] = subs
     return subs_by_sec
@@ -207,7 +235,7 @@ HTML_TMPL = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>S14R-0003c battery corpus \u00b7 gallery</title>
+<title>@@TITLE@@</title>
 <style>
 :root{--bg:#0d1117;--panel:#161b22;--fg:#d8dee6;--dim:#8a93a2;--acc:#4aa3ff;--line:#232b38;--hdr:#1a212c}
 *{box-sizing:border-box}
@@ -254,8 +282,8 @@ section.collapsed .sec-body{display:none}
 </head>
 <body>
 <header class="page">
-<h1>S14R-0003c calibration battery \u00b7 image corpus gallery</h1>
-<div class="count-total">@@TOTAL@@ images (run0 + run8..run11) \u00b7 generated @@STAMP@@ \u00b7 dark bench theme \u00b7 click a thumbnail for full size \u00b7 \u2190/\u2192 step \u00b7 Esc closes</div>
+<h1>@@H1@@</h1>
+<div class="count-total">@@TOTAL@@ images (@@SUMMARY@@) \u00b7 generated @@STAMP@@ \u00b7 dark bench theme \u00b7 click a thumbnail for full size \u00b7 \u2190/\u2192 step \u00b7 Esc closes</div>
 </header>
 <main>
 @@BODY@@
@@ -278,7 +306,7 @@ section.collapsed .sec-body{display:none}
 JS_TMPL = r"""(function () {
   var IMGS = @@IMGS@@;                     /* [{r:run, f:file, lb:wire label, t:t, e:exp}] */
   var N = IMGS.length;
-  var FULLBASE = '../' + '../runs/';       /* index.html sits at runs/daemon/analysis/gallery/ */
+  var FULLBASE = '@@FULLBASE@@';           /* up to runs/daemon/runs from the index page */
   var lb = document.getElementById('lightbox');
   var img = document.getElementById('lbImg');
   var cap = document.getElementById('lbCaption');
@@ -344,9 +372,9 @@ JS_TMPL = r"""(function () {
 """
 
 
-def make_thumb(it, force, failures):
+def make_thumb(it, force, failures, gal=GAL):
     src = RUNS / it['run'] / it['file']
-    tdir = GAL / 'thumbs' / it['run']
+    tdir = gal / 'thumbs' / it['run']
     tdir.mkdir(parents=True, exist_ok=True)
     dst = tdir / (it['stem'] + '.jpg')
     if not force and dst.exists() and dst.stat().st_size > 0 \
@@ -370,16 +398,21 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--force-thumbs', action='store_true',
                     help='rebuild every thumbnail even when a cached one exists')
+    ap.add_argument('--preset', choices=sorted(PRESETS), default='0003c',
+                    help="which corpus preset to build (default: the original "
+                         "S14R-0003c milestone gallery)")
     args = ap.parse_args()
+    cfg = PRESETS[args.preset]
+    gal = GAL if not cfg['out_rel'] else GAL / cfg['out_rel']
 
     anomalies = []
-    buckets, dims = scan_corpus(anomalies)
+    buckets, dims = scan_corpus(anomalies, cfg)
     if len(dims) > 1:
         anomalies.append('non-uniform image dims in metas: %s' % sorted(dims))
 
-    subs_by_sec = order_sections(buckets)
+    subs_by_sec = order_sections(buckets, cfg)
     flat = []
-    for sec_id, _ in SEC_META:
+    for sec_id, _ in cfg['sec_meta']:
         for s in subs_by_sec[sec_id]:
             for it in s['items']:
                 it['i'] = len(flat)
@@ -395,7 +428,7 @@ def main():
     failures = []
     built = cached = 0
     for n, it in enumerate(flat):
-        res = make_thumb(it, args.force_thumbs, failures)
+        res = make_thumb(it, args.force_thumbs, failures, gal)
         if res == 'built':
             built += 1
         elif res == 'cached':
@@ -408,21 +441,27 @@ def main():
     imgs_compact = [{'r': it['run'], 'f': it['file'], 'lb': it['label'],
                      't': it['t'], 'e': it['exp']} for it in flat]
     js = JS_TMPL.replace('@@IMGS@@', json.dumps(imgs_compact, separators=(',', ':')))
-    body = ''.join(section_html(sec_id, title, subs_by_sec[sec_id]) for sec_id, title in SEC_META)
+    js = js.replace('@@FULLBASE@@', cfg['fullbase'])
+    body = ''.join(section_html(sec_id, title, subs_by_sec[sec_id])
+                   for sec_id, title in cfg['sec_meta'])
     page = (HTML_TMPL
             .replace('@@TOTAL@@', str(total))
             .replace('@@STAMP@@', time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime()))
+            .replace('@@H1@@', cfg['h1'])
+            .replace('@@TITLE@@', cfg['title'])
+            .replace('@@SUMMARY@@', cfg['summary'])
+            .replace('@@FULLBASE@@', cfg['fullbase'])
             .replace('@@BODY@@', body)
             .replace('@@JS@@', js))
     if '@@' in page:
         sys.exit('unsubstituted template token left in page')
 
-    GAL.mkdir(parents=True, exist_ok=True)
-    out = GAL / 'index.html'
+    gal.mkdir(parents=True, exist_ok=True)
+    out = gal / 'index.html'
     out.write_text(page, encoding='utf-8')
 
     got = sorted('%s/%s' % (p.parent.name, p.name)
-                 for p in (GAL / 'thumbs').glob('*/*.jpg'))
+                 for p in gal.joinpath('thumbs').glob('*/*.jpg'))
     want = sorted('%s/%s.jpg' % (it['run'], it['stem']) for it in flat)
     if got != want:
         missing = sorted(set(want) - set(got))
@@ -434,8 +473,8 @@ def main():
             anomalies.append('thumb extra e.g. %s' % extra[:5])
 
     print('scan: ' + ' '.join('%s=%d' % (sid, sum(len(s['items']) for s in subs_by_sec[sid]))
-                              for sid, _ in SEC_META) + ' → total %d' % total)
-    for sid, _ in SEC_META:
+                              for sid, _ in cfg['sec_meta']) + ' → total %d' % total)
+    for sid, _ in cfg['sec_meta']:
         print('  %s: %s' % (sid, ', '.join('%s(%d)' % (s['label'] or '—', len(s['items']))
                                            for s in subs_by_sec[sid])))
     print('thumbs: built=%d cached=%d failed=%d (width %d, q%d)'
