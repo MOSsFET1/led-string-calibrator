@@ -1,0 +1,12 @@
+EXECUTIVE SUMMARY (S14R-0003E E4 battery decode, 04 Oct night — for the operator)
+
+1. Decoded all 4 epochs (r2=L80/r3=L100/r4=L120/r5=L150, n=600, CLI-parity machinery; driver proven EXACT vs the shipped v2 decode on 0003c run8+run9 — identical ids/amp/margin/sites).
+2. Confirmed: 423 / 383 / 385 / 398 (L80/L100/L120/L150). vs 0003c reference 412/454/390/411 → L80 +11, L100 −71, L120 −5, L150 −13.
+3. Unions: best pair 80+150=437, best triple 80+100+150=442, 4-burst 443, never-seen 157. Every union is BELOW reference (−6 to −66; 4-burst −38, never-seen +38).
+4. The 0003c operating point is OVERTURNED: L=100 (ref's best by +42) is tonight the WORST epoch; best single is L=80; L120's best-complement effect did not reproduce (adds only +1 to the 80+100+150 set).
+5. Loss census flips the diagnosis: mask-stage 0, amp-gate 0, margin-gate 0 at EVERY L — zero photometric-gate losses. Misses are interference: contest 131/170/175/170 + suppressed 46/47/40/32.
+6. Every contest miss carries amp ≥ 40 at a codeword-owned pixel with a rival's argmax on top (margins ≈ −80) — the known CLI-eats-contest-losers lever, measured tonight at 25 ids/epoch in the walk-eaten class plus the full contest mass.
+7. Never-seen ids (157) are NOT dark: best-evidence amps 44–56 (above gate) with huge negative margins — rival-contest victims, same anatomy as the hard floor.
+8. Clean-set verdict: fix L=80 (423 + best complement anchor in every pair); fixed set {80,150}=437 / {80,100,150}=442. But treat Lchoice as weak — same-photometry night-to-night spread (454→383 at L100) exceeds the per-L spread; suppression dynamics, not brightness, dominate counting.
+9. Opportunity ranked: (1) CLI page-parity contest redesign, up to +25 single-burst, 18–19/25 never-seen otherwise; (2) pair 80+150 (+14 over best single); (3) per-codeword suppression window (32–47 colocated-window ids/epoch, clean amp/margin evidence); (4) ladder order still optimal in-battery; (5) photometric gates: nothing to gain tonight.
+10. Hygiene: all 100 frames wire-verified (EOI+PIL+sha) pre-analysis; r5's 5 torn:false-error flags decoded in-place (k in-family 0.633 vs 0.48–0.65, no 0003c-style k outliers); runs/ read-only, no serial, no git, no daemon touches.

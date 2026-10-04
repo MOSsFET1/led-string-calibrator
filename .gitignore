@@ -30,3 +30,5 @@ runs/daemon/runs/*/*.trunc
 runs/daemon/analysis/**/repaired/
 runs/daemon/analysis/**/*.pkl
 runs/daemon/analysis/gallery/thumbs/
+
+runs/daemon/analysis/gates_e4003e/_*.npy

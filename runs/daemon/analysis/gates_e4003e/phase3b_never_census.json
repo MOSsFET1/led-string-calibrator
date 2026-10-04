@@ -1,0 +1,671 @@
+{
+ "never_ids": [
+  40,
+  41,
+  43,
+  44,
+  50,
+  61,
+  63,
+  64,
+  73,
+  74,
+  75,
+  76,
+  77,
+  78,
+  79,
+  80,
+  83,
+  84,
+  102,
+  108,
+  113,
+  128,
+  129,
+  130,
+  131,
+  141,
+  149,
+  160,
+  182,
+  183,
+  184,
+  185,
+  186,
+  187,
+  188,
+  189,
+  190,
+  191,
+  192,
+  193,
+  194,
+  195,
+  196,
+  197,
+  198,
+  199,
+  217,
+  233,
+  234,
+  241,
+  261,
+  262,
+  263,
+  264,
+  265,
+  266,
+  267,
+  274,
+  275,
+  276,
+  278,
+  279,
+  280,
+  281,
+  282,
+  296,
+  297,
+  300,
+  301,
+  302,
+  304,
+  305,
+  306,
+  307,
+  308,
+  309,
+  310,
+  311,
+  312,
+  313,
+  314,
+  315,
+  316,
+  317,
+  319,
+  320,
+  321,
+  322,
+  323,
+  324,
+  325,
+  326,
+  327,
+  328,
+  329,
+  330,
+  331,
+  333,
+  334,
+  337,
+  355,
+  364,
+  367,
+  368,
+  369,
+  370,
+  371,
+  372,
+  381,
+  382,
+  383,
+  384,
+  385,
+  387,
+  388,
+  389,
+  391,
+  392,
+  393,
+  394,
+  395,
+  396,
+  397,
+  398,
+  399,
+  418,
+  419,
+  461,
+  462,
+  494,
+  504,
+  505,
+  506,
+  507,
+  508,
+  509,
+  541,
+  544,
+  545,
+  546,
+  547,
+  548,
+  551,
+  553,
+  554,
+  558,
+  560,
+  567,
+  573,
+  576,
+  577,
+  578,
+  579,
+  582,
+  587,
+  597,
+  598
+ ],
+ "epochs": {
+  "r2": {
+   "L": 80,
+   "never_missing_n": 157,
+   "this_epoch_only_n": 20,
+   "never_by_class": {
+    "contest_at_own_best": 69,
+    "amp_gate": 83,
+    "site_empty_walk": 5
+   },
+   "never_pass_own_gates": 5,
+   "never_pass_guarded": 4,
+   "never_pass_ids": [
+    149,
+    182,
+    418,
+    578,
+    579
+   ],
+   "never_pass_detail": {
+    "149": {
+     "amp": 43.8,
+     "margin": 22.7,
+     "owner": 149,
+     "site": [
+      313,
+      275
+     ],
+     "passes_own": true,
+     "d_interp": 2.9,
+     "d_anchor": null,
+     "d_claim": 6.7,
+     "guarded": true
+    },
+    "182": {
+     "amp": 51.1,
+     "margin": 27.9,
+     "owner": 182,
+     "site": [
+      282,
+      227
+     ],
+     "passes_own": true,
+     "d_interp": 34.2,
+     "d_anchor": null,
+     "d_claim": 5.0,
+     "guarded": true
+    },
+    "418": {
+     "amp": 88.9,
+     "margin": 49.8,
+     "owner": 418,
+     "site": [
+      322,
+      368
+     ],
+     "passes_own": true,
+     "d_interp": 6.0,
+     "d_anchor": null,
+     "d_claim": 5.0,
+     "guarded": true
+    },
+    "578": {
+     "amp": 43.3,
+     "margin": 20.3,
+     "owner": 578,
+     "site": [
+      280,
+      191
+     ],
+     "passes_own": true,
+     "d_interp": 17.2,
+     "d_anchor": null,
+     "d_claim": 4.1,
+     "guarded": true
+    },
+    "579": {
+     "amp": 47.7,
+     "margin": 26.3,
+     "owner": 579,
+     "site": [
+      278,
+      189
+     ],
+     "passes_own": true,
+     "d_interp": 18.2,
+     "d_anchor": null,
+     "d_claim": 6.7,
+     "guarded": false
+    }
+   },
+   "te_pass_own_gates": 2,
+   "te_pass_guarded": 2,
+   "te_pass_ids": [
+    111,
+    146
+   ],
+   "te_pass_detail": {
+    "111": {
+     "amp": 47.1,
+     "margin": 26.2,
+     "owner": 111,
+     "site": [
+      279,
+      187
+     ],
+     "passes_own": true,
+     "d_interp": 2.6,
+     "d_anchor": null,
+     "d_claim": 5.0,
+     "guarded": true
+    },
+    "146": {
+     "amp": 50.8,
+     "margin": 27.3,
+     "owner": 146,
+     "site": [
+      318,
+      297
+     ],
+     "passes_own": true,
+     "d_interp": 5.1,
+     "d_anchor": null,
+     "d_claim": 5.4,
+     "guarded": true
+    }
+   }
+  },
+  "r3": {
+   "L": 100,
+   "never_missing_n": 157,
+   "this_epoch_only_n": 60,
+   "never_by_class": {
+    "amp_gate": 141,
+    "contest_at_own_best": 13,
+    "site_empty_walk": 3
+   },
+   "never_pass_own_gates": 3,
+   "never_pass_guarded": 2,
+   "never_pass_ids": [
+    182,
+    418,
+    579
+   ],
+   "never_pass_detail": {
+    "182": {
+     "amp": 40.8,
+     "margin": 20.5,
+     "owner": 182,
+     "site": [
+      282,
+      227
+     ],
+     "passes_own": true,
+     "d_interp": 34.2,
+     "d_anchor": null,
+     "d_claim": 5.0,
+     "guarded": true
+    },
+    "418": {
+     "amp": 66.6,
+     "margin": 29.7,
+     "owner": 418,
+     "site": [
+      321,
+      367
+     ],
+     "passes_own": true,
+     "d_interp": 5.6,
+     "d_anchor": null,
+     "d_claim": 4.1,
+     "guarded": true
+    },
+    "579": {
+     "amp": 42.7,
+     "margin": 23.6,
+     "owner": 579,
+     "site": [
+      278,
+      189
+     ],
+     "passes_own": true,
+     "d_interp": 18.2,
+     "d_anchor": null,
+     "d_claim": 6.7,
+     "guarded": false
+    }
+   },
+   "te_pass_own_gates": 4,
+   "te_pass_guarded": 4,
+   "te_pass_ids": [
+    111,
+    146,
+    298,
+    335
+   ],
+   "te_pass_detail": {
+    "111": {
+     "amp": 44.9,
+     "margin": 24.9,
+     "owner": 111,
+     "site": [
+      279,
+      186
+     ],
+     "passes_own": true,
+     "d_interp": 1.6,
+     "d_anchor": null,
+     "d_claim": 5.0,
+     "guarded": true
+    },
+    "146": {
+     "amp": 46.0,
+     "margin": 24.6,
+     "owner": 146,
+     "site": [
+      318,
+      297
+     ],
+     "passes_own": true,
+     "d_interp": 5.1,
+     "d_anchor": null,
+     "d_claim": 5.4,
+     "guarded": true
+    },
+    "298": {
+     "amp": 53.6,
+     "margin": 29.0,
+     "owner": 298,
+     "site": [
+      296,
+      279
+     ],
+     "passes_own": true,
+     "d_interp": 3.2,
+     "d_anchor": null,
+     "d_claim": 6.4,
+     "guarded": true
+    },
+    "335": {
+     "amp": 41.0,
+     "margin": 20.5,
+     "owner": 335,
+     "site": [
+      296,
+      262
+     ],
+     "passes_own": true,
+     "d_interp": 13.9,
+     "d_anchor": null,
+     "d_claim": 4.1,
+     "guarded": true
+    }
+   }
+  },
+  "r4": {
+   "L": 120,
+   "never_missing_n": 157,
+   "this_epoch_only_n": 58,
+   "never_by_class": {
+    "amp_gate": 127,
+    "contest_at_own_best": 28,
+    "site_empty_walk": 2
+   },
+   "never_pass_own_gates": 2,
+   "never_pass_guarded": 1,
+   "never_pass_ids": [
+    418,
+    579
+   ],
+   "never_pass_detail": {
+    "418": {
+     "amp": 70.6,
+     "margin": 35.9,
+     "owner": 418,
+     "site": [
+      321,
+      367
+     ],
+     "passes_own": true,
+     "d_interp": 5.6,
+     "d_anchor": null,
+     "d_claim": 4.0,
+     "guarded": true
+    },
+    "579": {
+     "amp": 42.1,
+     "margin": 23.9,
+     "owner": 579,
+     "site": [
+      277,
+      188
+     ],
+     "passes_own": true,
+     "d_interp": 17.0,
+     "d_anchor": null,
+     "d_claim": 7.8,
+     "guarded": false
+    }
+   },
+   "te_pass_own_gates": 7,
+   "te_pass_guarded": 6,
+   "te_pass_ids": [
+    103,
+    111,
+    146,
+    298,
+    335,
+    428,
+    429
+   ],
+   "te_pass_detail": {
+    "103": {
+     "amp": 71.2,
+     "margin": 41.3,
+     "owner": 103,
+     "site": [
+      297,
+      258
+     ],
+     "passes_own": true,
+     "d_interp": 4.9,
+     "d_anchor": null,
+     "d_claim": 5.0,
+     "guarded": true
+    },
+    "111": {
+     "amp": 47.9,
+     "margin": 27.8,
+     "owner": 111,
+     "site": [
+      279,
+      186
+     ],
+     "passes_own": true,
+     "d_interp": 1.6,
+     "d_anchor": null,
+     "d_claim": 5.0,
+     "guarded": true
+    },
+    "146": {
+     "amp": 45.1,
+     "margin": 23.7,
+     "owner": 146,
+     "site": [
+      318,
+      297
+     ],
+     "passes_own": true,
+     "d_interp": 5.1,
+     "d_anchor": null,
+     "d_claim": 6.1,
+     "guarded": true
+    },
+    "298": {
+     "amp": 55.2,
+     "margin": 27.3,
+     "owner": 298,
+     "site": [
+      296,
+      278
+     ],
+     "passes_own": true,
+     "d_interp": 4.1,
+     "d_anchor": null,
+     "d_claim": 5.4,
+     "guarded": true
+    },
+    "335": {
+     "amp": 42.5,
+     "margin": 20.8,
+     "owner": 335,
+     "site": [
+      296,
+      262
+     ],
+     "passes_own": true,
+     "d_interp": 13.9,
+     "d_anchor": null,
+     "d_claim": 5.1,
+     "guarded": false
+    },
+    "428": {
+     "amp": 54.1,
+     "margin": 22.9,
+     "owner": 428,
+     "site": [
+      331,
+      330
+     ],
+     "passes_own": true,
+     "d_interp": 8.3,
+     "d_anchor": null,
+     "d_claim": 4.1,
+     "guarded": true
+    },
+    "429": {
+     "amp": 46.7,
+     "margin": 20.4,
+     "owner": 429,
+     "site": [
+      331,
+      335
+     ],
+     "passes_own": true,
+     "d_interp": 10.6,
+     "d_anchor": null,
+     "d_claim": 5.0,
+     "guarded": true
+    }
+   }
+  },
+  "r5": {
+   "L": 150,
+   "never_missing_n": 157,
+   "this_epoch_only_n": 45,
+   "never_by_class": {
+    "amp_gate": 46,
+    "contest_at_own_best": 110,
+    "site_empty_walk": 1
+   },
+   "never_pass_own_gates": 1,
+   "never_pass_guarded": 1,
+   "never_pass_ids": [
+    418
+   ],
+   "never_pass_detail": {
+    "418": {
+     "amp": 73.6,
+     "margin": 38.9,
+     "owner": 418,
+     "site": [
+      321,
+      367
+     ],
+     "passes_own": true,
+     "d_interp": 5.6,
+     "d_anchor": null,
+     "d_claim": 4.1,
+     "guarded": true
+    }
+   },
+   "te_pass_own_gates": 4,
+   "te_pass_guarded": 3,
+   "te_pass_ids": [
+    103,
+    218,
+    298,
+    335
+   ],
+   "te_pass_detail": {
+    "103": {
+     "amp": 74.2,
+     "margin": 41.2,
+     "owner": 103,
+     "site": [
+      297,
+      257
+     ],
+     "passes_own": true,
+     "d_interp": 4.4,
+     "d_anchor": null,
+     "d_claim": 5.4,
+     "guarded": true
+    },
+    "218": {
+     "amp": 40.1,
+     "margin": 22.5,
+     "owner": 218,
+     "site": [
+      219,
+      160
+     ],
+     "passes_own": true,
+     "d_interp": 1.5,
+     "d_anchor": null,
+     "d_claim": 4.5,
+     "guarded": true
+    },
+    "298": {
+     "amp": 55.9,
+     "margin": 28.6,
+     "owner": 298,
+     "site": [
+      296,
+      278
+     ],
+     "passes_own": true,
+     "d_interp": 4.1,
+     "d_anchor": null,
+     "d_claim": 5.8,
+     "guarded": true
+    },
+    "335": {
+     "amp": 43.5,
+     "margin": 21.9,
+     "owner": 335,
+     "site": [
+      296,
+      262
+     ],
+     "passes_own": true,
+     "d_interp": 13.9,
+     "d_anchor": null,
+     "d_claim": 5.1,
+     "guarded": false
+    }
+   }
+  }
+ }
+}

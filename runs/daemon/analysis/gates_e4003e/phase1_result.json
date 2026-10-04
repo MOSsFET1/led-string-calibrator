@@ -1,0 +1,55 @@
+{
+ "epochs": {
+  "r2": {
+   "L": 80,
+   "histMed_cli": 40.5,
+   "histMed_cwcstats": 40.5,
+   "thr_auto": 45.36000000000001,
+   "mask_px": 142080,
+   "confirmed": 423,
+   "amp_med": 68.5,
+   "amp_min": 40.2,
+   "max_id": 599
+  },
+  "r3": {
+   "L": 100,
+   "histMed_cli": 50.5,
+   "histMed_cwcstats": 50.5,
+   "thr_auto": 56.56,
+   "mask_px": 140638,
+   "confirmed": 383,
+   "amp_med": 64.3,
+   "amp_min": 40.0,
+   "max_id": 599
+  },
+  "r4": {
+   "L": 120,
+   "histMed_cli": 55.5,
+   "histMed_cwcstats": 55.5,
+   "thr_auto": 62.160000000000004,
+   "mask_px": 140243,
+   "confirmed": 385,
+   "amp_med": 65.8,
+   "amp_min": 40.0,
+   "max_id": 599
+  },
+  "r5": {
+   "L": 150,
+   "histMed_cli": 54.5,
+   "histMed_cwcstats": 54.5,
+   "thr_auto": 61.040000000000006,
+   "mask_px": 140274,
+   "confirmed": 398,
+   "amp_med": 68.2,
+   "amp_min": 40.2,
+   "max_id": 599
+  }
+ },
+ "parity": {
+  "rc": 1,
+  "stdout_tail": "INCOMPLETE (S14R: want 24): master 0, planes 0\n",
+  "error": "FileNotFoundError(2, 'No such file or directory')",
+  "pass_": false
+ },
+ "runtime_s": 27.6
+}

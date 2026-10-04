@@ -1,0 +1,1234 @@
+{
+ "meta": {
+  "corpus": "runs/daemon/runs/s14r0003e-r2..r5 (S14R-0003E E4 battery, 04 Oct night)",
+  "epochs": {
+   "r2": {
+    "L": 80,
+    "histMed_cli": 40.5,
+    "histMed_cwcstats": 40.5,
+    "eff_thr_auto": 45.36000000000001
+   },
+   "r3": {
+    "L": 100,
+    "histMed_cli": 50.5,
+    "histMed_cwcstats": 50.5,
+    "eff_thr_auto": 56.56
+   },
+   "r4": {
+    "L": 120,
+    "histMed_cli": 55.5,
+    "histMed_cwcstats": 55.5,
+    "eff_thr_auto": 62.160000000000004
+   },
+   "r5": {
+    "L": 150,
+    "histMed_cli": 54.5,
+    "histMed_cwcstats": 54.5,
+    "eff_thr_auto": 61.040000000000006
+   }
+  },
+  "baseline_gates": "mask auto (min(100,max(45,1.12*histMed))) / amp 40 / margin 6 / sup 7px / n 600",
+  "parity": "driver baseline == agent-1 decode_e4003e baseline EXACTLY (4/4 epochs, id/site/amp/margin) == CLI machinery (agent-1 EXACT-vs-CLI parity on 0003c; my loop is line-identical)",
+  "guard_discipline": "HANDOFF-S14R \u00a70: new-id recoveries counted only if site <=6 px of the id union anchor (baseline-confirmed or id-kNN interpolated same-string <=12) or <=5 px of a confirmed claim"
+ },
+ "baseline": {
+  "r2": {
+   "confirmed": 423,
+   "amp_med": 68.5,
+   "max_id": 599,
+   "mask_px": 142080
+  },
+  "r3": {
+   "confirmed": 383,
+   "amp_med": 64.3,
+   "max_id": 599,
+   "mask_px": 140638
+  },
+  "r4": {
+   "confirmed": 385,
+   "amp_med": 65.8,
+   "max_id": 599,
+   "mask_px": 140243
+  },
+  "r5": {
+   "confirmed": 398,
+   "amp_med": 68.2,
+   "max_id": 599,
+   "mask_px": 140274
+  }
+ },
+ "sweeps": {
+  "r2": {
+   "L": 80,
+   "baseline_confirmed": 423,
+   "rows": [
+    {
+     "knob": "amp",
+     "key": "amp=30.0",
+     "confirmed": 460,
+     "new_ids": 37,
+     "guarded_new": 24,
+     "orphan_new": 13,
+     "impostor_proxy": 22,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=35.0",
+     "confirmed": 442,
+     "new_ids": 19,
+     "guarded_new": 14,
+     "orphan_new": 5,
+     "impostor_proxy": 9,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=40.0",
+     "confirmed": 423,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=45.0",
+     "confirmed": 399,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=50.0",
+     "confirmed": 357,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=4.0",
+     "confirmed": 423,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=5.0",
+     "confirmed": 423,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=6.0",
+     "confirmed": 423,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=8.0",
+     "confirmed": 423,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "supp",
+     "key": "supp=3",
+     "confirmed": 484,
+     "new_ids": 62,
+     "guarded_new": 61,
+     "orphan_new": 1,
+     "impostor_proxy": 59,
+     "lost_baseline": 1
+    },
+    {
+     "knob": "supp",
+     "key": "supp=5",
+     "confirmed": 473,
+     "new_ids": 51,
+     "guarded_new": 50,
+     "orphan_new": 1,
+     "impostor_proxy": 48,
+     "lost_baseline": 1
+    },
+    {
+     "knob": "supp",
+     "key": "supp=7",
+     "confirmed": 423,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "supp",
+     "key": "supp=9",
+     "confirmed": 368,
+     "new_ids": 4,
+     "guarded_new": 2,
+     "orphan_new": 2,
+     "impostor_proxy": 2,
+     "lost_baseline": 59
+    },
+    {
+     "knob": "mask",
+     "key": "mask_legacy100=100.0",
+     "confirmed": 422,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    }
+   ],
+   "conflict_audit_baseline": {
+    "claims_inside_windows_passing_gates": 868,
+    "unique_eaten_ids": 243,
+    "by_page_class": {
+     "cross_string_page_confirms_both": 455,
+     "page_conflict_keep_both": 399,
+     "page_suppresses_too": 14
+    },
+    "by_d_band": {
+     "3<=d<6": 599,
+     "1.5<d<3": 236,
+     "d<=1.5": 33
+    }
+   },
+   "eaten_own_best": {
+    "eaten_unique": 73,
+    "pass_own_best": 17,
+    "pass_guarded": 14,
+    "orphans": 3
+   },
+   "never_confirmed_this_epoch": {
+    "contest_at_own_best": 69,
+    "amp_gate": 83,
+    "site_empty_walk": 5
+   },
+   "never_pass_own_best": 5,
+   "never_pass_guarded": 4,
+   "this_epoch_only_pass_own_best": 2,
+   "this_epoch_only_pass_guarded": 2
+  },
+  "r3": {
+   "L": 100,
+   "baseline_confirmed": 383,
+   "rows": [
+    {
+     "knob": "amp",
+     "key": "amp=30.0",
+     "confirmed": 435,
+     "new_ids": 52,
+     "guarded_new": 41,
+     "orphan_new": 11,
+     "impostor_proxy": 27,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=35.0",
+     "confirmed": 414,
+     "new_ids": 31,
+     "guarded_new": 24,
+     "orphan_new": 7,
+     "impostor_proxy": 14,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=40.0",
+     "confirmed": 383,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=45.0",
+     "confirmed": 339,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=50.0",
+     "confirmed": 293,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=4.0",
+     "confirmed": 383,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=5.0",
+     "confirmed": 383,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=6.0",
+     "confirmed": 383,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=8.0",
+     "confirmed": 383,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "supp",
+     "key": "supp=3",
+     "confirmed": 439,
+     "new_ids": 57,
+     "guarded_new": 57,
+     "orphan_new": 0,
+     "impostor_proxy": 55,
+     "lost_baseline": 1
+    },
+    {
+     "knob": "supp",
+     "key": "supp=5",
+     "confirmed": 429,
+     "new_ids": 48,
+     "guarded_new": 48,
+     "orphan_new": 0,
+     "impostor_proxy": 47,
+     "lost_baseline": 2
+    },
+    {
+     "knob": "supp",
+     "key": "supp=7",
+     "confirmed": 383,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "supp",
+     "key": "supp=9",
+     "confirmed": 334,
+     "new_ids": 1,
+     "guarded_new": 0,
+     "orphan_new": 1,
+     "impostor_proxy": 1,
+     "lost_baseline": 50
+    },
+    {
+     "knob": "mask",
+     "key": "mask_legacy100=100.0",
+     "confirmed": 382,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    }
+   ],
+   "conflict_audit_baseline": {
+    "claims_inside_windows_passing_gates": 674,
+    "unique_eaten_ids": 197,
+    "by_page_class": {
+     "cross_string_page_confirms_both": 319,
+     "page_conflict_keep_both": 346,
+     "page_suppresses_too": 9
+    },
+    "by_d_band": {
+     "3<=d<6": 470,
+     "1.5<d<3": 175,
+     "d<=1.5": 29
+    }
+   },
+   "eaten_own_best": {
+    "eaten_unique": 69,
+    "pass_own_best": 19,
+    "pass_guarded": 17,
+    "orphans": 2
+   },
+   "never_confirmed_this_epoch": {
+    "amp_gate": 141,
+    "contest_at_own_best": 13,
+    "site_empty_walk": 3
+   },
+   "never_pass_own_best": 3,
+   "never_pass_guarded": 2,
+   "this_epoch_only_pass_own_best": 4,
+   "this_epoch_only_pass_guarded": 4
+  },
+  "r4": {
+   "L": 120,
+   "baseline_confirmed": 385,
+   "rows": [
+    {
+     "knob": "amp",
+     "key": "amp=30.0",
+     "confirmed": 439,
+     "new_ids": 54,
+     "guarded_new": 45,
+     "orphan_new": 9,
+     "impostor_proxy": 36,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=35.0",
+     "confirmed": 414,
+     "new_ids": 29,
+     "guarded_new": 24,
+     "orphan_new": 5,
+     "impostor_proxy": 21,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=40.0",
+     "confirmed": 385,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=45.0",
+     "confirmed": 344,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=50.0",
+     "confirmed": 294,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=4.0",
+     "confirmed": 385,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=5.0",
+     "confirmed": 385,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=6.0",
+     "confirmed": 385,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=8.0",
+     "confirmed": 384,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "supp",
+     "key": "supp=3",
+     "confirmed": 434,
+     "new_ids": 50,
+     "guarded_new": 50,
+     "orphan_new": 0,
+     "impostor_proxy": 47,
+     "lost_baseline": 1
+    },
+    {
+     "knob": "supp",
+     "key": "supp=5",
+     "confirmed": 427,
+     "new_ids": 43,
+     "guarded_new": 43,
+     "orphan_new": 0,
+     "impostor_proxy": 42,
+     "lost_baseline": 1
+    },
+    {
+     "knob": "supp",
+     "key": "supp=7",
+     "confirmed": 385,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "supp",
+     "key": "supp=9",
+     "confirmed": 337,
+     "new_ids": 2,
+     "guarded_new": 1,
+     "orphan_new": 1,
+     "impostor_proxy": 2,
+     "lost_baseline": 50
+    },
+    {
+     "knob": "mask",
+     "key": "mask_legacy100=100.0",
+     "confirmed": 383,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    }
+   ],
+   "conflict_audit_baseline": {
+    "claims_inside_windows_passing_gates": 710,
+    "unique_eaten_ids": 208,
+    "by_page_class": {
+     "cross_string_page_confirms_both": 342,
+     "page_conflict_keep_both": 351,
+     "page_suppresses_too": 17
+    },
+    "by_d_band": {
+     "3<=d<6": 487,
+     "1.5<d<3": 185,
+     "d<=1.5": 38
+    }
+   },
+   "eaten_own_best": {
+    "eaten_unique": 69,
+    "pass_own_best": 18,
+    "pass_guarded": 13,
+    "orphans": 5
+   },
+   "never_confirmed_this_epoch": {
+    "amp_gate": 127,
+    "contest_at_own_best": 28,
+    "site_empty_walk": 2
+   },
+   "never_pass_own_best": 2,
+   "never_pass_guarded": 1,
+   "this_epoch_only_pass_own_best": 7,
+   "this_epoch_only_pass_guarded": 6
+  },
+  "r5": {
+   "L": 150,
+   "baseline_confirmed": 398,
+   "rows": [
+    {
+     "knob": "amp",
+     "key": "amp=30.0",
+     "confirmed": 443,
+     "new_ids": 45,
+     "guarded_new": 34,
+     "orphan_new": 11,
+     "impostor_proxy": 23,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=35.0",
+     "confirmed": 420,
+     "new_ids": 22,
+     "guarded_new": 16,
+     "orphan_new": 6,
+     "impostor_proxy": 12,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=40.0",
+     "confirmed": 398,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=45.0",
+     "confirmed": 351,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "amp",
+     "key": "amp=50.0",
+     "confirmed": 312,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=4.0",
+     "confirmed": 398,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=5.0",
+     "confirmed": 398,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=6.0",
+     "confirmed": 398,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "margin",
+     "key": "margin=8.0",
+     "confirmed": 398,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "supp",
+     "key": "supp=3",
+     "confirmed": 448,
+     "new_ids": 51,
+     "guarded_new": 51,
+     "orphan_new": 0,
+     "impostor_proxy": 50,
+     "lost_baseline": 1
+    },
+    {
+     "knob": "supp",
+     "key": "supp=5",
+     "confirmed": 442,
+     "new_ids": 45,
+     "guarded_new": 45,
+     "orphan_new": 0,
+     "impostor_proxy": 45,
+     "lost_baseline": 1
+    },
+    {
+     "knob": "supp",
+     "key": "supp=7",
+     "confirmed": 398,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    },
+    {
+     "knob": "supp",
+     "key": "supp=9",
+     "confirmed": 348,
+     "new_ids": 3,
+     "guarded_new": 1,
+     "orphan_new": 2,
+     "impostor_proxy": 2,
+     "lost_baseline": 53
+    },
+    {
+     "knob": "mask",
+     "key": "mask_legacy100=100.0",
+     "confirmed": 397,
+     "new_ids": 0,
+     "guarded_new": 0,
+     "orphan_new": 0,
+     "impostor_proxy": 0,
+     "lost_baseline": 0
+    }
+   ],
+   "conflict_audit_baseline": {
+    "claims_inside_windows_passing_gates": 797,
+    "unique_eaten_ids": 227,
+    "by_page_class": {
+     "cross_string_page_confirms_both": 371,
+     "page_conflict_keep_both": 412,
+     "page_suppresses_too": 14
+    },
+    "by_d_band": {
+     "3<=d<6": 561,
+     "1.5<d<3": 202,
+     "d<=1.5": 34
+    }
+   },
+   "eaten_own_best": {
+    "eaten_unique": 66,
+    "pass_own_best": 20,
+    "pass_guarded": 13,
+    "orphans": 7
+   },
+   "never_confirmed_this_epoch": {
+    "amp_gate": 46,
+    "contest_at_own_best": 110,
+    "site_empty_walk": 1
+   },
+   "never_pass_own_best": 1,
+   "never_pass_guarded": 1,
+   "this_epoch_only_pass_own_best": 4,
+   "this_epoch_only_pass_guarded": 3
+  }
+ },
+ "conflict_redesign_populations": {
+  "r2": {
+   "eaten_gatepassing_claims": 868,
+   "unique_eaten_ids": 73,
+   "recoverable_true_own_best": 17,
+   "recoverable_guarded": 14,
+   "note": "most eaten ids are 2nd-site claims of codewords already confirmed (their OWN codeword site is fine); the true recoveries are the OTHER ids eaten entirely (own-best pass) \u2014 guarded subset is the page-parity redesign population.",
+   "recoverable_ids_already_confirmed_elsewhere": 17,
+   "recoverable_ids_NEW": 0,
+   "recoverable_new_ids": []
+  },
+  "r3": {
+   "eaten_gatepassing_claims": 674,
+   "unique_eaten_ids": 69,
+   "recoverable_true_own_best": 19,
+   "recoverable_guarded": 17,
+   "note": "most eaten ids are 2nd-site claims of codewords already confirmed (their OWN codeword site is fine); the true recoveries are the OTHER ids eaten entirely (own-best pass) \u2014 guarded subset is the page-parity redesign population.",
+   "recoverable_ids_already_confirmed_elsewhere": 18,
+   "recoverable_ids_NEW": 1,
+   "recoverable_new_ids": [
+    146
+   ]
+  },
+  "r4": {
+   "eaten_gatepassing_claims": 710,
+   "unique_eaten_ids": 69,
+   "recoverable_true_own_best": 18,
+   "recoverable_guarded": 13,
+   "note": "most eaten ids are 2nd-site claims of codewords already confirmed (their OWN codeword site is fine); the true recoveries are the OTHER ids eaten entirely (own-best pass) \u2014 guarded subset is the page-parity redesign population.",
+   "recoverable_ids_already_confirmed_elsewhere": 17,
+   "recoverable_ids_NEW": 1,
+   "recoverable_new_ids": [
+    146
+   ]
+  },
+  "r5": {
+   "eaten_gatepassing_claims": 797,
+   "unique_eaten_ids": 66,
+   "recoverable_true_own_best": 20,
+   "recoverable_guarded": 13,
+   "note": "most eaten ids are 2nd-site claims of codewords already confirmed (their OWN codeword site is fine); the true recoveries are the OTHER ids eaten entirely (own-best pass) \u2014 guarded subset is the page-parity redesign population.",
+   "recoverable_ids_already_confirmed_elsewhere": 20,
+   "recoverable_ids_NEW": 0,
+   "recoverable_new_ids": []
+  }
+ },
+ "never_confirmed": {
+  "n": 157,
+  "ids": [
+   40,
+   41,
+   43,
+   44,
+   50,
+   61,
+   63,
+   64,
+   73,
+   74,
+   75,
+   76,
+   77,
+   78,
+   79,
+   80,
+   83,
+   84,
+   102,
+   108,
+   113,
+   128,
+   129,
+   130,
+   131,
+   141,
+   149,
+   160,
+   182,
+   183,
+   184,
+   185,
+   186,
+   187,
+   188,
+   189,
+   190,
+   191,
+   192,
+   193,
+   194,
+   195,
+   196,
+   197,
+   198,
+   199,
+   217,
+   233,
+   234,
+   241,
+   261,
+   262,
+   263,
+   264,
+   265,
+   266,
+   267,
+   274,
+   275,
+   276,
+   278,
+   279,
+   280,
+   281,
+   282,
+   296,
+   297,
+   300,
+   301,
+   302,
+   304,
+   305,
+   306,
+   307,
+   308,
+   309,
+   310,
+   311,
+   312,
+   313,
+   314,
+   315,
+   316,
+   317,
+   319,
+   320,
+   321,
+   322,
+   323,
+   324,
+   325,
+   326,
+   327,
+   328,
+   329,
+   330,
+   331,
+   333,
+   334,
+   337,
+   355,
+   364,
+   367,
+   368,
+   369,
+   370,
+   371,
+   372,
+   381,
+   382,
+   383,
+   384,
+   385,
+   387,
+   388,
+   389,
+   391,
+   392,
+   393,
+   394,
+   395,
+   396,
+   397,
+   398,
+   399,
+   418,
+   419,
+   461,
+   462,
+   494,
+   504,
+   505,
+   506,
+   507,
+   508,
+   509,
+   541,
+   544,
+   545,
+   546,
+   547,
+   548,
+   551,
+   553,
+   554,
+   558,
+   560,
+   567,
+   573,
+   576,
+   577,
+   578,
+   579,
+   582,
+   587,
+   597,
+   598
+  ],
+  "own_best_amp_bands": {
+   "r2": {
+    "25-40": 85,
+    ">=40": 72
+   },
+   "r3": {
+    "25-40": 141,
+    ">=40": 15,
+    "8-25": 1
+   },
+   "r4": {
+    "25-40": 127,
+    ">=40": 30
+   },
+   "r5": {
+    "25-40": 48,
+    ">=40": 109
+   }
+  },
+  "interpretation": "never-confirmed 157: own-best amp bands show L100/L120 are amp_gate-bound (141/127 in 25-40), L80 & L150 are contest-bound (69/110 contest-at-own-best) - L100 has the best photometric loss profile (its never-class is almost photometric), BUT its own-best passes are the fewest (3) - the amp 25-40 band is real headroom ONLY if photometry improves (exposure), not if gates relax (amp 30 buys guarded impostors instead)."
+ },
+ "union_baseline": {
+  "baseline_single": {
+   "r2": 423,
+   "r3": 383,
+   "r4": 385,
+   "r5": 398
+  },
+  "pairs": {
+   "r2+r3": 430,
+   "r2+r4": 435,
+   "r2+r5": 437,
+   "r3+r4": 409,
+   "r3+r5": 418,
+   "r4+r5": 405
+  },
+  "triples": {
+   "r2+r3+r4": 440,
+   "r2+r3+r5": 442,
+   "r2+r4+r5": 438,
+   "r3+r4+r5": 420
+  },
+  "union4": 443
+ },
+ "recommended_gate_set": {
+  "keep": [
+   "mask auto (S14R-0002 adaptive rule)",
+   "amp 40",
+   "margin 6"
+  ],
+  "reason": {
+   "amp": "relaxing 40->30 buys 144 guarded new over 4 epochs vs 108 impostor-proxy + 44 orphans (108/188 = 57% of nominal gain is guard-failing) -> do NOT relax for identity-grade output",
+   "margin": "4/5/8 change NOTHING in any epoch (margin med is far above gate; no id sits in [4,8)) -> zero headroom in this knob",
+   "suppress": "window 7->3px is the big RAW lever (219 guarded new across epochs) BUT 211/219 are impostor-proxy (argmax contest collisions re-enter): keep 7px + adopt the page-parity conflict LIST",
+   "mask": "legacy 100 vs auto: <=1 id per epoch (auto is correctly relaxed on these dark views; saturates at 100 only if histMed climbed) -> keep auto"
+  },
+  "expected_counts": {
+   "baseline_per_epoch": {
+    "r2": 423,
+    "r3": 383,
+    "r4": 385,
+    "r5": 398
+   },
+   "with_conflict_redesign_only": {
+    "r2": 437,
+    "r3": 400,
+    "r4": 398,
+    "r5": 411
+   },
+   "single_burst_target": "L100 tonight: 383 baseline -> 400 with the conflict redesign alone (guarded); amp/supp/mask relaxations add impostor-heavy raw counts only"
+  },
+  "risk_note": "every relaxed-gate count above is raw; the guarded columns apply HANDOFF \u00a70 (<=6px anchor / <=5px claim / id-kNN). Unguarded relaxation historically 43-59% phantoms (round-2 audit); tonight 108/144 = 75% impostor-proxy at amp 30, 211/219 = 96% at supp 3."
+ },
+ "opportunities_ranked": [
+  {
+   "rank": 1,
+   "lever": "CLI conflict/ownership redesign (page-parity: keep <=7px rival claims, flag conflicts, confirm both)",
+   "population_per_epoch": {
+    "r2": {
+     "eaten_gatepassing_claims": 868,
+     "unique_eaten_ids": 73,
+     "true_recoveries_own_best": 17,
+     "guarded": 14
+    },
+    "r3": {
+     "eaten_gatepassing_claims": 674,
+     "unique_eaten_ids": 69,
+     "true_recoveries_own_best": 19,
+     "guarded": 17
+    },
+    "r4": {
+     "eaten_gatepassing_claims": 710,
+     "unique_eaten_ids": 69,
+     "true_recoveries_own_best": 18,
+     "guarded": 13
+    },
+    "r5": {
+     "eaten_gatepassing_claims": 797,
+     "unique_eaten_ids": 66,
+     "true_recoveries_own_best": 20,
+     "guarded": 13
+    }
+   },
+   "total_guarded_4epochs": 57,
+   "risk": "lowest: every recovery stays at guards (14-17/epoch); impostor class unchanged (~3%)",
+   "note": "cross-string rival claims (the biggest eat band, 455/319/342/371 claims) are eaten by the CLI but the PAGE would confirm both \u2014 page-parity fix recovers exactly these"
+  },
+  {
+   "rank": 2,
+   "lever": "amp gate 40->35",
+   "population_per_epoch": {
+    "r2": {
+     "raw_new": 19,
+     "guarded": 14,
+     "orphan": 5,
+     "impostor_proxy": 9
+    },
+    "r3": {
+     "raw_new": 31,
+     "guarded": 24,
+     "orphan": 7,
+     "impostor_proxy": 14
+    },
+    "r4": {
+     "raw_new": 29,
+     "guarded": 24,
+     "orphan": 5,
+     "impostor_proxy": 21
+    },
+    "r5": {
+     "raw_new": 22,
+     "guarded": 16,
+     "orphan": 6,
+     "impostor_proxy": 12
+    }
+   },
+   "total_guarded_4epochs": 78,
+   "total_impostor_4epochs": 56,
+   "risk": "moderate: ~40% of raw gain is impostor-proxy; require position guard to count"
+  },
+  {
+   "rank": 3,
+   "lever": "amp gate 40->30",
+   "population_per_epoch": {
+    "r2": {
+     "raw_new": 37,
+     "guarded": 24,
+     "orphan": 13,
+     "impostor_proxy": 22
+    },
+    "r3": {
+     "raw_new": 52,
+     "guarded": 41,
+     "orphan": 11,
+     "impostor_proxy": 27
+    },
+    "r4": {
+     "raw_new": 54,
+     "guarded": 45,
+     "orphan": 9,
+     "impostor_proxy": 36
+    },
+    "r5": {
+     "raw_new": 45,
+     "guarded": 34,
+     "orphan": 11,
+     "impostor_proxy": 23
+    }
+   },
+   "total_guarded_4epochs": 144,
+   "total_impostor_4epochs": 108,
+   "risk": "moderate-high: orphans 9-13/epoch; guard is mandatory (\u00a70)"
+  },
+  {
+   "rank": 4,
+   "lever": "suppress window 7->3px (cwcSuppress 1 page-parity)",
+   "population_per_epoch": {
+    "r2": {
+     "raw_new": 62,
+     "guarded": 61,
+     "impostor_proxy": 59
+    },
+    "r3": {
+     "raw_new": 57,
+     "guarded": 57,
+     "impostor_proxy": 55
+    },
+    "r4": {
+     "raw_new": 50,
+     "guarded": 50,
+     "impostor_proxy": 47
+    },
+    "r5": {
+     "raw_new": 51,
+     "guarded": 51,
+     "impostor_proxy": 50
+    }
+   },
+   "total_guarded_4epochs": 219,
+   "total_impostor_4epochs": 211,
+   "risk": "HIGH as a standalone: 90%+ impostor-proxy (window removal re-admits argmax contest collisions of codewords ALREADY confirmed at their own site \u2014 the count is a relabel storm, not new lamps); ONLY pay as part of the conflict-list redesign which re-runs ownership after accept"
+  },
+  {
+   "rank": null,
+   "lever": "margin gate (4/5/8)",
+   "population": "ZERO everywhere: no id in tonight has margin in [4,8)",
+   "risk": "relax = 0 gain; tighten loses real ids"
+  },
+  {
+   "rank": null,
+   "lever": "mask legacy 100 vs auto",
+   "population_per_epoch": {
+    "r2": -1,
+    "r3": -1,
+    "r4": -2,
+    "r5": -1
+   },
+   "risk": "none: keep auto (adaptive rule correctly relaxed at histMed 40.5-55.5; legacy 100 loses 1/1/2/1)"
+  }
+ ],
+ "loss_profile_best_L": {
+  "never_by_class": {
+   "r2": {
+    "contest_at_own_best": 69,
+    "amp_gate": 83,
+    "site_empty_walk": 5
+   },
+   "r3": {
+    "amp_gate": 141,
+    "contest_at_own_best": 13,
+    "site_empty_walk": 3
+   },
+   "r4": {
+    "amp_gate": 127,
+    "contest_at_own_best": 28,
+    "site_empty_walk": 2
+   },
+   "r5": {
+    "amp_gate": 46,
+    "contest_at_own_best": 110,
+    "site_empty_walk": 1
+   }
+  },
+  "own_best_amp_bands": {
+   "r2": {
+    "25-40": 85,
+    ">=40": 72
+   },
+   "r3": {
+    "25-40": 141,
+    ">=40": 15,
+    "8-25": 1
+   },
+   "r4": {
+    "25-40": 127,
+    ">=40": 30
+   },
+   "r5": {
+    "25-40": 48,
+    ">=40": 109
+   }
+  },
+  "verdict": "L100 (r3): best NEVER-CONFIRMED photometric profile (141/157 sit in the 25-40 amp band = recoverable by exposure/beam, only 13 contest) \u2014 but the FEWEST own-passing pixels (3). L80 (r2) has the most contest-structure (69) and 72 ids above amp 40 blocked by ownership \u2014 redesign-primed. L150 flips to contest-dominant (110). Single-burst identity count stays best at L80 (423); photometric headroom best at L100."
+ },
+ "parity_note": "driver baseline reproduces agent-1 decode_e4003e EXACTLY (4/4 epochs id/site/amp/margin); my per-id instruments re-derive from the same sc arrays (max |damp| 0.0 vs _best npy bit-equal on every epoch)."
+}
