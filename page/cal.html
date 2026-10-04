@@ -71,7 +71,10 @@ window._onload = Date.now();      // fresh-context marker (survey-page lineage)
 // step boundary; config rides CALCFG=<json> (cmds file, one-shot like CFG=).
 // ============================================================================
 
-const BUILD = "S14R-0003C-CAL";   // 0003C: benchPull splice fix — drop shipped prefix (re-ship storm ROOT CAUSE: store never cleared; survey clears at next-burst, battery loop has no boundary)
+const BUILD = "S14R-0003D-CAL";   // 0003D: E4 tear guard (row-discontinuity metric + silent
+                                  // re-paint/regrab x2, still-torn ships with torn:1 FRAME
+                                  // meta; E4-only CALCFG order verified, no page fix needed)
+                                  // 0003C: benchPull splice fix — drop shipped prefix (re-ship storm ROOT CAUSE: store never cleared; survey clears at next-burst, battery loop has no boundary)
 const $ = (id) => document.getElementById(id);
 
 // ---------------- CFG (serial-tunable; SAME key names as survey.html) ------
@@ -86,6 +89,13 @@ const CFG = {
   bProbeCoreMinLuma: 170, // blurred luma a pixel must clear = lamp core
   bProbeDelayMs: 2000,    // AE re-convergence spacing (probeMeasure lineage)
   waitSettleMs: 2000,     // fixed hold before a burst (survey 0002 semantics)
+  // S14R-0003D E4 tear-guard overrides (null = use the TEAR defaults below;
+  // set a NUMBER via CALCFG= to bench-tune without repacking, e.g.
+  // CALCFG={"tearThr":26}; reset by writing the default number back):
+  tearThr: null,          // luma max-row-jump -> torn (default TEAR.thr 18)
+  tearThrRed: null,       // red-vs-luma divergence -> torn (default TEAR.thrRed 6)
+  tearSkipTop: null,      // first scanned row (default TEAR.skipTop 120)
+  tearRetries: null,      // regrab attempts per plane (default TEAR.retries 2)
 };
 // ---------------- CAL battery constants (overridable via CALCFG=<json>) ----
 // Defaults = tools/tuning_s14r0002.json calBattery section.
@@ -422,17 +432,22 @@ const benchStore = [];                // full-res JPEGs + grab timing (ship + dr
 let benchRunNo = 0;                   // battery run tag (labels cwc:rN on E4)
 let benchPulling = false;             // ship in progress (gated like survey page)
 let benchUploading = false;           // upload latch
-function benchCapture(label) {
+function benchCapture(label, extra) {
   // synchronous snapshot AFTER an awaited grab(); t is wall-clock ms.
   // Snapshot procCx (the grab canvas) — NOT camCv, which the idle preview
   // redraws between grabs (S14P-1903 test-mode bug).
+  // extra (S14R-0003D): optional extra meta keys (E4 tear guard: torn/tm) —
+  // rides INSIDE the FRAME json; decode_frames dumps the meta verbatim to
+  // <label>.meta.json, so the flag reaches analysis with no decoder change.
   try {
     const c = document.createElement('canvas');
     c.width = W; c.height = H;
     c.getContext('2d').drawImage(procCv, 0, 0, W, H);
     const jpg = c.toDataURL('image/jpeg', CAL.snapJpegQ).split(',')[1];
-    benchStore.push({ t: ((Date.now() - t0) / 1000).toFixed(3), label, W, H,
-                      exp: expLine(), jpg });
+    const meta = { t: ((Date.now() - t0) / 1000).toFixed(3), label, W, H,
+                   exp: expLine() };
+    if (extra) Object.assign(meta, extra);
+    benchStore.push(Object.assign(meta, { jpg }));
     if (benchStore.length > benchMax) {
       const lost = benchStore[0].label;
       benchStore.shift();
@@ -473,6 +488,113 @@ function setButtons() {
                         benchStore.length === 0;
   $('bLog').disabled = logRing.length === 0;
 }
+// ---------------- TEAR GUARD (E4 captures, S14R-0003D) -----------------------
+// Species (HANDOFF-S14R §10): single E4 frames delivered TORN by the phone
+// camera during the rapid 24-plane dwell — a sharp horizontal line, below it
+// everything is a different (red-shifted, mis-gained) state. Measured on the
+// repaired corpus with THIS page recipe: torn r8 p07 max-row-jump 57.5
+// (y191), r10 p21 28.5 (red band y575 — visible to max(r,g,b) luma), while
+// r10 p05's tear (y383) rides ONLY the red-divergence term (jR 8.5).
+// (The §10 numbers 60/15/20.7 are the same frames under a BT.601-row-mean
+// reference recipe.) Under page-recipe clean maxima: jL 10.6, jR 2.4.
+// Natural-image false sources measured on the SAME 93 clean planes: a RIG
+// edge at y≈104 (~10 LSB row wobble — skipped rows never see it) and a benign
+// half-frame step at y≈279 (clean p95 9.9, max 10.6) — hence skipTop=120:
+// rows < 120 are never tested (E4's CWC content lies mid-frame; nothing
+// diagnostic lives in the top strip).
+// Constants are CFG-tunable (CALCFG= rides the 2-credit slot; tune on the
+// bench without repacking).
+const TEAR = {
+  skipTop: 120,           // rows below this are not examined (y104 rig edge)
+  thr: 18,                // luma max-row-jump -> torn (page recipe: torn 57.5/28.5,
+                          // clean <= 10.6, p95 9.9; sib may re-tune)
+  thrRed: 6,              // red-vs-luma divergence jump -> torn (p05 y383: 8.5,
+                          // clean <= 2.4 — the ONLY signal on that frame)
+  retries: 2,             // re-paint + regrab attempts per plane
+};
+// Metric on the procCx grab (canvas drawImage downscale = area-average; the
+// PIL/numpy reference reproduced the spec's torn numbers EXACTLY under this
+// recipe — see the unit-test comment at the bottom of this file):
+//   rows  = full H (no y-collapse; a tear is a 1-px row event)
+//   cols  = W/7 block-mean collapse (luma + red channel row means)
+//   metric = max |Δ(rowMeans)| (raw 1-row diff) over rows >= skipTop;
+//   redDiv = max |Δ(redRowMeans) - Δ(lumaRowMeans)| — the y383 tear species
+//   rides ONLY this term (its luma jump is sub-clean-max); the red-band
+//   species (y575) trips BOTH (luma 28.5 because luma = max(r,g,b)).
+//   Scale note: lum and red stay on the SAME 0-255 scale (an early /255 on
+//   red made dg track dl in red-dominant scenes — caught by the unit test).
+function tearGet(k) {
+  // bench override channel: CFG.tear<Name> (CALCFG-settable, see CFG block)
+  // wins over the TEAR default; TEAR.* stays the single source of defaults.
+  const map = { thr: 'tearThr', thrRed: 'tearThrRed', skipTop: 'tearSkipTop',
+                retries: 'tearRetries' };
+  const v = CFG[map[k]];
+  return (typeof v === 'number' && isFinite(v)) ? v : TEAR[k];
+}
+function tearScan() {
+  const xb = 7;
+  const d = procCx.getImageData(0, 0, W, H).data;
+  const cols = Math.max(1, (W / xb) | 0);
+  const lum = new Float64Array(H), red = new Float64Array(H);
+  for (let y = 0; y < H; y++) {
+    let sl = 0, sr = 0;
+    const row = y * W * 4;
+    for (let cx = 0; cx < cols; cx++) {
+      let al = 0, ar = 0;
+      const x0 = row + cx * xb * 4;
+      for (let k = 0; k < xb; k++) {             // block-mean collapse (area)
+        const q = x0 + k * 4;
+        const r = d[q], g = d[q + 1], b = d[q + 2];
+        al += r > g ? (r > b ? r : b) : (g > b ? g : b);   // max(r,g,b) luma
+        ar += r;                                           // red channel
+      }
+      sl += al / xb; sr += ar / xb;
+    }
+    lum[y] = sl / cols; red[y] = sr / cols;   // SAME 0-255 scale (a /255 here made
+  }                                           // dg track dl in red-dominant scenes)
+  const y0 = Math.max(1, tearGet('skipTop') | 0);
+  let jL = 0, jR = 0;
+  for (let y = y0; y < H; y++) {
+    const dl = Math.abs(lum[y] - lum[y - 1]);
+    const dg = Math.abs((red[y] - red[y - 1]) - (lum[y] - lum[y - 1]));
+    if (dl > jL) jL = dl;
+    if (dg > jR) jR = dg;
+  }
+  return { jL: +jL.toFixed(1), jR: +jR.toFixed(1) };
+}
+function tearLog(msg) { log('tearguard: ' + msg); }          // dark-theme ring line
+// JS/CANVAS METRIC EQUIVALENCE — how the offline test maps to this page code:
+// 1. page canvas (procCx) IS the capture surface: benchCapture's JPEG is
+//    drawn FROM procCv (drawImage 1:1), so the JPEG is a post-snapshot of the
+//    very pixels tearScan() reads; re-loading that JPEG to RGB in the test
+//    differs from the in-page values only by JPEG quantisation (measured on
+//    the corpus: identical torn/clean verdicts AND identical argrow rows).
+// 2. drawImage(procCv, W/7, H) area-averages == numpy block-mean x7 over the
+//    same 406-px width (block boundary handling identical on the 58-col grid;
+//    rows kept at full 720 — a y-collapse would smear the 1-px tear line,
+//    measured: ds=4 loses r10 p05 below its own threshold).
+//    LUMA DEFINITION: the page uses max(r,g,b) (lumaOf family recipe), not
+//    BT.601 — the offline reference MUST use the same, else the "red-shifted
+//    below-tear" band changes the luma metric (measured: BT.601 gives 60.2 on
+//    r8 p07 vs the page's 57.5). Red channel = raw plane mean (same 0-255
+//    scale as luma; a /255 divergence broke the jR metric — see scale note).
+// 3. COLOR MANAGEMENT: canvas 2D readback is ICC-corrected by the browser
+//    (all corpus JPEGs carry an embedded sRGB profile), while PIL IGNORES
+//    profiles — loading the JPEGs directly in the test gave 57.5 vs 52.4 on
+//    r8 p07. The unit test therefore feeds the browser LOSSLESS UNTAGGED
+//    PNGs exported from the corpus and exports the SAME pixels to
+//    numpy for the reference — the two sides then differ by <0.1 LSB.
+// 4. Reference impl: venv PIL/numpy row-means + |diff| with edges handled as
+//    the loop does (scan starts at row 1; first valid diff pairs rows 0,1 —
+//    here suppressed by TEAR.skipTop>=1). Corpus results under the page
+//    recipe: torn jL 57.5 (r8 p07, y191) / 28.5 (r10 p21, y575) and jR 8.5
+//    (r10 p05, y383 — luma-only invisible); 93 clean planes jL<=10.6, jR<=2.4.
+//    Browser-vs-numpy equivalence check (untagged PNGs, same pixels):
+//    jL/jR agree to within 0.1 (toFixed(1) rounding); verdicts identical.
+// 5. TUNE-ABILITY: thr/thrRed/skipTop/retries read through tearGet(), which
+//    prefers the CFG keys tearThr / tearThrRed / tearSkipTop / tearRetries —
+//    set a number via a bench CALCFG line (e.g. CALCFG={"tearThr":26}) to
+//    re-tune without repacking; null / absent = compiled default.
 function progress(s) {            // banner + per-experiment progress text
   $('progress').textContent = s;
   log('prog ' + s);
@@ -714,6 +836,33 @@ async function expE3() {
 
 
 // ---------------- E4: union ladder (real CWC bursts, labels UNTOUCHED) -------
+// E4-ONLY CMDS STAGING (S14R-0003D; standing rule: ONE directive per cmds
+// file, CALCFG staged BEFORE the page connects — mid-session delivery is
+// unreliable, the 2-credit cfg slot drains on the boot-time polls):
+//   cmds/e4_only_1_cfg.txt:
+//     CFG={"cwc":1,"cwcN":600,"nStr":3,"nPerStr":200,"cwcSuppress":1,"cwcMaskThr":100,"cwcAmpGate":40,"cwcMarginGate":6}
+//   cmds/e4_only_2_calcfg.txt:
+//     CALCFG={"order":["E4"],"e4Ladder":[80,100,120,150],"dwellMs":2000,"e4GapMs":10000,"e4DutyBank":-1}
+//   cmds/e4_only_3_start.txt:
+//     CAL
+// Code-trace verdict (0003D, no page fix needed): calBattery() iterates
+// CAL.order — for "E4" it calls ONLY expE4(); every primitive it reads is
+// either battery-scope (benchRunBase from localStorage calBatteryNo, benchRunNo
+// = base+e4Idx, lumaOf/W/H, calDutyBits/cwcPlanePaint/frameBitsPaint) or
+// CFG/CAL constants applied from this CALCFG. NOTHING reads state written by
+// expE1/E2/E3 (their stores ship via the same shipIfDue between experiments;
+// skippping them leaves nothing dangling) and NO code special-cases
+//    CAL.order.length (CALSTATS kind:battery at the end echoes the order given).
+// Epoch increments from localStorage (not from the order list), labels stay
+// cwc:rN:pNN / cwc:rN:master per burst, the whole epoch ships at experiment
+// end via shipIfDue(true), splice-fixed (0003C). Verified the same way for
+// expE1/E2/E3/E5 — order may be ANY subset/sequence of the five.
+// duty paint: e4DutyBank -1 = complement of codeword plane 0 (exactly 50%);
+// cwcN rides the rig CFG line (cwcN>=1 always at rig>=1x1; CFG.cwcN|0||600
+// is a syntax fallback only). Optional extra keys: cwcSettle, cwcPoiX/Y, and
+// the tear-guard overrides CFG.tearThr / tearThrRed / tearSkipTop /
+// tearRetries (numbers; null = compiled default — any other type is ignored
+// by applyCfg and the default stands).
 // duty-0.5 probe-style dwell 2 s at L, then ONE REAL 24-plane CWC burst using
 // the EXISTING burst primitive (24 binary frame-bits planes + master last via
 // cmd 'all' at the SAME L) with the survey run label space cwc:rN:* so the
@@ -744,14 +893,40 @@ async function expE4() {
     log('cwc burst: 24 frame-bits planes -> master(fast), ' + nL +
         ' leds (rig ' + rigCap() + '), b=' + L);
     const grabPlane = () => grabTimeout().then(() => lumaOf(procCx.getImageData(0, 0, W, H)));
+    // TEAR GUARD (S14R-0003D): each plane is grabbed, scanned (tearScan),
+    // and on a tear the SAME plane is re-painted and re-grabbed (up to
+    // TEAR.retries). Preference is a silent replace — label/sequence stay
+    // clean and the console decodes the run as-is; only a plane still torn
+    // after the last retry ships with torn:1 INSIDE its FRAME meta
+    // (decode_frames writes the meta object verbatim to <label>.meta.json,
+    // so the flag survives to analysis with zero daemon changes).
+    const tearGrabPlane = async (p) => {
+      let m = { jL: 0, jR: 0 }, torn = false, tries = 0;
+      for (;;) {
+        await frameBitsPaint(cwcPlanePaint(p, nL, L), L, ++cmdId);  // ONE binary msg/plane
+        const settle = p === 0 ? 1000 : settleClamp(CFG.cwcSettle);
+        const tS = Date.now();
+        while (Date.now() - tS < settle && !calState.abortFlag) await sleep(10);
+        await grabTimeout();
+        m = tearScan();                    // row-discontinuity metric on the grab
+        torn = (m.jL >= (tearGet('thr') | 0)) || (m.jR >= (tearGet('thrRed') | 0));
+        if (!torn || tries >= (tearGet('retries') | 0) || calState.abortFlag) break;
+        tries++;
+        tearLog('plane ' + String(p).padStart(2, '0') +
+                ' regrab (metric=jL' + m.jL + '/jR' + m.jR + ', try ' + tries + '/' +
+                (tearGet('retries') | 0) + ')');
+      }
+      return { m, torn, tries };
+    };
     const planes = [];
     for (let p = 0; p < 24 && !calState.abortFlag; p++) {
-      await frameBitsPaint(cwcPlanePaint(p, nL, L), L, ++cmdId);  // ONE binary msg/plane
-      const settle = p === 0 ? 1000 : settleClamp(CFG.cwcSettle);
-      const tS = Date.now();
-      while (Date.now() - tS < settle && !calState.abortFlag) await sleep(10);
-      planes.push(await grabPlane());
-      benchCapture('cwc:r' + benchRunNo + ':p' + String(p).padStart(2, '0'));
+      const tg = await tearGrabPlane(p);          // paint -> settle -> grab -> scan
+      const lbl = 'cwc:r' + benchRunNo + ':p' + String(p).padStart(2, '0');
+      benchCapture(lbl, tg.torn ? { torn: 1, tm: tg.m } : null);
+      if (tg.torn) tearLog('plane ' + String(p).padStart(2, '0') +
+                ' SHIPPED FLAGGED (metric=jL' + tg.m.jL + '/jR' + tg.m.jR +
+                ', tries=' + tg.tries + ')');
+      planes.push(lumaOf(procCx.getImageData(0, 0, W, H)));
     }
     if (!calState.abortFlag) {
       // MASTER: fast all-on grab before the AE meter re-adjusts (survey parity)
