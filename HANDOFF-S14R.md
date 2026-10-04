@@ -357,6 +357,23 @@ re-derives identically at full n. E4 parity EXACT from run dirs
 alone: 412/454/390/411, unions 458/456/443/475/462/456, 4-burst 481
 — v1 wire-derived numbers confirmed.
 
+**NEW bug species (04 Oct evening, operator-spotted in the gallery):
+TORN CAPTURES — capture-time, NOT recoverable.** Three E4 frames
+(`cwc_r8_p07`, `cwc_r10_p05` — tear at y≈191/y≈383 — and
+`cwc_r10_p21`, red-channel band from y≈590) are single frames where
+the PHONE CAMERA delivered a torn readout: top of frame is a normal
+exposure, below a sharp horizontal line the content is a different
+(red-shifted, mis-gained) state. These bytes are FAITHFULLY
+transmitted and stored (disk == wire bytes, EOI clean, PIL clean) —
+nothing to repair FROM; the corruption happened in the sensor/AE
+readout during the rapid 24-plane E4 dwell. Corroborated by the
+decode side: their per-plane kbg values are the run's outliers (r8
+p07 rank 24/24, r10 p05 23/24, p21 24/24). Impact contained: the
+union-across-planes decoder absorbed them (412/454/390/411 confirmed
+WITH these frames present); only their below-tear evidence is noise.
+0004 candidate: in-page tear detector (row-luma discontinuity metric)
+→ auto re-grab that plane before continuing the burst.
+
 **Morning sequence (aborted attempts + fixes, all wire-verified):**
 §9-style timeline: 06:44 first post-overnight TLS failures (handshake
 stage), 08:09–08:11 setup-stage -0x7F00 storm 24/24 = the wedge (RTS
