@@ -91,10 +91,14 @@ def decode_frames(capture_path: Path, out_root: Path, min_len=8000):
             frames.append(cur)
             cur = None
         elif body.startswith('[PHONE-LOG] end') and cur is not None:
-            frames.append(cur)   # stream cut short; keep what arrived
-            cur = None
-    if cur:
-        frames.append(cur)
+            cur = None   # 0004(g): stream cut mid-frame — NEVER decode a partial
+                         # group; it completes on the wire before the next 30 s
+                         # tick and the next pass decodes it whole (the old
+                         # 'keep what arrived' wrote truncated jpgs and the
+                         # skip-if-exists dedup locked the damage in: 33 files,
+                         # repaired 04 Oct from the wire)
+    # NO trailing-cur flush: an unterminated group is INCOMPLETE by
+    # definition — decode only FEND-terminated images.
 
     written = []
     for fr in frames:
