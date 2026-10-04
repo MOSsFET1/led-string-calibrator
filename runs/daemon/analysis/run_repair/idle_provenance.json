@@ -1,0 +1,533 @@
+{
+ "cal:idle:00": [
+  {
+   "file": "run0/cal_idle_00.jpg",
+   "exact_groups": 10,
+   "ts": [
+    "17.442"
+   ]
+  }
+ ],
+ "cal:idle:01": [
+  {
+   "file": "run0/cal_idle_01.jpg",
+   "exact_groups": 8,
+   "ts": [
+    "18.418"
+   ]
+  }
+ ],
+ "cal:idle:02": [
+  {
+   "file": "run0/cal_idle_02.jpg",
+   "exact_groups": 8,
+   "ts": [
+    "19.500"
+   ]
+  }
+ ],
+ "cal:idle:03": [
+  {
+   "file": "run0/cal_idle_03.jpg",
+   "exact_groups": 8,
+   "ts": [
+    "20.530"
+   ]
+  }
+ ],
+ "cal:idle:04": [
+  {
+   "file": "run0/cal_idle_04.jpg",
+   "exact_groups": 8,
+   "ts": [
+    "21.549"
+   ]
+  }
+ ],
+ "cal:idle:05": [
+  {
+   "file": "run0/cal_idle_05.jpg",
+   "exact_groups": 8,
+   "ts": [
+    "22.575"
+   ]
+  }
+ ],
+ "cal:idle:06": [
+  {
+   "file": "run0/cal_idle_06.jpg",
+   "exact_groups": 8,
+   "ts": [
+    "23.661"
+   ]
+  }
+ ],
+ "cal:idle:07": [
+  {
+   "file": "run0/cal_idle_07.jpg",
+   "exact_groups": 8,
+   "ts": [
+    "24.719"
+   ]
+  }
+ ],
+ "cal:idle:08": [
+  {
+   "file": "run0/cal_idle_08.jpg",
+   "exact_groups": 8,
+   "ts": [
+    "25.759"
+   ]
+  }
+ ],
+ "cal:idle:09": [
+  {
+   "file": "run0/cal_idle_09.jpg",
+   "exact_groups": 8,
+   "ts": [
+    "26.784"
+   ]
+  }
+ ],
+ "cal:idle:10": [
+  {
+   "file": "run0/cal_idle_10.jpg",
+   "exact_groups": 8,
+   "ts": [
+    "27.797"
+   ]
+  }
+ ],
+ "cal:idle:11": [
+  {
+   "file": "run0/cal_idle_11.jpg",
+   "exact_groups": 8,
+   "ts": [
+    "28.856"
+   ]
+  }
+ ],
+ "cal:idle:12": [
+  {
+   "file": "run0/cal_idle_12.jpg",
+   "exact_groups": 8,
+   "ts": [
+    "29.899"
+   ]
+  }
+ ],
+ "cal:idle:13": [
+  {
+   "file": "run0/cal_idle_13.jpg",
+   "exact_groups": 7,
+   "ts": [
+    "30.918"
+   ]
+  }
+ ],
+ "cal:idle:14": [
+  {
+   "file": "run0/cal_idle_14.jpg",
+   "exact_groups": 7,
+   "ts": [
+    "31.949"
+   ]
+  }
+ ],
+ "cal:idle:15": [
+  {
+   "file": "run0/cal_idle_15.jpg",
+   "exact_groups": 7,
+   "ts": [
+    "32.933"
+   ]
+  }
+ ],
+ "cal:idle:16": [
+  {
+   "file": "run0/cal_idle_16.jpg",
+   "exact_groups": 6,
+   "ts": [
+    "34.029"
+   ]
+  }
+ ],
+ "cal:idle:17": [
+  {
+   "file": "run0/cal_idle_17.jpg",
+   "exact_groups": 6,
+   "ts": [
+    "35.077"
+   ]
+  }
+ ],
+ "cal:idle:18": [
+  {
+   "file": "run0/cal_idle_18.jpg",
+   "exact_groups": 6,
+   "ts": [
+    "36.131"
+   ]
+  }
+ ],
+ "cal:idle:19": [
+  {
+   "file": "run0/cal_idle_19.jpg",
+   "exact_groups": 6,
+   "ts": [
+    "37.166"
+   ]
+  }
+ ],
+ "cal:idle:20": [
+  {
+   "file": "run0/cal_idle_20.jpg",
+   "exact_groups": 6,
+   "ts": [
+    "38.216"
+   ]
+  }
+ ],
+ "cal:idle:21": [
+  {
+   "file": "run0/cal_idle_21.jpg",
+   "exact_groups": 6,
+   "ts": [
+    "39.200"
+   ]
+  }
+ ],
+ "cal:idle:22": [
+  {
+   "file": "run0/cal_idle_22.jpg",
+   "exact_groups": 6,
+   "ts": [
+    "40.258"
+   ]
+  }
+ ],
+ "cal:idle:23": [
+  {
+   "file": "run0/cal_idle_23.jpg",
+   "exact_groups": 6,
+   "ts": [
+    "41.323"
+   ]
+  }
+ ],
+ "cal:idle:24": [
+  {
+   "file": "run0/cal_idle_24.jpg",
+   "exact_groups": 5,
+   "ts": [
+    "126.872"
+   ]
+  }
+ ],
+ "cal:idle:25": [
+  {
+   "file": "run0/cal_idle_25.jpg",
+   "exact_groups": 4,
+   "ts": [
+    "215.696"
+   ]
+  }
+ ],
+ "cal:idle:26": [
+  {
+   "file": "run0/cal_idle_26.jpg",
+   "exact_groups": 3,
+   "ts": [
+    "307.858"
+   ]
+  }
+ ],
+ "cal:idle:27": [
+  {
+   "file": "run0/cal_idle_27.jpg",
+   "exact_groups": 2,
+   "ts": [
+    "402.364"
+   ]
+  }
+ ],
+ "cal:idle:28": [
+  {
+   "file": "run0/cal_idle_28.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "501.797"
+   ]
+  }
+ ],
+ "cal:idle:29": [
+  {
+   "file": "run0/cal_idle_29.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "162.536"
+   ]
+  }
+ ],
+ "cal:idle:30": [
+  {
+   "file": "run0/cal_idle_30.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "163.549"
+   ]
+  }
+ ],
+ "cal:idle:31": [
+  {
+   "file": "run0/cal_idle_31.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "164.617"
+   ]
+  }
+ ],
+ "cal:idle:32": [
+  {
+   "file": "run0/cal_idle_32.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "179.935"
+   ]
+  }
+ ],
+ "cal:idle:33": [
+  {
+   "file": "run0/cal_idle_33.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "180.984"
+   ]
+  }
+ ],
+ "cal:idle:34": [
+  {
+   "file": "run0/cal_idle_34.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "182.000"
+   ]
+  }
+ ],
+ "cal:idle:35": [
+  {
+   "file": "run0/cal_idle_35.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "183.030"
+   ]
+  }
+ ],
+ "cal:idle:36": [
+  {
+   "file": "run0/cal_idle_36.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "199.742"
+   ]
+  }
+ ],
+ "cal:idle:37": [
+  {
+   "file": "run0/cal_idle_37.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "200.832"
+   ]
+  }
+ ],
+ "cal:idle:38": [
+  {
+   "file": "run0/cal_idle_38.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "201.810"
+   ]
+  }
+ ],
+ "cal:idle:39": [
+  {
+   "file": "run0/cal_idle_39.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "202.874"
+   ]
+  }
+ ],
+ "cal:idle:40": [
+  {
+   "file": "run0/cal_idle_40.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "222.154"
+   ]
+  }
+ ],
+ "cal:idle:41": [
+  {
+   "file": "run0/cal_idle_41.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "223.243"
+   ]
+  }
+ ],
+ "cal:idle:42": [
+  {
+   "file": "run0/cal_idle_42.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "224.314"
+   ]
+  }
+ ],
+ "cal:idle:43": [
+  {
+   "file": "run0/cal_idle_43.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "225.255"
+   ]
+  }
+ ],
+ "cal:idle:44": [
+  {
+   "file": "run0/cal_idle_44.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "240.257"
+   ]
+  }
+ ],
+ "cal:idle:45": [
+  {
+   "file": "run0/cal_idle_45.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "241.336"
+   ]
+  }
+ ],
+ "cal:idle:46": [
+  {
+   "file": "run0/cal_idle_46.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "242.371"
+   ]
+  }
+ ],
+ "cal:idle:47": [
+  {
+   "file": "run0/cal_idle_47.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "243.414"
+   ]
+  }
+ ],
+ "cal:idle:48": [
+  {
+   "file": "run0/cal_idle_48.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "259.847"
+   ]
+  }
+ ],
+ "cal:idle:50": [
+  {
+   "file": "run0/cal_idle_50.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "261.984"
+   ]
+  }
+ ],
+ "cal:idle:51": [
+  {
+   "file": "run0/cal_idle_51.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "263.004"
+   ]
+  }
+ ],
+ "cal:idle:52": [
+  {
+   "file": "run0/cal_idle_52.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "282.794"
+   ]
+  }
+ ],
+ "cal:idle:53": [
+  {
+   "file": "run0/cal_idle_53.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "283.840"
+   ]
+  }
+ ],
+ "cal:idle:54": [
+  {
+   "file": "run0/cal_idle_54.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "284.879"
+   ]
+  }
+ ],
+ "cal:idle:55": [
+  {
+   "file": "run0/cal_idle_55.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "285.920"
+   ]
+  }
+ ],
+ "cal:idle:56": [
+  {
+   "file": "run0/cal_idle_56.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "301.666"
+   ]
+  }
+ ],
+ "cal:idle:57": [
+  {
+   "file": "run0/cal_idle_57.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "302.712"
+   ]
+  }
+ ],
+ "cal:idle:58": [
+  {
+   "file": "run0/cal_idle_58.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "303.727"
+   ]
+  }
+ ],
+ "cal:idle:59": [
+  {
+   "file": "run0/cal_idle_59.jpg",
+   "exact_groups": 1,
+   "ts": [
+    "304.763"
+   ]
+  }
+ ]
+}
