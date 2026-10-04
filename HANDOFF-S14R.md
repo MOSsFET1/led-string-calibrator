@@ -1,15 +1,22 @@
 # Handover — S14R (LED survey R-line: 12-of-24 coded bursts)
 
 Written 02 Oct late (S14R-0002 completion). Updated 03 Oct night after
-the CAL-battery build + reflash. **04 Oct morning milestone update —
-if only one thing is true, it's this:** box firmware is
-**S14R-0003c** (cal battery, splice-fixed ship, pages from FLASH;
-origin/main = `bfe0c79`), and the **first COMPLETE cal battery ran
-10:33 04 Oct** (`done:true`, 39.4 min, 572 frames relayed all-unique,
-E4 epochs r8–r11 at 25/25 on the correct rig 3×200/cwcN 600) — §10 is
-the morning's verified log (TLS-wedge forensics INCLUDED: resident-
-asset hypothesis DEAD; ship-storm root cause FIXED in 0003c). Every
-S14R-era claim below is backed by a console report in `reports/`.
+the CAL-battery build + reflash. **04 Oct milestone update — if only
+one thing is true, it's this:** box firmware is **S14R-0003c** (cal
+battery, splice-fixed ship, pages from FLASH) and the **first COMPLETE
+cal battery ran 10:33 04 Oct** (`done:true`, 39.4 min; 572 frames
+relayed all-unique; E4 epochs r8–r11 at 25/25 on the correct rig
+3×200/cwcN 600). **Corpus is fully repaired** (33 truncated jpgs
+re-fixed in place from the wire, sha-manifested, EOI 528/528 — §10 +
+`reports/s14r-0003c-wire-repair-inplace.md`) **and re-analyzed**
+(photometry v2: NO conclusion flipped; E4 parity exact from run dirs;
+§10 pointer + `reports/s14r-0003c-photometry-v2-repaired-corpus.md`).
+The two known storm/wedge root causes are FIXED (benchPull splice in
+0003c; daemon 0004(g) FEND-only writes, running since 17:16:08) and
+remaining TLS-wedge mechanism work is instrumented (HEAPCAP, 0004 (a)
+( b)). origin/main = `19174fd`. §6 holds the consolidated 0004 list.
+Every S14R-era claim below is backed by a console report in
+`reports/`.
 Author of this handover checked primary evidence (wire logs, QA logs,
 git) — trust it over memory notes; when it conflicts with anything,
 re-verify against the repo.
@@ -163,12 +170,16 @@ CORRECTION block — the amp25 "+97" there was refuted; true +33),
    or raise baud); (e) cal.html UI: abort button always visible
    mid-battery, ws-state header tracks real socket state; (f) daemon
    refuse/warn on multi-directive cmds files (standing rule §10); (g)
-   daemon `decode_frames` writes ONLY FEND-terminated groups — the 30 s
-   tick once decoded in-flight groups and its skip-if-exists dedup
-   locked the truncation in **(24 ladder + 8 E4 truncated jpgs; ALL
-   repaired in place from the wire 04 Oct, sha-manifested — see
-   `reports/s14r-0003c-wire-repair-inplace.md`; image-hygiene gate now
-   standing: EOI+wire-verify before ANY analysis)**.
+   **LANDED 04 Oct 17:16:** daemon `decode_frames` writes ONLY
+   FEND-terminated groups — no
+   more truncated jpgs at source (the 33-file repair + photometry v2
+   validated the rule end-to-end). Also fold in the probe ALGORITHM
+   revision from the v2 photometry: target settled coreMean−bg
+   ∈[90,105] clipCoreN=0 + 255−wall≥40 bail, skip k1 after any paint
+   (k≥13 on first-paint-after-idle), presence metric (lamp-masked
+   blob count ≥25, ≥3-frame median) below L20 with the LEG-2
+   (painted-equilibrium) idle template, fixed L=100 (+optional 120)
+   per union(L).
 3. **Photometry analysis integration** — the §9 morning plan runs
    (a)–(e) on the COMPLETE 0003c battery data (run0 + run8–11);
    deliverable = probe-algorithm revision + the union(L) operating
@@ -303,11 +314,62 @@ the probe-revision build. Deliverable: probe-algorithm
 recommendation + proposed S14R-0004 changes. Then fix (7)'s CFG
 displacement in the same build.
 
-## 10. 04 Oct morning (S14R-0003b) — verified log
+## 10. 04 Oct log (S14R-0003b/c → milestone battery → repair → v2) — verified
 
-Overnight: box stayed up, wire SILENT 22:34:13→08:09:27 true time.
-Then TWO failure modes, both now root-caused (read-only forensics
-committed with this file):
+**Milestone:** first COMPLETE cal battery — `done:true` 39.4 min at
+10:33:16, build 0003C-CAL, order E5→E1→E2→E3→E4, 572 FRAME relays
+09:53–10:33 ALL unique (zero re-ships — the benchPull splice fix held
+under the 100-frame E4 mega-ship), E4 epochs r8–r11 25/25 each at
+rig 3×200/cwcN 600 (queued rig CFG drained by the fresh page's hello
+post-reflash — the good path). E4's whole 100-frame batch ships at
+experiment end (CWC path lacks the intra-step ship trigger, item 2c)
+— on the ack-2-try design this relayed intact in ~6 min.
+
+**Corpus repair (operator-directed, standing gate):** 33 truncated
+jpgs found across run0+run8–11 (13 E1 + 11 E2 + idle_49 newly-caught
++ 8 E4) — ALL repaired IN PLACE from capture.txt by prefix-provenance
+byte-join; 528/528 EOI + plain-PIL + meta-equality green; 315,929 B
+restored; 0 unresolvable; manifest
+`runs/daemon/analysis/run_repair/manifest.json`; report
+`reports/s14r-0003c-wire-repair-inplace.md`. Root cause: the daemon's
+30 s drain tick decoded IN-FLIGHT frame groups and the skip-if-exists
+dedup (≥8 KB) locked the truncation in. **Fixed at source 17:16**
+(0004(g): decode only FEND-terminated groups; drop partials — they
+complete on the wire before the next tick). Idle two-legs label
+collision resolved by BYTE EQUALITY (never by label): k00–11 leg-1
+(warm-state), k12–59 leg-2 (settling to painted equilibrium);
+`idle_provenance.json` in run_repair/. **IMAGE-HYGIENE GATE standing
+(skill v2.03): EOI + wire-sha-verify EVERY jpg before ANY analysis;
+repair-then-analyze, never analyze-then-caveat.**
+
+**Photometry v2 on the repaired corpus** (reports/
+`s14r-0003c-photometry-v2-repaired-corpus.md`): NO conclusion
+flipped. (a) AE lands by k2 at every L, no tau — skip k1 after any
+paint (≥3% histMed shift on 12/20 rung-arms), k≥13 on the
+first-paint-after-idle rung (it dips to k10 then rises to k13);
+(b) duty photometric ratio ~1.05 (x1.70 RETIRED — it was
+k1-unsettled-vs-settled), holds stronger at full n; (c) presence
+census 17/17 at k≥2 (v1's two "transient failures" were the two
+truncated frames — attribution corrected), idle floor is TWO-STATE
+(leg-2 painted equilibrium P50 105.5 is the restart-state template),
+≥3-frame median mandatory at L≤20; (d) band [90,105] + 255−wall≥40
+re-derives identically at full n. E4 parity EXACT from run dirs
+alone: 412/454/390/411, unions 458/456/443/475/462/456, 4-burst 481
+— v1 wire-derived numbers confirmed.
+
+**Morning sequence (aborted attempts + fixes, all wire-verified):**
+§9-style timeline: 06:44 first post-overnight TLS failures (handshake
+stage), 08:09–08:11 setup-stage -0x7F00 storm 24/24 = the wedge (RTS
+cleared 08:19; second pulse 08:32 with page closed = clean), 09:00
+multi-directive cmds file tore CALCFG (battery ran compiled defaults
+E5+ship24 → storm → daemon died 08:51 silently — restart+ABRT), second
+daemon death 09:07–09:12 (same storm species), 0003b flashed 09:31
+(shipBatch 4 in served page), splice fix + 0003c flashed 09:39,
+battery 09:52→10:33 COMPLETE. Standing rules hardened (§5/§7/skill):
+cmds ONE directive per file; never RTS on handshake-stage labels;
+post-reset handshake noise (7780/0050) = healthy-box retry bursts.
+
+**Failure-mode deep-dives (the two root causes behind the morning):**
 
 1. **TLS wedge recurred heap-free (resident-asset hypothesis DEAD).**
    08:09:27–08:11:06: 24/24 connection attempts failed at
@@ -336,32 +398,17 @@ Multi-directive files are a torn-payload footgun; pacing with wire
 verification between sends is the only safe pattern. (Last night's
 single-file success was luck of polling phase.)
 
-**Build S14R-0003b (this file's postscript):** superseded same day by
-**S14R-0003c** after the re-ship storm's ROOT CAUSE landed in sight:
-cal.html's benchPull — the "survey benchPull copy" — was missing the
-store clear. Survey never needed it inside the pull (benchRun clears
-leftovers at the next burst start, survey :1093); the battery loop has
-no such boundary, so every shipIfDue re-shipped the whole store
-(4→5→6… today, 24→25→26… 03 Oct). 0003c: benchPull counts fully-
-relayed frames and `benchStore.splice(0, shipped)` after logend
-(abort/exception keeps the rest — conservative). **LIVE VERIFIED:
-first complete battery `done:true` 39.4 min 10:33 (build 0003C-CAL),
-572 relays 09:44–10:34 ALL unique, zero re-ships; E4 epochs r8–r11 at
-25/25 each; run0 428 jpgs + runs 8–11 25 each.** E4 ships its whole
-100-frame batch at experiment end (CWC path lacks the intra-step
-shipIfDue call) — 0004 item. Battery ran on rig CFG 3x200/cwcN600
-(queued CFG drained by the fresh page's hello post-reflash — the
-mid-session CALCFG gap from §10 does not affect the rig CFG +
-hello path). Caveat for idle-trace analysis: run0's
-cal_idle_00–11 may be attempt-3's (09:4x) rather than attempt-4's
-(09:52+) — labels collide across today's two runs; check wire stamps
-in capture.txt if those 12 points matter.
-S14R-0004 fix list grows: HEAPCAP beacon (wire-side heap telemetry:
-free/LFB/min-LFB on >4 KB change — discriminates wedge mechanisms at
-next morning storm), TLS content buffers → 8 KB + max_open_sockets
-1–2 + lru_purge + static WiFi RX sizing, 7F00 watchdog, abort button
-always visible (was hidden mid-battery), ws-state header must track
-real socket state. decode skip-if-exists collision: today's E5 idle
-labels (`cal:idle:NN`) were silently dropped against last night's
-run0 files — acceptable (attempt-1 idle banked), but labels in shared
-space stay day-stamped only because E1–E3 embed a day tag.
+**Build S14R-0003b/0003c record:** 0003b (shipBatch 4 baked into the
+served page) was superseded within hours by **0003c** when the
+re-ship storm's ROOT CAUSE surfaced: cal.html's benchPull — the
+"survey benchPull copy" — was missing the store clear. Survey never
+needed one inside the pull (benchRun clears leftovers at the next
+burst start, survey :1093); the battery loop has no such boundary, so
+every shipIfDue re-shipped the whole store (4→5→6… today; 24→25→26…
+03 Oct). 0003c: benchPull counts fully-relayed frames and
+`benchStore.splice(0, shipped)` after logend (abort/exception keeps
+the rest — conservative) — live-verified by the milestone battery
+above. (The older postscript details, including the original
+skip-if-exists idle-collision note, were overtaken by the corpus
+REPAIR section: the idle labels were byte-resolved from the wire, not
+dropped.)
