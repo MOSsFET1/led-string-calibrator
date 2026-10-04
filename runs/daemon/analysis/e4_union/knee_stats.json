@@ -1,0 +1,30 @@
+{
+ "r8": {
+  "L": 80,
+  "coreP90": 253.0,
+  "coreMed": 250.0,
+  "clipFrac": 0.0364,
+  "confirmed": 412
+ },
+ "r9": {
+  "L": 100,
+  "coreP90": 253.0,
+  "coreMed": 249.0,
+  "clipFrac": 0.0463,
+  "confirmed": 454
+ },
+ "r10": {
+  "L": 120,
+  "coreP90": 253.0,
+  "coreMed": 250.0,
+  "clipFrac": 0.0308,
+  "confirmed": 390
+ },
+ "r11": {
+  "L": 150,
+  "coreP90": 253.0,
+  "coreMed": 251.0,
+  "clipFrac": 0.0584,
+  "confirmed": 411
+ }
+}
