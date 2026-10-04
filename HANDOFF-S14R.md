@@ -64,6 +64,7 @@ re-verify against the repo.
 | S14R-0003b | 04 Oct | shipBatch 4 baked into SERVED page (mid-session CALCFG delivery proven unreliable — see §10) | superseded same day |
 | S14R-0003c | 04 Oct | **benchPull splice fix — re-ship storm root cause** (store never cleared; splice shipped prefix post-logend); **FIRST COMPLETE BATTERY** `done:true` 39.4 min, 572 relays all-unique zero re-ships, E4 r8–r11 25/25 @ rig 3×200/cwcN 600 | compile 1,353,570 B = 68%; run0 428 + run8–11 25 jpgs decoded |
 | S14R-0003D | 04 Oct | **TEAR GUARD in the served /cal page** (per-plane post-grab row-discontinuity scan jL 18 / jR 6, skipTop 120; ≤2 same-plane repaint+regrab retries, silent replace; persistent tear ships `torn:1` meta intent + page-log line; CALCFG-tunable tearThr/tearThrRed/tearSkipTop/tearRetries); E4-only staging proven | compile 1,358,114 B = 69%; pushed 9bcf150, flashed, banner rule: cal-only page build leaves the survey banner string |
+| S14R-0003E | 04 Oct | **tear thresholds re-tuned for the short-exposure regime** (thr 26 / thrRed 8.5 — 0003D's live battery showed clean max 13.4 @ exp 300.03 vs 10.6 @ 699.97) + **benchPull ship-path FIXED to carry torn/tm meta** (0003D dropped the extras — flags never reached disk); E4-only clean re-run staged | compile 1,358,562 B = 69%; pushed c3ea9f7, flashed; verify_flash_pages + node --check PASS |
 
 Compile FQBN (mandatory, bare FQBN overflows):
 `esp32:esp32:esp32c6:CDCOnBoot=cdc,PartitionScheme=min_spiffs`
