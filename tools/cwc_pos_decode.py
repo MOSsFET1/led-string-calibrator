@@ -41,7 +41,7 @@ the identity gate requires a d8 margin (score minus competitor > gate).
 
 Usage: venv python3 cwc_pos_decode.py <run_dir> [--amp-gate 40]
        [--margin-gate 6] [--peak-margin 0.05] [--save-overlay]
-       [--save-json]
+       [--save-json] [--save-conflicts] [--nstr 3] [--nperstr 200]
 """
 import argparse, json, math, sys
 from pathlib import Path
@@ -50,7 +50,7 @@ import cv2
 
 BASE = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE))
-from offline_hole_verify import decode_run  # noqa: E402
+from offline_hole_verify import decode_run, parse_planes  # noqa: E402
 
 # Final S14P-1911 default set (mirrors the page CFG knobs, same NAMES):
 CWC_MASK_THR = 100       # cwcMaskThr  — master blur luma = candidate LED site;
@@ -85,7 +85,14 @@ CWC_NCC_PEAK_MARGIN = 0.05   # cwcNccPeakMargin — §10d conditioning floor,
 MARGIN_GATE = CWC_MARGIN_GATE   # legacy alias for older wrappers
 AMP_GATE = CWC_AMP_GATE
 MASK_THR = CWC_MASK_THR
-SUPPRESS = 7          # per-LED site suppression window (px)
+SUPPRESS = 1          # S14R-0003F page parity (cwc_pos_decode parity proposal
+                      # §3.1): page cwcSuppress = 1 -> ±R px (2R+1)^2 window,
+                      # applied SAME-STRING-ONLY below (was 7 = ±3 px global).
+CONFLICT_D = 6.0      # page conflict-audit distance (strict <)
+CONFLICT_ID_GAP = 5   # page: |led_a - led_b| > 5 within one string
+GUARD_PX = 6.0        # position guard: new/relaxed claims must sit within
+                      # GUARD_PX of the id's registered anchor (17h43 law:
+                      # unguarded relaxation is 43–59 % impostor)
 DW = 128              # decimated grid width (page cwcChain DW2)
 SEARCH = 12           # ±12 steps both axes (page cwcChain)
 FULLRES_RAD = 4        # ±px window of the score-time full-res NCC around the
@@ -310,6 +317,23 @@ def main():
     ap.add_argument('--save-json', action='store_true')
     ap.add_argument('--save-shifts', action='store_true',
                     help='dump per-plane direct shifts + refine info to JSON')
+    # ---- S14R-0003F page-parity knobs (cwc_pos_decode parity proposal §3.1) ----
+    ap.add_argument('--nstr', type=int, default=3,
+                    help='page window._nStr (strings painted on the rig); '
+                         '1 = strings disabled => same-string == everything')
+    ap.add_argument('--nperstr', type=int, default=200,
+                    help='page nPs: per-string LED count (string break); '
+                         'the rig hello reports 3x200')
+    ap.add_argument('--suppress', type=int, default=SUPPRESS,
+                    help='page knob cwcSuppress: ±R px same-string-suppression '
+                         'window (2R+1)^2, default 1; legacy global window = '
+                         '--suppress 3 --nstr 1')
+    ap.add_argument('--save-conflicts', action='store_true',
+                    help='write ledconflicts.json (page decode-block mirror)')
+    ap.add_argument('--flag-colocated', action='store_true',
+                    help='also ledger cross-string pairs <5 px (both stay '
+                         'confirmed; the page confirms them silently — '
+                         'audit field only)')
     ap.add_argument('--fullres-rad', type=int, default=FULLRES_RAD,
                     help='score-time full-res NCC window around the decimated '
                          'seed, px. 0 disables (1911 decimated shifts only).')
@@ -317,7 +341,7 @@ def main():
     run = Path(args.run_dir)
 
     frames = decode_run(run, args.tag)
-    planes = {int(f['label'].split(':p')[1]): f['img'] for f in frames if ':p' in f['label']}
+    planes = parse_planes(frames)          # tolerant '.rN' suffix, last-wins
     masts = [f for f in frames if 'master' in f['label']]
     if not masts or len(planes) < 24:
         print(f'INCOMPLETE (S14R: want 24): master {len(masts)}, planes {len(planes)}')
@@ -391,6 +415,11 @@ def main():
     mask = mb >= eff_thr
     Dfull = (bits[:N][:, None, :] != bits[:N][None, :, :]).sum(-1)
 
+    # ---- candidate selection: page cwcDecode parity (proposal §3.2) ----
+    # nPs = string break: with nstr<=1 the CLI cannot express strings (the
+    # legacy fallback) => "same string" is everything => global nPs = N.
+    nPs = args.nperstr if args.nstr > 1 else N
+    R = max(0, args.suppress)
     ledpos = []
     used = np.zeros(mask.shape, bool)
     amap = np.where(mask, best, -1e9)
@@ -407,11 +436,19 @@ def main():
         s2 = float(sc[cand, y, x].max())
         margin = (float(best[y, x]) - s2) / 12.0
         if amp < args.amp_gate or margin < args.margin_gate:
-            continue
-        used[max(0, y - SUPPRESS // 2): y + SUPPRESS // 2 + 1,
-             max(0, x - SUPPRESS // 2): x + SUPPRESS // 2 + 1] = True
+            continue            # sub-gate rival: NOT suppressed, just unclaimed
+        used[y, x] = True       # claim ONLY the winning pixel
         ledpos.append({'led': i, 'cx': x, 'cy': y,
                        'amp': round(amp, 1), 'margin': round(margin, 1)})
+        # page-parity suppression (survey.html 1918–1928): mark pixels in the
+        # (2R+1)^2 square used ONLY when that pixel's OWN argmax codeword sits
+        # in the claimed LED's string (nPs break).
+        s_own = i // nPs
+        for yy in range(max(0, y - R), min(H, y + R + 1)):
+            for xx in range(max(0, x - R), min(W, x + R + 1)):
+                if mask[yy, xx] and not used[yy, xx] and \
+                        (int(argi[yy, xx]) // nPs) == s_own:
+                    used[yy, xx] = True
     # strongest-site-per-codeword dedup (30 Sep): with only ONE physical
     # string active, a codeword claiming 2+ sites is a bloom-skirt/ghost;
     # keep the max-amp site. Zero cost to true sites (the recipe's dup
@@ -422,6 +459,33 @@ def main():
         if cur is None or q['amp'] > cur['amp']:
             byled[q['led']] = q
     ledpos = list(byled.values())
+    # page conflict audit, verbatim port of survey.html 1946-1955:
+    # SAME-string, d < 6 px, |Δled| > 5 -> conflict pair, BOTH confirmed.
+    conflicts = []
+    for a in range(len(ledpos)):
+        for b in range(a + 1, len(ledpos)):
+            sa, sb = ledpos[a], ledpos[b]
+            if (sa['led'] // nPs) != (sb['led'] // nPs):
+                continue
+            d = math.hypot(sa['cx'] - sb['cx'], sa['cy'] - sb['cy'])
+            if d < CONFLICT_D and abs(sa['led'] - sb['led']) > CONFLICT_ID_GAP:
+                conflicts.append({'a': sa['led'], 'b': sb['led'],
+                                  'd': round(d, 2), 'kind': 'same-string'})
+                sa.setdefault('cf', []).append(sb['led'])
+                sb.setdefault('cf', []).append(sa['led'])
+    if args.flag_colocated:         # ledger-only; never suppresses or dedups
+        colo = []
+        for a in range(len(ledpos)):
+            for b in range(a + 1, len(ledpos)):
+                sa, sb = ledpos[a], ledpos[b]
+                if (sa['led'] // nPs) == (sb['led'] // nPs):
+                    continue
+                d = math.hypot(sa['cx'] - sb['cx'], sa['cy'] - sb['cy'])
+                if d < 5.0:
+                    colo.append({'a': sa['led'], 'b': sb['led'],
+                                 'd': round(d, 2), 'kind': 'cross-string'})
+    else:
+        colo = []
     leds = sorted(ledpos, key=lambda q: q['led'])
     miss = [i for i in range(N) if i not in byled]
     print(f'sites {int(mask.sum() // 10)}-ish; LEDs confirmed: {len(leds)} / {N}')
@@ -438,6 +502,13 @@ def main():
         out = run / 'ledpos.json'
         out.write_text(json.dumps(leds, indent=1))
         print('positions ->', out)
+    if args.save_conflicts:
+        nSites = int(mask.sum())
+        outc = run / 'ledconflicts.json'
+        outc.write_text(json.dumps(
+            {'conflicts': conflicts, 'colocated': colo,
+             'nSites': nSites, 'suppress': R, 'nPs': nPs}, indent=1))
+        print(f'conflicts {len(conflicts)} colocated {len(colo)} ->', outc)
     if args.save_overlay:
         img = np.asarray(master).copy()
         for p in leds:

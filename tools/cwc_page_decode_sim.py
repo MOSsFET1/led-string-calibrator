@@ -30,7 +30,7 @@ import cv2
 
 BASE = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE))
-from offline_hole_verify import decode_run  # noqa: E402
+from offline_hole_verify import decode_run, parse_planes  # noqa: E402
 
 DW = 128
 SEARCH = 12
@@ -97,7 +97,7 @@ def main():
     run = Path(args.run_dir)
 
     frames = decode_run(run, 'cwc')
-    planes = {int(f['label'].split(':p')[1]): f['img'] for f in frames if ':p' in f['label']}
+    planes = parse_planes(frames)   # tolerant '.rN' suffix, last-wins
     masts = [f for f in frames if 'master' in f['label']]
     if not masts or len(planes) < 24:
         print(f'INCOMPLETE: master {len(masts)}, planes {len(planes)}')

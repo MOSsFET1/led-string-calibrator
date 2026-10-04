@@ -24,7 +24,7 @@ import cv2
 
 BASE = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE))
-from offline_hole_verify import decode_run, luma  # noqa: E402
+from offline_hole_verify import decode_run, luma, plane_index  # noqa: E402
 from cwc_analyse import reg_residual  # noqa: E402
 
 PM_THR_PCT = 97      # pseudo-master blob threshold (percentile)
@@ -41,7 +41,7 @@ def build(run_dir: Path, tag='cwc'):
     annotation), mlum, stack (18,H,W), planes_used, shifts, master_used."""
     frames = decode_run(run_dir, tag)
     masts = [f for f in frames if f['label'].endswith('master')]
-    plane_fs = sorted((int(f['label'].split(':p')[-1]), f)
+    plane_fs = sorted((plane_index(f['label']), f)
                       for f in frames if ':p' in f['label'])
     ref = luma(masts[0]['img']).astype(np.float32) if masts else None
 

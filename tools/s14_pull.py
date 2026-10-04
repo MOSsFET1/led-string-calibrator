@@ -51,7 +51,27 @@ ser.close()
 import re
 text = out.read_text()
 labels = re.findall(r'"label":"([^"]*)"', text)
-uniq = sorted(set(labels), key=lambda l: int(l.split('f')[1]) if 'f' in l else 0)
+
+
+def _label_sort_key(l):
+    """Frame order key: 'sfNN'-style plain frames, then cwc plane labels
+    (tolerant '.rN' suffix, last-wins is a decode-side rule — for ordering
+    a regrab sorts by its plane index)."""
+    if 'f' in l:
+        try:
+            return int(l.split('f')[1])
+        except ValueError:
+            return 0
+    if ':p' in l:
+        try:
+            from offline_hole_verify import plane_index
+            return 100 + plane_index(l)
+        except Exception:
+            return 100
+    return 0
+
+
+uniq = sorted(set(labels), key=_label_sort_key)
 m = re.search(r'FSTATS (\{.*\})', text)
 print(f'frames: {len(uniq)} unique / {len(labels)} lines')
 print('FSTATS:', (m.group(1)[:400] if m else 'missing'))

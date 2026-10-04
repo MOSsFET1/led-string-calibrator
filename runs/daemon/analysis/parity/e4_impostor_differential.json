@@ -1,0 +1,30 @@
+{
+ "run8": {
+  "gain_impostor": 62,
+  "n_gains": 65,
+  "gain_rate": 95.4,
+  "legacy_base_rate": 29.9,
+  "differential": 65.5
+ },
+ "run9": {
+  "gain_impostor": 67,
+  "n_gains": 67,
+  "gain_rate": 100.0,
+  "legacy_base_rate": 32.8,
+  "differential": 67.2
+ },
+ "run10": {
+  "gain_impostor": 61,
+  "n_gains": 68,
+  "gain_rate": 89.7,
+  "legacy_base_rate": 27.4,
+  "differential": 62.3
+ },
+ "run11": {
+  "gain_impostor": 52,
+  "n_gains": 53,
+  "gain_rate": 98.1,
+  "legacy_base_rate": 28.7,
+  "differential": 69.4
+ }
+}

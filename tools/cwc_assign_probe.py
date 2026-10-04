@@ -32,8 +32,8 @@ import cv2
 
 BASE = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE))
-from offline_hole_verify import decode_run  # noqa: E402
-from cwc_analyse import reg_residual       # noqa: E402
+from offline_hole_verify import decode_run, parse_planes  # noqa: E402
+from cwc_analyse import reg_residual  # noqa: E402
 
 STANDING_MASK = 175
 OLD_MASK = 200
@@ -50,8 +50,7 @@ GUARD_MULT = 1.5                           # x median pitch
 def build_scores(run):
     """Exact replication of cwc_pos_decode.py main() lines 52-96."""
     frames = decode_run(run, 'cwc')
-    planes = {int(f['label'].split(':p')[1]): f['img']
-              for f in frames if ':p' in f['label']}
+    planes = parse_planes(frames)   # tolerant '.rN' suffix, last-wins
     masts = [f for f in frames if 'master' in f['label']]
     if not masts or len(planes) < 18:
         raise SystemExit(f'INCOMPLETE: master {len(masts)}, planes {len(planes)}')

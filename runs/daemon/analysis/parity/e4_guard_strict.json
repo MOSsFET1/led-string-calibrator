@@ -1,0 +1,30 @@
+{
+ "run8": {
+  "anchor": 24,
+  "interp": 17,
+  "claim_adj_strict": 23,
+  "claim_adj_wide_gap": 0,
+  "orphan": 1
+ },
+ "run9": {
+  "anchor": 18,
+  "interp": 18,
+  "claim_adj_strict": 31,
+  "claim_adj_wide_gap": 0,
+  "orphan": 0
+ },
+ "run10": {
+  "anchor": 30,
+  "interp": 17,
+  "claim_adj_strict": 21,
+  "claim_adj_wide_gap": 0,
+  "orphan": 0
+ },
+ "run11": {
+  "anchor": 19,
+  "interp": 15,
+  "claim_adj_strict": 19,
+  "claim_adj_wide_gap": 0,
+  "orphan": 0
+ }
+}
