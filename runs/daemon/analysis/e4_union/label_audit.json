@@ -1,0 +1,682 @@
+{
+ "r8": {
+  "0": {
+   "labeled": 0,
+   "best_t": 0,
+   "D_labeled": 78.4,
+   "D_best": 78.4,
+   "second_D": 14.5
+  },
+  "1": {
+   "labeled": 1,
+   "best_t": 1,
+   "D_labeled": 76.7,
+   "D_best": 76.7,
+   "second_D": 9.1
+  },
+  "2": {
+   "labeled": 2,
+   "best_t": 2,
+   "D_labeled": 80.6,
+   "D_best": 80.6,
+   "second_D": 3.9
+  },
+  "3": {
+   "labeled": 3,
+   "best_t": 3,
+   "D_labeled": 78.6,
+   "D_best": 78.6,
+   "second_D": 10.1
+  },
+  "4": {
+   "labeled": 4,
+   "best_t": 4,
+   "D_labeled": 78.9,
+   "D_best": 78.9,
+   "second_D": 4.4
+  },
+  "5": {
+   "labeled": 5,
+   "best_t": 5,
+   "D_labeled": 78.0,
+   "D_best": 78.0,
+   "second_D": 4.4
+  },
+  "6": {
+   "labeled": 6,
+   "best_t": 6,
+   "D_labeled": 76.9,
+   "D_best": 76.9,
+   "second_D": 7.0
+  },
+  "7": {
+   "labeled": 7,
+   "best_t": 7,
+   "D_labeled": 34.1,
+   "D_best": 34.1,
+   "second_D": 21.3
+  },
+  "8": {
+   "labeled": 8,
+   "best_t": 8,
+   "D_labeled": 78.7,
+   "D_best": 78.7,
+   "second_D": 6.0
+  },
+  "9": {
+   "labeled": 9,
+   "best_t": 9,
+   "D_labeled": 79.2,
+   "D_best": 79.2,
+   "second_D": 20.8
+  },
+  "10": {
+   "labeled": 10,
+   "best_t": 10,
+   "D_labeled": 75.3,
+   "D_best": 75.3,
+   "second_D": 7.8
+  },
+  "11": {
+   "labeled": 11,
+   "best_t": 11,
+   "D_labeled": 80.9,
+   "D_best": 80.9,
+   "second_D": 5.7
+  },
+  "12": {
+   "labeled": 12,
+   "best_t": 12,
+   "D_labeled": 80.2,
+   "D_best": 80.2,
+   "second_D": 17.1
+  },
+  "13": {
+   "labeled": 13,
+   "best_t": 13,
+   "D_labeled": 77.8,
+   "D_best": 77.8,
+   "second_D": 16.2
+  },
+  "14": {
+   "labeled": 14,
+   "best_t": 14,
+   "D_labeled": 32.2,
+   "D_best": 32.2,
+   "second_D": 9.9
+  },
+  "15": {
+   "labeled": 15,
+   "best_t": 15,
+   "D_labeled": 81.1,
+   "D_best": 81.1,
+   "second_D": 4.1
+  },
+  "16": {
+   "labeled": 16,
+   "best_t": 16,
+   "D_labeled": 77.1,
+   "D_best": 77.1,
+   "second_D": 4.8
+  },
+  "17": {
+   "labeled": 17,
+   "best_t": 17,
+   "D_labeled": 76.9,
+   "D_best": 76.9,
+   "second_D": 4.6
+  },
+  "18": {
+   "labeled": 18,
+   "best_t": 18,
+   "D_labeled": 78.3,
+   "D_best": 78.3,
+   "second_D": 6.1
+  },
+  "19": {
+   "labeled": 19,
+   "best_t": 19,
+   "D_labeled": 78.8,
+   "D_best": 78.8,
+   "second_D": 33.2
+  },
+  "20": {
+   "labeled": 20,
+   "best_t": 20,
+   "D_labeled": 80.2,
+   "D_best": 80.2,
+   "second_D": 31.1
+  },
+  "21": {
+   "labeled": 21,
+   "best_t": 21,
+   "D_labeled": 79.2,
+   "D_best": 79.2,
+   "second_D": 79.1
+  },
+  "22": {
+   "labeled": 22,
+   "best_t": 22,
+   "D_labeled": 82.5,
+   "D_best": 82.5,
+   "second_D": 82.5
+  },
+  "23": {
+   "labeled": 23,
+   "best_t": 22,
+   "D_labeled": 82.4,
+   "D_best": 82.4,
+   "second_D": 82.4
+  }
+ },
+ "r9": {
+  "0": {
+   "labeled": 0,
+   "best_t": 0,
+   "D_labeled": 70.2,
+   "D_best": 70.2,
+   "second_D": 5.6
+  },
+  "1": {
+   "labeled": 1,
+   "best_t": 1,
+   "D_labeled": 72.8,
+   "D_best": 72.8,
+   "second_D": 5.6
+  },
+  "2": {
+   "labeled": 2,
+   "best_t": 2,
+   "D_labeled": 70.6,
+   "D_best": 70.6,
+   "second_D": 6.5
+  },
+  "3": {
+   "labeled": 3,
+   "best_t": 3,
+   "D_labeled": 70.7,
+   "D_best": 70.7,
+   "second_D": 3.4
+  },
+  "4": {
+   "labeled": 4,
+   "best_t": 4,
+   "D_labeled": 70.9,
+   "D_best": 70.9,
+   "second_D": 4.1
+  },
+  "5": {
+   "labeled": 5,
+   "best_t": 5,
+   "D_labeled": 72.6,
+   "D_best": 72.6,
+   "second_D": 6.2
+  },
+  "6": {
+   "labeled": 6,
+   "best_t": 6,
+   "D_labeled": 69.3,
+   "D_best": 69.3,
+   "second_D": 8.4
+  },
+  "7": {
+   "labeled": 7,
+   "best_t": 7,
+   "D_labeled": 71.6,
+   "D_best": 71.6,
+   "second_D": 5.6
+  },
+  "8": {
+   "labeled": 8,
+   "best_t": 8,
+   "D_labeled": 72.0,
+   "D_best": 72.0,
+   "second_D": 6.3
+  },
+  "9": {
+   "labeled": 9,
+   "best_t": 9,
+   "D_labeled": 70.8,
+   "D_best": 70.8,
+   "second_D": 3.0
+  },
+  "10": {
+   "labeled": 10,
+   "best_t": 10,
+   "D_labeled": 73.5,
+   "D_best": 73.5,
+   "second_D": 4.8
+  },
+  "11": {
+   "labeled": 11,
+   "best_t": 11,
+   "D_labeled": 69.7,
+   "D_best": 69.7,
+   "second_D": 3.6
+  },
+  "12": {
+   "labeled": 12,
+   "best_t": 12,
+   "D_labeled": 74.5,
+   "D_best": 74.5,
+   "second_D": 2.6
+  },
+  "13": {
+   "labeled": 13,
+   "best_t": 13,
+   "D_labeled": 72.7,
+   "D_best": 72.7,
+   "second_D": 4.1
+  },
+  "14": {
+   "labeled": 14,
+   "best_t": 14,
+   "D_labeled": 69.0,
+   "D_best": 69.0,
+   "second_D": 4.2
+  },
+  "15": {
+   "labeled": 15,
+   "best_t": 15,
+   "D_labeled": 68.3,
+   "D_best": 68.3,
+   "second_D": 1.4
+  },
+  "16": {
+   "labeled": 16,
+   "best_t": 16,
+   "D_labeled": 68.9,
+   "D_best": 68.9,
+   "second_D": 5.8
+  },
+  "17": {
+   "labeled": 17,
+   "best_t": 17,
+   "D_labeled": 70.6,
+   "D_best": 70.6,
+   "second_D": 11.0
+  },
+  "18": {
+   "labeled": 18,
+   "best_t": 18,
+   "D_labeled": 70.6,
+   "D_best": 70.6,
+   "second_D": 10.3
+  },
+  "19": {
+   "labeled": 19,
+   "best_t": 19,
+   "D_labeled": 72.5,
+   "D_best": 72.5,
+   "second_D": 26.7
+  },
+  "20": {
+   "labeled": 20,
+   "best_t": 20,
+   "D_labeled": 74.7,
+   "D_best": 74.7,
+   "second_D": 24.6
+  },
+  "21": {
+   "labeled": 21,
+   "best_t": 21,
+   "D_labeled": 67.4,
+   "D_best": 67.4,
+   "second_D": 66.2
+  },
+  "22": {
+   "labeled": 22,
+   "best_t": 20,
+   "D_labeled": -2.5,
+   "D_best": 7.1,
+   "second_D": 4.1
+  },
+  "23": {
+   "labeled": 23,
+   "best_t": 22,
+   "D_labeled": 70.6,
+   "D_best": 70.6,
+   "second_D": 70.6
+  }
+ },
+ "r10": {
+  "0": {
+   "labeled": 0,
+   "best_t": 0,
+   "D_labeled": 78.3,
+   "D_best": 78.3,
+   "second_D": 13.0
+  },
+  "1": {
+   "labeled": 1,
+   "best_t": 1,
+   "D_labeled": 83.0,
+   "D_best": 83.0,
+   "second_D": 14.3
+  },
+  "2": {
+   "labeled": 2,
+   "best_t": 2,
+   "D_labeled": 82.3,
+   "D_best": 82.3,
+   "second_D": 15.8
+  },
+  "3": {
+   "labeled": 3,
+   "best_t": 3,
+   "D_labeled": 82.3,
+   "D_best": 82.3,
+   "second_D": 16.0
+  },
+  "4": {
+   "labeled": 4,
+   "best_t": 4,
+   "D_labeled": 82.1,
+   "D_best": 82.1,
+   "second_D": 15.5
+  },
+  "5": {
+   "labeled": 5,
+   "best_t": 5,
+   "D_labeled": 26.1,
+   "D_best": 26.1,
+   "second_D": 9.7
+  },
+  "6": {
+   "labeled": 6,
+   "best_t": 6,
+   "D_labeled": 81.4,
+   "D_best": 81.4,
+   "second_D": 15.3
+  },
+  "7": {
+   "labeled": 7,
+   "best_t": 7,
+   "D_labeled": 84.4,
+   "D_best": 84.4,
+   "second_D": 20.5
+  },
+  "8": {
+   "labeled": 8,
+   "best_t": 8,
+   "D_labeled": 83.7,
+   "D_best": 83.7,
+   "second_D": 20.5
+  },
+  "9": {
+   "labeled": 9,
+   "best_t": 9,
+   "D_labeled": 83.4,
+   "D_best": 83.4,
+   "second_D": 22.6
+  },
+  "10": {
+   "labeled": 10,
+   "best_t": 10,
+   "D_labeled": 84.9,
+   "D_best": 84.9,
+   "second_D": 9.8
+  },
+  "11": {
+   "labeled": 11,
+   "best_t": 11,
+   "D_labeled": 83.9,
+   "D_best": 83.9,
+   "second_D": 15.3
+  },
+  "12": {
+   "labeled": 12,
+   "best_t": 12,
+   "D_labeled": 82.2,
+   "D_best": 82.2,
+   "second_D": 8.6
+  },
+  "13": {
+   "labeled": 13,
+   "best_t": 13,
+   "D_labeled": 92.0,
+   "D_best": 92.0,
+   "second_D": 9.8
+  },
+  "14": {
+   "labeled": 14,
+   "best_t": 14,
+   "D_labeled": 78.1,
+   "D_best": 78.1,
+   "second_D": 7.8
+  },
+  "15": {
+   "labeled": 15,
+   "best_t": 15,
+   "D_labeled": 74.9,
+   "D_best": 74.9,
+   "second_D": 10.2
+  },
+  "16": {
+   "labeled": 16,
+   "best_t": 16,
+   "D_labeled": 79.2,
+   "D_best": 79.2,
+   "second_D": 11.0
+  },
+  "17": {
+   "labeled": 17,
+   "best_t": 17,
+   "D_labeled": 78.5,
+   "D_best": 78.5,
+   "second_D": 14.7
+  },
+  "18": {
+   "labeled": 18,
+   "best_t": 18,
+   "D_labeled": 77.7,
+   "D_best": 77.7,
+   "second_D": 13.8
+  },
+  "19": {
+   "labeled": 19,
+   "best_t": 19,
+   "D_labeled": 83.8,
+   "D_best": 83.8,
+   "second_D": 42.6
+  },
+  "20": {
+   "labeled": 20,
+   "best_t": 20,
+   "D_labeled": 86.3,
+   "D_best": 86.3,
+   "second_D": 42.6
+  },
+  "21": {
+   "labeled": 21,
+   "best_t": 21,
+   "D_labeled": 70.2,
+   "D_best": 70.2,
+   "second_D": 60.6
+  },
+  "22": {
+   "labeled": 22,
+   "best_t": 21,
+   "D_labeled": 69.6,
+   "D_best": 70.7,
+   "second_D": 69.6
+  },
+  "23": {
+   "labeled": 23,
+   "best_t": 21,
+   "D_labeled": 69.9,
+   "D_best": 71.0,
+   "second_D": 69.9
+  }
+ },
+ "r11": {
+  "0": {
+   "labeled": 0,
+   "best_t": 0,
+   "D_labeled": 73.3,
+   "D_best": 73.3,
+   "second_D": 2.5
+  },
+  "1": {
+   "labeled": 1,
+   "best_t": 1,
+   "D_labeled": 74.6,
+   "D_best": 74.6,
+   "second_D": 6.4
+  },
+  "2": {
+   "labeled": 2,
+   "best_t": 2,
+   "D_labeled": 76.2,
+   "D_best": 76.2,
+   "second_D": 4.4
+  },
+  "3": {
+   "labeled": 3,
+   "best_t": 3,
+   "D_labeled": 75.4,
+   "D_best": 75.4,
+   "second_D": 8.8
+  },
+  "4": {
+   "labeled": 4,
+   "best_t": 4,
+   "D_labeled": 79.9,
+   "D_best": 79.9,
+   "second_D": 9.7
+  },
+  "5": {
+   "labeled": 5,
+   "best_t": 5,
+   "D_labeled": 73.9,
+   "D_best": 73.9,
+   "second_D": 10.2
+  },
+  "6": {
+   "labeled": 6,
+   "best_t": 6,
+   "D_labeled": 73.6,
+   "D_best": 73.6,
+   "second_D": 6.1
+  },
+  "7": {
+   "labeled": 7,
+   "best_t": 7,
+   "D_labeled": 74.0,
+   "D_best": 74.0,
+   "second_D": 2.8
+  },
+  "8": {
+   "labeled": 8,
+   "best_t": 8,
+   "D_labeled": 76.2,
+   "D_best": 76.2,
+   "second_D": 8.1
+  },
+  "9": {
+   "labeled": 9,
+   "best_t": 9,
+   "D_labeled": 75.6,
+   "D_best": 75.6,
+   "second_D": 5.6
+  },
+  "10": {
+   "labeled": 10,
+   "best_t": 10,
+   "D_labeled": 75.8,
+   "D_best": 75.8,
+   "second_D": 5.9
+  },
+  "11": {
+   "labeled": 11,
+   "best_t": 11,
+   "D_labeled": 76.3,
+   "D_best": 76.3,
+   "second_D": 12.5
+  },
+  "12": {
+   "labeled": 12,
+   "best_t": 12,
+   "D_labeled": 77.5,
+   "D_best": 77.5,
+   "second_D": 3.1
+  },
+  "13": {
+   "labeled": 13,
+   "best_t": 13,
+   "D_labeled": 75.7,
+   "D_best": 75.7,
+   "second_D": 3.3
+  },
+  "14": {
+   "labeled": 14,
+   "best_t": 14,
+   "D_labeled": 72.2,
+   "D_best": 72.2,
+   "second_D": 5.6
+  },
+  "15": {
+   "labeled": 15,
+   "best_t": 15,
+   "D_labeled": 73.5,
+   "D_best": 73.5,
+   "second_D": 18.2
+  },
+  "16": {
+   "labeled": 16,
+   "best_t": 16,
+   "D_labeled": 73.4,
+   "D_best": 73.4,
+   "second_D": 4.4
+  },
+  "17": {
+   "labeled": 17,
+   "best_t": 17,
+   "D_labeled": 72.4,
+   "D_best": 72.4,
+   "second_D": 3.1
+  },
+  "18": {
+   "labeled": 18,
+   "best_t": 18,
+   "D_labeled": 74.0,
+   "D_best": 74.0,
+   "second_D": 6.2
+  },
+  "19": {
+   "labeled": 19,
+   "best_t": 19,
+   "D_labeled": 72.6,
+   "D_best": 72.6,
+   "second_D": 25.6
+  },
+  "20": {
+   "labeled": 20,
+   "best_t": 20,
+   "D_labeled": 73.4,
+   "D_best": 73.4,
+   "second_D": 23.9
+  },
+  "21": {
+   "labeled": 21,
+   "best_t": 21,
+   "D_labeled": 15.2,
+   "D_best": 15.2,
+   "second_D": 9.1
+  },
+  "22": {
+   "labeled": 22,
+   "best_t": 21,
+   "D_labeled": 84.1,
+   "D_best": 86.1,
+   "second_D": 84.1
+  },
+  "23": {
+   "labeled": 23,
+   "best_t": 21,
+   "D_labeled": 84.2,
+   "D_best": 86.1,
+   "second_D": 84.2
+  }
+ }
+}
