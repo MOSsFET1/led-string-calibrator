@@ -24,6 +24,14 @@ PORT = '/dev/ttyACM0'
 WANT_FENDS = 25   # master + 24 planes (S14R-0000)
 
 
+def plane_index(label):
+    """Tolerant plane-index parse: strip the regrab suffix '.rN' (r'\.\w+$'
+    — note r'\.\d+$' is a no-op on '07.r1' because the suffix carries the
+    replay marker 'r' before the digits) before the int. Labels with no
+    ':p' never reach this (callers filter)."""
+    return int(re.sub(r'\.\w+$', '', label.split(':p', 1)[1]))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('run_dir')
@@ -149,9 +157,13 @@ def main():
                   f'-> cwc_dec.json')
     ok = [l for l, _ in labels]
     print(f'DONE frames={frames} fends={fends} decoded={len(ok)} -> {fp}')
-    have = sorted(int(l.split(':p')[1]) for l in ok if ':p' in l)
+    have = sorted(plane_index(l) for l in ok if ':p' in l)
     missing = [p for p in range(24) if p not in have]
     nmaster = len([l for l in ok if l.endswith('master')])
+    suffixes = [l for l in ok
+                if re.search(r'\.\w+$', l.split(':p', 1)[1])]
+    print(f'tolerant-label suffix frames: {len(suffixes)}'
+          + (f' {suffixes[:6]}' if suffixes else ''))
     print(f'planes {len([p for p in have if 0 <= p < 24])}/24, '
           f'master {nmaster}/1'
           + (f'  MISSING: {missing}' if missing or nmaster == 0 else ''))

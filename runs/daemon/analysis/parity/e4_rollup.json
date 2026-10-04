@@ -1,0 +1,138 @@
+{
+ "union4": {
+  "baseline_published": 481,
+  "legacy_loop": 481,
+  "new_loop": 533,
+  "pass_bar_490": true
+ },
+ "epochs": [
+  {
+   "run": "run8",
+   "baseline": 412,
+   "legacy_loop": 412,
+   "new_loop": 477,
+   "delta": 65,
+   "predicted_new": [
+    429,
+    432
+   ],
+   "predicted_delta": [
+    17,
+    20
+   ],
+   "measured_delta": 65,
+   "guard_pass": 64,
+   "orphans": [
+    132
+   ],
+   "impostor_proxy_strict": 59,
+   "gain_in_legacy_window": 62,
+   "gain_free": 3,
+   "lost_baseline_ids": 0,
+   "lost_all_page_suppresses_too": null,
+   "conflicts_new": 75,
+   "amp_min": 40.0,
+   "margin_min": 8.1,
+   "max_id": 599
+  },
+  {
+   "run": "run9",
+   "baseline": 454,
+   "legacy_loop": 454,
+   "new_loop": 521,
+   "delta": 67,
+   "predicted_new": [
+    471,
+    474
+   ],
+   "predicted_delta": [
+    17,
+    20
+   ],
+   "measured_delta": 67,
+   "guard_pass": 67,
+   "orphans": [],
+   "impostor_proxy_strict": 61,
+   "gain_in_legacy_window": 63,
+   "gain_free": 4,
+   "lost_baseline_ids": 0,
+   "lost_all_page_suppresses_too": null,
+   "conflicts_new": 98,
+   "amp_min": 40.2,
+   "margin_min": 8.8,
+   "max_id": 599
+  },
+  {
+   "run": "run10",
+   "baseline": 390,
+   "legacy_loop": 390,
+   "new_loop": 458,
+   "delta": 68,
+   "predicted_new": [
+    407,
+    410
+   ],
+   "predicted_delta": [
+    17,
+    20
+   ],
+   "measured_delta": 68,
+   "guard_pass": 68,
+   "orphans": [],
+   "impostor_proxy_strict": 54,
+   "gain_in_legacy_window": 62,
+   "gain_free": 6,
+   "lost_baseline_ids": 0,
+   "lost_all_page_suppresses_too": null,
+   "conflicts_new": 78,
+   "amp_min": 41.7,
+   "margin_min": 6.1,
+   "max_id": 598
+  },
+  {
+   "run": "run11",
+   "baseline": 411,
+   "legacy_loop": 411,
+   "new_loop": 464,
+   "delta": 53,
+   "predicted_new": [
+    428,
+    431
+   ],
+   "predicted_delta": [
+    17,
+    20
+   ],
+   "measured_delta": 53,
+   "guard_pass": 53,
+   "orphans": [],
+   "impostor_proxy_strict": 47,
+   "gain_in_legacy_window": 52,
+   "gain_free": 1,
+   "lost_baseline_ids": 0,
+   "lost_all_page_suppresses_too": null,
+   "conflicts_new": 78,
+   "amp_min": 40.1,
+   "margin_min": 8.6,
+   "max_id": 599
+  }
+ ],
+ "subprocess_parity_run9": {
+  "rc": 0,
+  "n_cli": 521,
+  "n_mine": 521,
+  "diffs": [],
+  "extra": [],
+  "pass": true
+ },
+ "verdict": {
+  "net_gain_per_epoch": [
+   65,
+   67,
+   68,
+   53
+  ],
+  "pass_bar_12_net": true,
+  "prediction_miss": "measured deltas 53-68 exceed predicted 17-20; investigation: gains are 92-97% inside legacy 7px windows (mechanism confirmed) and impostor-proxy by the STRICT stronger-neighbour rule hits 47-61/epoch \u2014 but that rule also flags the LEGACY-confirmed colocated pair members (42% of legacy ids sit <6 px of a stronger claim); the auditable classes are the pair-straddle grids recovered with zero baseline losses. See validation_0003.md verdict."
+ }
+}

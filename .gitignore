@@ -28,6 +28,11 @@ runs/daemon/runs/run1/morning_*_backup*/
 
 runs/daemon/runs/*/*.trunc
 runs/daemon/analysis/**/repaired/
+# belt-and-braces: NO imagery under analysis/ either (galleries, extract
+# dumps, parity harness .raw dumps) — operator no-images standing rule.
+runs/daemon/analysis/**/*.jpg
+runs/daemon/analysis/**/*.png
+runs/daemon/analysis/**/*.raw
 runs/daemon/analysis/**/*.pkl
 runs/daemon/analysis/gallery/thumbs/
 

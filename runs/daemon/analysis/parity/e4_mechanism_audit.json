@@ -1,0 +1,30 @@
+{
+ "run8": {
+  "new_confirmed_check": 477,
+  "gain_in_legacy7px_window": 62,
+  "gain_free_of_legacy_windows": 3,
+  "control_global7_window_confirmed": 412,
+  "control_gain_vs_published": 0
+ },
+ "run9": {
+  "new_confirmed_check": 521,
+  "gain_in_legacy7px_window": 63,
+  "gain_free_of_legacy_windows": 4,
+  "control_global7_window_confirmed": 454,
+  "control_gain_vs_published": 0
+ },
+ "run10": {
+  "new_confirmed_check": 458,
+  "gain_in_legacy7px_window": 62,
+  "gain_free_of_legacy_windows": 6,
+  "control_global7_window_confirmed": 390,
+  "control_gain_vs_published": 0
+ },
+ "run11": {
+  "new_confirmed_check": 464,
+  "gain_in_legacy7px_window": 52,
+  "gain_free_of_legacy_windows": 1,
+  "control_global7_window_confirmed": 411,
+  "control_gain_vs_published": 0
+ }
+}

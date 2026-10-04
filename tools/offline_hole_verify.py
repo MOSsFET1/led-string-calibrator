@@ -62,6 +62,29 @@ def _finish(cur, b64):
     return cur
 
 
+def plane_index(label):
+    """Tolerant plane-index parse (S14R-0003E design §4 / detection-audit (a)):
+    labels are 'cwc:rN:pNN' plain, or 'cwc:rN:pNN.rK' for tear-guard regrab
+    retries — strip the replay suffix '.<r><digits>' (or '.<digits>') BEFORE
+    the int (a naive int('07.r1') raises ValueError). NOTE the audit doc's
+    recipe r'\\.\\d+$' is a NO-OP on '07.r1' (the suffix carries an 'r'
+    before the digits) — the suffix class here is \\.\\w+$, which is the
+    implemented form (word chars only; plain labels parse identically)."""
+    return int(re.sub(r'\.\w+$', '', label.split(':p', 1)[1]))
+
+
+def parse_planes(frames):
+    """{plane_index: img} over :p labels. Duplicate plane indices keep the
+    LAST occurrence (the regrab): attempt-0 ships the plain label, retries
+    ship '.r1'/'.r2' and appear LATER in wire order, so plain assignment is
+    last-wins by construction."""
+    planes = {}
+    for f in frames:
+        if ':p' in f['label']:
+            planes[plane_index(f['label'])] = f['img']
+    return planes
+
+
 def luma(img):
     a = np.asarray(img, dtype=np.int16)
     return a.max(axis=2)

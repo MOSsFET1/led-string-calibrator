@@ -1,0 +1,80 @@
+{
+ "run8": {
+  "legacy==published": true,
+  "new": 477,
+  "pred_range": [
+   429,
+   432
+  ],
+  "delta": 65,
+  "guard_class": {
+   "anchor": 24,
+   "interp": 17,
+   "claim_adj": 23,
+   "orphan": 1
+  },
+  "orphans": [
+   132
+  ],
+  "d_anchor_med": 1.0,
+  "conflicts": 75,
+  "note": "legacy 7px-global also eats 1.5-6px+ same-string rivals AND cross-string rivals inside the square; phase3 predicted the STRICT own-best-passing subset (amp>=40 marg>=6 at a free pixel) = 17-20; the full parity change also recovers ids whose own-best site was inside a SAME-STRING neighbour claim window (the page re-claims them at the next free pixel of their own blob) \u2014 that class was never counted by phase3."
+ },
+ "run9": {
+  "legacy==published": true,
+  "new": 521,
+  "pred_range": [
+   471,
+   474
+  ],
+  "delta": 67,
+  "guard_class": {
+   "anchor": 18,
+   "interp": 18,
+   "claim_adj": 31,
+   "orphan": 0
+  },
+  "orphans": [],
+  "d_anchor_med": 0.0,
+  "conflicts": 98,
+  "note": "legacy 7px-global also eats 1.5-6px+ same-string rivals AND cross-string rivals inside the square; phase3 predicted the STRICT own-best-passing subset (amp>=40 marg>=6 at a free pixel) = 17-20; the full parity change also recovers ids whose own-best site was inside a SAME-STRING neighbour claim window (the page re-claims them at the next free pixel of their own blob) \u2014 that class was never counted by phase3."
+ },
+ "run10": {
+  "legacy==published": true,
+  "new": 458,
+  "pred_range": [
+   407,
+   410
+  ],
+  "delta": 68,
+  "guard_class": {
+   "anchor": 30,
+   "interp": 17,
+   "claim_adj": 21,
+   "orphan": 0
+  },
+  "orphans": [],
+  "d_anchor_med": 1.0,
+  "conflicts": 78,
+  "note": "legacy 7px-global also eats 1.5-6px+ same-string rivals AND cross-string rivals inside the square; phase3 predicted the STRICT own-best-passing subset (amp>=40 marg>=6 at a free pixel) = 17-20; the full parity change also recovers ids whose own-best site was inside a SAME-STRING neighbour claim window (the page re-claims them at the next free pixel of their own blob) \u2014 that class was never counted by phase3."
+ },
+ "run11": {
+  "legacy==published": true,
+  "new": 464,
+  "pred_range": [
+   428,
+   431
+  ],
+  "delta": 53,
+  "guard_class": {
+   "anchor": 19,
+   "interp": 15,
+   "claim_adj": 19,
+   "orphan": 0
+  },
+  "orphans": [],
+  "d_anchor_med": 1.15,
+  "conflicts": 78,
+  "note": "legacy 7px-global also eats 1.5-6px+ same-string rivals AND cross-string rivals inside the square; phase3 predicted the STRICT own-best-passing subset (amp>=40 marg>=6 at a free pixel) = 17-20; the full parity change also recovers ids whose own-best site was inside a SAME-STRING neighbour claim window (the page re-claims them at the next free pixel of their own blob) \u2014 that class was never counted by phase3."
+ }
+}

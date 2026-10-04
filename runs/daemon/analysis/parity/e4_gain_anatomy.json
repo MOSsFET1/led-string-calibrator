@@ -1,0 +1,468 @@
+{
+ "run8": {
+  "new": 477,
+  "gain_cats": {
+   "pair_straddle_same_string": 8,
+   "pair_cross_string": 56,
+   "inside_legacy_window_rival_led": 0,
+   "anchor_free": 0,
+   "orphan": 1
+  },
+  "conflict_pair_gains": 15,
+  "details": [
+   {
+    "led": 5,
+    "cls": "pair_cross_str",
+    "near_led": 45,
+    "d": 2.8,
+    "in_legacy_window": true,
+    "amp": 84.9
+   },
+   {
+    "led": 39,
+    "cls": "pair_cross_str",
+    "near_led": 209,
+    "d": 3.2,
+    "in_legacy_window": true,
+    "amp": 51.9
+   },
+   {
+    "led": 42,
+    "cls": "pair_cross_str",
+    "near_led": 206,
+    "d": 2.2,
+    "in_legacy_window": true,
+    "amp": 59.3
+   },
+   {
+    "led": 43,
+    "cls": "pair_cross_str",
+    "near_led": 205,
+    "d": 2.0,
+    "in_legacy_window": true,
+    "amp": 73.1
+   },
+   {
+    "led": 44,
+    "cls": "pair_cross_str",
+    "near_led": 6,
+    "d": 2.8,
+    "in_legacy_window": true,
+    "amp": 67.1
+   },
+   {
+    "led": 65,
+    "cls": "pair_cross_str",
+    "near_led": 80,
+    "d": 2.8,
+    "in_legacy_window": true,
+    "amp": 47.7
+   },
+   {
+    "led": 73,
+    "cls": "pair_same_str",
+    "near_led": 72,
+    "gap": 1,
+    "d": 3.0,
+    "cheb": 3,
+    "in_legacy_window": true,
+    "amp": 51.5,
+    "d_anchor": null
+   },
+   {
+    "led": 76,
+    "cls": "pair_same_str",
+    "near_led": 69,
+    "gap": 7,
+    "d": 2.8,
+    "cheb": 2,
+    "in_legacy_window": true,
+    "amp": 40.5,
+    "d_anchor": null
+   },
+   {
+    "led": 81,
+    "cls": "pair_cross_str",
+    "near_led": 261,
+    "d": 3.2,
+    "in_legacy_window": true,
+    "amp": 41.0
+   },
+   {
+    "led": 109,
+    "cls": "pair_cross_str",
+    "near_led": 180,
+    "d": 2.2,
+    "in_legacy_window": true,
+    "amp": 44.4
+   },
+   {
+    "led": 111,
+    "cls": "pair_cross_str",
+    "near_led": 579,
+    "d": 2.2,
+    "in_legacy_window": true,
+    "amp": 40.0
+   },
+   {
+    "led": 120,
+    "cls": "pair_same_str",
+    "near_led": 121,
+    "gap": 1,
+    "d": 3.6,
+    "cheb": 3,
+    "in_legacy_window": true,
+    "amp": 77.5,
+    "d_anchor": 0.0
+   }
+  ]
+ },
+ "run9": {
+  "new": 521,
+  "gain_cats": {
+   "pair_straddle_same_string": 14,
+   "pair_cross_string": 52,
+   "inside_legacy_window_rival_led": 0,
+   "anchor_free": 0,
+   "orphan": 1
+  },
+  "conflict_pair_gains": 19,
+  "details": [
+   {
+    "led": 5,
+    "cls": "pair_cross_str",
+    "near_led": 45,
+    "d": 3.6,
+    "in_legacy_window": true,
+    "amp": 109.0
+   },
+   {
+    "led": 40,
+    "cls": "pair_cross_str",
+    "near_led": 239,
+    "d": 3.2,
+    "in_legacy_window": true,
+    "amp": 49.1
+   },
+   {
+    "led": 42,
+    "cls": "pair_cross_str",
+    "near_led": 8,
+    "d": 2.0,
+    "in_legacy_window": true,
+    "amp": 83.6
+   },
+   {
+    "led": 43,
+    "cls": "pair_cross_str",
+    "near_led": 205,
+    "d": 2.0,
+    "in_legacy_window": true,
+    "amp": 83.7
+   },
+   {
+    "led": 44,
+    "cls": "pair_cross_str",
+    "near_led": 6,
+    "d": 2.8,
+    "in_legacy_window": true,
+    "amp": 87.7
+   },
+   {
+    "led": 73,
+    "cls": "pair_same_str",
+    "near_led": 72,
+    "gap": 1,
+    "d": 3.0,
+    "cheb": 3,
+    "in_legacy_window": true,
+    "amp": 69.8,
+    "d_anchor": null
+   },
+   {
+    "led": 76,
+    "cls": "pair_same_str",
+    "near_led": 69,
+    "gap": 7,
+    "d": 2.8,
+    "cheb": 2,
+    "in_legacy_window": true,
+    "amp": 41.4,
+    "d_anchor": null
+   },
+   {
+    "led": 77,
+    "cls": "pair_same_str",
+    "near_led": 68,
+    "gap": 9,
+    "d": 3.2,
+    "cheb": 3,
+    "in_legacy_window": true,
+    "amp": 43.7,
+    "d_anchor": 0.0
+   },
+   {
+    "led": 79,
+    "cls": "pair_cross_str",
+    "near_led": 66,
+    "d": 3.6,
+    "in_legacy_window": true,
+    "amp": 49.8
+   },
+   {
+    "led": 80,
+    "cls": "pair_cross_str",
+    "near_led": 65,
+    "d": 2.8,
+    "in_legacy_window": true,
+    "amp": 54.6
+   },
+   {
+    "led": 84,
+    "cls": "pair_cross_str",
+    "near_led": 258,
+    "d": 3.0,
+    "in_legacy_window": true,
+    "amp": 58.7
+   },
+   {
+    "led": 101,
+    "cls": "pair_cross_str",
+    "near_led": 299,
+    "d": 4.5,
+    "in_legacy_window": false,
+    "amp": 52.4
+   }
+  ]
+ },
+ "run10": {
+  "new": 458,
+  "gain_cats": {
+   "pair_straddle_same_string": 14,
+   "pair_cross_string": 53,
+   "inside_legacy_window_rival_led": 0,
+   "anchor_free": 1,
+   "orphan": 0
+  },
+  "conflict_pair_gains": 20,
+  "details": [
+   {
+    "led": 5,
+    "cls": "pair_cross_str",
+    "near_led": 45,
+    "d": 3.6,
+    "in_legacy_window": true,
+    "amp": 116.0
+   },
+   {
+    "led": 14,
+    "cls": "pair_cross_str",
+    "near_led": 36,
+    "d": 3.6,
+    "in_legacy_window": true,
+    "amp": 50.6
+   },
+   {
+    "led": 28,
+    "cls": "pair_same_str",
+    "near_led": 22,
+    "gap": 6,
+    "d": 6.1,
+    "cheb": 6,
+    "in_legacy_window": false,
+    "amp": 43.5,
+    "d_anchor": 0.0
+   },
+   {
+    "led": 38,
+    "cls": "pair_cross_str",
+    "near_led": 210,
+    "d": 3.2,
+    "in_legacy_window": true,
+    "amp": 46.0
+   },
+   {
+    "led": 42,
+    "cls": "pair_cross_str",
+    "near_led": 8,
+    "d": 2.0,
+    "in_legacy_window": true,
+    "amp": 61.9
+   },
+   {
+    "led": 43,
+    "cls": "pair_cross_str",
+    "near_led": 205,
+    "d": 2.0,
+    "in_legacy_window": true,
+    "amp": 95.7
+   },
+   {
+    "led": 44,
+    "cls": "pair_cross_str",
+    "near_led": 6,
+    "d": 2.8,
+    "in_legacy_window": true,
+    "amp": 63.5
+   },
+   {
+    "led": 66,
+    "cls": "pair_cross_str",
+    "near_led": 79,
+    "d": 3.6,
+    "in_legacy_window": true,
+    "amp": 43.7
+   },
+   {
+    "led": 73,
+    "cls": "pair_same_str",
+    "near_led": 72,
+    "gap": 1,
+    "d": 3.0,
+    "cheb": 3,
+    "in_legacy_window": true,
+    "amp": 73.4,
+    "d_anchor": null
+   },
+   {
+    "led": 92,
+    "cls": "pair_same_str",
+    "near_led": 93,
+    "gap": 1,
+    "d": 2.2,
+    "cheb": 2,
+    "in_legacy_window": true,
+    "amp": 69.9,
+    "d_anchor": 6.6
+   },
+   {
+    "led": 100,
+    "cls": "pair_cross_str",
+    "near_led": 290,
+    "d": 3.0,
+    "in_legacy_window": true,
+    "amp": 51.1
+   },
+   {
+    "led": 106,
+    "cls": "pair_cross_str",
+    "near_led": 303,
+    "d": 2.8,
+    "in_legacy_window": true,
+    "amp": 51.8
+   }
+  ]
+ },
+ "run11": {
+  "new": 464,
+  "gain_cats": {
+   "pair_straddle_same_string": 6,
+   "pair_cross_string": 47,
+   "inside_legacy_window_rival_led": 0,
+   "anchor_free": 0,
+   "orphan": 0
+  },
+  "conflict_pair_gains": 12,
+  "details": [
+   {
+    "led": 42,
+    "cls": "pair_cross_str",
+    "near_led": 8,
+    "d": 2.0,
+    "in_legacy_window": true,
+    "amp": 66.7
+   },
+   {
+    "led": 43,
+    "cls": "pair_cross_str",
+    "near_led": 205,
+    "d": 2.0,
+    "in_legacy_window": true,
+    "amp": 58.9
+   },
+   {
+    "led": 44,
+    "cls": "pair_cross_str",
+    "near_led": 6,
+    "d": 2.8,
+    "in_legacy_window": true,
+    "amp": 70.7
+   },
+   {
+    "led": 73,
+    "cls": "pair_same_str",
+    "near_led": 72,
+    "gap": 1,
+    "d": 3.0,
+    "cheb": 3,
+    "in_legacy_window": true,
+    "amp": 46.9,
+    "d_anchor": null
+   },
+   {
+    "led": 84,
+    "cls": "pair_cross_str",
+    "near_led": 258,
+    "d": 3.0,
+    "in_legacy_window": true,
+    "amp": 44.2
+   },
+   {
+    "led": 86,
+    "cls": "pair_cross_str",
+    "near_led": 256,
+    "d": 3.6,
+    "in_legacy_window": true,
+    "amp": 40.1
+   },
+   {
+    "led": 100,
+    "cls": "pair_cross_str",
+    "near_led": 290,
+    "d": 3.2,
+    "in_legacy_window": true,
+    "amp": 52.3
+   },
+   {
+    "led": 107,
+    "cls": "pair_cross_str",
+    "near_led": 379,
+    "d": 2.2,
+    "in_legacy_window": true,
+    "amp": 61.4
+   },
+   {
+    "led": 108,
+    "cls": "pair_cross_str",
+    "near_led": 180,
+    "d": 3.0,
+    "in_legacy_window": true,
+    "amp": 47.4
+   },
+   {
+    "led": 111,
+    "cls": "pair_cross_str",
+    "near_led": 579,
+    "d": 2.2,
+    "in_legacy_window": true,
+    "amp": 44.3
+   },
+   {
+    "led": 132,
+    "cls": "pair_cross_str",
+    "near_led": 377,
+    "d": 2.8,
+    "in_legacy_window": true,
+    "amp": 42.4
+   },
+   {
+    "led": 141,
+    "cls": "pair_cross_str",
+    "near_led": 338,
+    "d": 3.6,
+    "in_legacy_window": true,
+    "amp": 47.4
+   }
+  ]
+ }
+}
