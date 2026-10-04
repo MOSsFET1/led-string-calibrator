@@ -28,3 +28,4 @@ runs/daemon/runs/run1/morning_*_backup*/
 
 runs/daemon/runs/*/*.trunc
 runs/daemon/analysis/**/repaired/
+runs/daemon/analysis/**/*.pkl

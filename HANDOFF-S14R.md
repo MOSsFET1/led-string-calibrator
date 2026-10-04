@@ -162,7 +162,13 @@ CORRECTION block — the amp25 "+97" there was refuted; true +33),
    (chunked acks at 115200 = ~3.5 s/frame relay dominates; pipeline
    or raise baud); (e) cal.html UI: abort button always visible
    mid-battery, ws-state header tracks real socket state; (f) daemon
-   refuse/warn on multi-directive cmds files (standing rule §10).
+   refuse/warn on multi-directive cmds files (standing rule §10); (g)
+   daemon `decode_frames` writes ONLY FEND-terminated groups — the 30 s
+   tick once decoded in-flight groups and its skip-if-exists dedup
+   locked the truncation in **(24 ladder + 8 E4 truncated jpgs; ALL
+   repaired in place from the wire 04 Oct, sha-manifested — see
+   `reports/s14r-0003c-wire-repair-inplace.md`; image-hygiene gate now
+   standing: EOI+wire-verify before ANY analysis)**.
 3. **Photometry analysis integration** — the §9 morning plan runs
    (a)–(e) on the COMPLETE 0003c battery data (run0 + run8–11);
    deliverable = probe-algorithm revision + the union(L) operating
