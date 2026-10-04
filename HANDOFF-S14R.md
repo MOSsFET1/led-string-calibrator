@@ -6,7 +6,18 @@ one thing is true, it's this:** box firmware is **S14R-0003c** (cal
 battery, splice-fixed ship, pages from FLASH) and the **first COMPLETE
 cal battery ran 10:33 04 Oct** (`done:true`, 39.4 min; 572 frames
 relayed all-unique; E4 epochs r8–r11 at 25/25 on the correct rig
-3×200/cwcN 600). **Corpus is fully repaired** (33 truncated jpgs
+3×200/cwcN 600). **04 Oct evening: box firmware is now S14R-0003D**
+(tear guard in the served /cal page; pushed 9bcf150; cal-only page
+build — banner still prints the survey-era string, prove via
+CAL_BUILD + verify_flash_pages). **First E4-only validation battery
+`done:true` 8.4 min @ exp 300.03, 4×25 frames** — guard held (zero
+torn shipped) but needs a headroom retune per exposure regime
+(61/96 regrabbed, 15 page-flagged; offline: 99/100 shipped clean, 1
+true tear correctly caught; origin/main = a93b210 with tooling +
+gallery; details §10 torn-captures block). Corpus-era caveat: E4
+epochs r9–r12 landed WIRE-ONLY (mid-session archive recollided run
+dirs) — tonight's set lives in `runs/daemon/runs/s14r0003d-r9..r12`
++ `analysis/e4_0003d_extract/`. **Corpus is fully repaired** (33 truncated jpgs
 re-fixed in place from the wire, sha-manifested, EOI 528/528 — §10 +
 `reports/s14r-0003c-wire-repair-inplace.md`) **and re-analyzed**
 (photometry v2: NO conclusion flipped; E4 parity exact from run dirs;
@@ -52,6 +63,7 @@ re-verify against the repo.
 | S14R-0003 / 0003a | 03 Oct | **CAL battery** `/cal` (autonomous tripod experiments E5 idle / E1 all-ON L-ladder 5→179 / E2 50%-duty ladder via exact coded plane / E3 settle jumps 5↔120 @250 ms / E4 real 24-plane bursts at L∈{80,100,120,150}) + `CALCFG=`/`CAL`/`CALSTATS` wire; **pages served from FLASH** const arrays (RAM-resident + lazy variants both failed — see §9); cal.html `camstat` id fix; bench_daemon serial-blip hardening | compile 1,353,122 B = 68%; ship-retry storm data still saved by disk dedup |
 | S14R-0003b | 04 Oct | shipBatch 4 baked into SERVED page (mid-session CALCFG delivery proven unreliable — see §10) | superseded same day |
 | S14R-0003c | 04 Oct | **benchPull splice fix — re-ship storm root cause** (store never cleared; splice shipped prefix post-logend); **FIRST COMPLETE BATTERY** `done:true` 39.4 min, 572 relays all-unique zero re-ships, E4 r8–r11 25/25 @ rig 3×200/cwcN 600 | compile 1,353,570 B = 68%; run0 428 + run8–11 25 jpgs decoded |
+| S14R-0003D | 04 Oct | **TEAR GUARD in the served /cal page** (per-plane post-grab row-discontinuity scan jL 18 / jR 6, skipTop 120; ≤2 same-plane repaint+regrab retries, silent replace; persistent tear ships `torn:1` meta intent + page-log line; CALCFG-tunable tearThr/tearThrRed/tearSkipTop/tearRetries); E4-only staging proven | compile 1,358,114 B = 69%; pushed 9bcf150, flashed, banner rule: cal-only page build leaves the survey banner string |
 
 Compile FQBN (mandatory, bare FQBN overflows):
 `esp32:esp32:esp32c6:CDCOnBoot=cdc,PartitionScheme=min_spiffs`
@@ -371,8 +383,26 @@ decode side: their per-plane kbg values are the run's outliers (r8
 p07 rank 24/24, r10 p05 23/24, p21 24/24). Impact contained: the
 union-across-planes decoder absorbed them (412/454/390/411 confirmed
 WITH these frames present); only their below-tear evidence is noise.
-0004 candidate: in-page tear detector (row-luma discontinuity metric)
-→ auto re-grab that plane before continuing the burst.
+**LANDED + LIVE-VALIDATED same day (0003D, commit 9bcf150, flashed;
+first E4-only validation battery done:true 8.4 min @ exp 300.03):**
+implemented detector = block-mean ×7 row means (drawImage-parity),
+luma max(r,g,b), jL max 1-row jump + jR red-divergence, skipTop 120,
+thr 18/6, ≤2 same-plane regrabs, silent replace. Live result
+(a93b210; extract/score tooling in
+`runs/daemon/analysis/e4_0003d_extract/`, gallery
+`analysis/gallery/e4003d/`): guard held (zero torn shipped), BUT
+headroom did not transfer — clean row-jump max 13.4 vs the 10.6
+calibration regime → 61/96 planes regrabbed, 15 exhausted retries
+(page-shipped FLAGGED); offline scoring: 99/100 shipped planes clean,
+the ONE true tear (cwc:r12:p15 @ L150, y272, vision-confirmed)
+correctly caught. Standing: retune tearThr/tearThrRed to ≥1.3× the
+CURRENT exposure's clean max before each battery (CALCFG, no
+repack); thresholds are exposure-regime-bound like every k constant.
+KNOWN BUG for next build: benchPull ships a FIXED 5-field FRAME
+json — torn:1/tm extras NEVER reach the wire/disk meta (flag loss at
+ship, cal.html ~:992); the wire also has no silent-replace trace
+(regrab successes are byte-invisible — audit via page log or frame
+dt-timing, never the wire).
 
 **Morning sequence (aborted attempts + fixes, all wire-verified):**
 §9-style timeline: 06:44 first post-overnight TLS failures (handshake
