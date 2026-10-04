@@ -402,8 +402,11 @@ repack); thresholds are exposure-regime-bound like every k constant.
 KNOWN BUG for next build: benchPull ships a FIXED 5-field FRAME
 json — torn:1/tm extras NEVER reach the wire/disk meta (flag loss at
 ship, cal.html ~:992); the wire also has no silent-replace trace
-(regrab successes are byte-invisible — audit via page log or frame
-dt-timing, never the wire).
+(regrab successes are
+byte-invisible — audit via page log or frame dt-timing, never the wire).
+**RESOLVED 05 Oct (S14R-0004, commit 4ca98e8): torn/tm meta now ships
+full (benchPull fixed), and the tolerant .rN parse landed across the
+decode tooling — this KNOWN-BUG block is historical.**
 
 **Morning sequence (aborted attempts + fixes, all wire-verified):**
 §9-style timeline: 06:44 first post-overnight TLS failures (handshake
