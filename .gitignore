@@ -23,6 +23,34 @@ runs/daemon/runs/*/morning_0843_backup/
 runs/qa-1904/*.png
 runs/**/led_overlay.png
 
+# TWO-LEVEL-DEPTH GAP FIX (21 Oct 2026). The rules above are ONE level deep
+# (`runs/daemon/runs/*/*.jpg`), but daemon frames are stored TWO levels down
+# at `runs/daemon/runs/<run>/<subdir>/*.jpg` (e.g. run5/, run6/, run3/,
+# morning_0843_backup2/). `*` matches exactly one path segment, so those
+# images matched NO rule and were tracked — 63 of them were uploaded to
+# GitHub, 2.1 MB in 82 files, and they could be resurrected by any
+# `git add`. These rules close the gap for every subdir depth.
+runs/daemon/runs/*/*/*.jpg
+runs/daemon/runs/*/*/*.png
+runs/daemon/runs/*/*/*.jpeg
+runs/daemon/runs/*/*/*.gif
+runs/daemon/runs/*/*/*.bmp
+runs/daemon/runs/*/*/*.webp
+runs/daemon/runs/*/*/*.tif
+runs/daemon/runs/*/*/*.tiff
+runs/daemon/runs/*/*/*.heic
+# ...and one more level, in case a run nests deeper (e.g. <run>/<sub>/<sub>/)
+runs/daemon/runs/*/*/*/*.jpg
+runs/daemon/runs/*/*/*/*.png
+# any backup/preservation dir name, at any depth (the literal names
+# truncated_backup/ and morning_0843_backup/ above missed the sibling
+# variants, e.g. morning_0843_backup2/ with the trailing "2")
+runs/daemon/runs/*/*backup*/
+runs/daemon/runs/*/*backup*/*.jpg
+runs/daemon/runs/*/*backup*/*.png
+runs/daemon/runs/*/*backup*/*.jpeg
+runs/daemon/runs/*/*backup*/*.gif
+
 # morning-era run1 preservation dirs (all backups): imagery local-only
 runs/daemon/runs/run1/morning_*_backup*/
 
