@@ -12,6 +12,23 @@ __pycache__/
 # scratch
 *.log
 .DS_Store
+
+# The daemon capture log (21 Oct 2026). runs/daemon/capture.txt is an
+# APPEND-ONLY live log: tools/bench_daemon.py writes every serial line to
+# it and it is currently 62 MB on disk vs 31 MB at HEAD. It was TRACKED, so
+# a `git add -A` in this repo would sweep a +31 MB blob into a commit
+# under the wrong message - the single highest-blast-radius accident
+# available here. It is also the wire-of-record the frame re-extract
+# tools read, and it is NOT regenerable: it is the record of what the
+# phone actually sent.
+#
+# It stays tracked in HISTORY (the earlier commits are the record), but
+# from here on the working copy is local-only. The frame RE-EXTRACTS that
+# need it read the local file; nothing needs the grown copy in git.
+# If a future commit must carry a capture.txt, add the path to
+# .git/commit-allow-large and remove the ignore rule for that commit.
+runs/daemon/capture.txt
+
 # bench capture imagery: all LOCAL-ONLY (operator no-images rule).
 # Era image corpora live under runs/images/<era>/, daemon frames under
 # runs/daemon/runs/<run>/ — metas/pos JSONs/cwc_frames.txt packs stay tracked.
